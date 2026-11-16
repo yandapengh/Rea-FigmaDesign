@@ -1,0 +1,128 @@
+{
+  "sample_id": "2026-11-13-baipai-14p-newold",
+  "captured_at": "2026-11-13T10:40:00+08:00",
+  "source": {
+    "file_key": "0:0",
+    "file_name": "payment product (anonymised)",
+    "extracted_at": "2026-11-13T02:38:23.770Z",
+    "sync_complete": true
+  },
+  "artifact": {
+    "path": "data/samples/2026-11-13-baipai-14p-newold.sqlite",
+    "bytes": 484954112,
+    "sha256": "382ae8928aca70055a4f3c11bfa856a5806f21e91e7492b55d1d823fa116b9f7",
+    "journal_mode": "delete"
+  },
+  "counts": {
+    "nodes": 163601,
+    "pages": 13,
+    "components": 84,
+    "variables": 3
+  },
+  "stats": {
+    "depth_max": 20,
+    "instances": 63875,
+    "nodes_with_bound_vars": 163601,
+    "icon_containers": 18260,
+    "roots": 27
+  },
+  "node_types": {
+    "INSTANCE": 63875,
+    "FRAME": 35785,
+    "TEXT": 24809,
+    "VECTOR": 19202,
+    "GROUP": 6323,
+    "RECTANGLE": 5532,
+    "LINE": 3578,
+    "BOOLEAN_OPERATION": 1646,
+    "SLOT": 1134,
+    "ELLIPSE": 782,
+    "CONNECTOR": 688,
+    "SECTION": 104,
+    "COMPONENT": 73,
+    "SHAPE_WITH_TEXT": 45,
+    "COMPONENT_SET": 11,
+    "STAR": 10,
+    "STICKY": 4
+  },
+  "pages": [
+    {
+      "index": 0,
+      "name": "NFC",
+      "empty": false,
+      "nodes": 40009
+    },
+    {
+      "index": 1,
+      "name": "BSC",
+      "empty": true,
+      "nodes": 0
+    },
+    {
+      "index": 2,
+      "name": "Request money",
+      "empty": false,
+      "nodes": 11746
+    },
+    {
+      "index": 3,
+      "name": "CSB & User payemnt",
+      "empty": false,
+      "nodes": 12260
+    },
+    {
+      "index": 4,
+      "name": "Bank Topup",
+      "empty": false,
+      "nodes": 8069
+    },
+    {
+      "index": 5,
+      "name": "Bulk disbursement",
+      "empty": false,
+      "nodes": 4791
+    },
+    {
+      "index": 6,
+      "name": "Withdraw",
+      "empty": false,
+      "nodes": 7677
+    },
+    {
+      "index": 7,
+      "name": "Biometrices login management",
+      "empty": false,
+      "nodes": 10581
+    },
+    {
+      "index": 8,
+      "name": "T & C",
+      "empty": false,
+      "nodes": 2675
+    },
+    {
+      "index": 9,
+      "name": "User delete account",
+      "empty": false,
+      "nodes": 9232
+    },
+    {
+      "index": 10,
+      "name": "Get help",
+      "empty": false,
+      "nodes": 2226
+    },
+    {
+      "index": 11,
+      "name": "Notification settings",
+      "empty": false,
+      "nodes": 2205
+    },
+    {
+      "index": 12,
+      "name": "Set language",
+      "empty": false,
+      "nodes": 5695
+    }
+  ]
+}

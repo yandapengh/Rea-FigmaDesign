@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rea-FigmaDesign AST 探針</title>
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #1e1e1e);
+    --panel: var(--figma-color-bg-secondary, #2c2c2c);
+    --panel-strong: var(--figma-color-bg-tertiary, #383838);
+    --text: var(--figma-color-text, #ffffff);
+    --muted: var(--figma-color-text-secondary, #b3b3b3);
+    --border: var(--figma-color-border, #444444);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --on-brand: var(--figma-color-text-onbrand, #ffffff);
+    --green: #14ae5c;
+    --amber: #e2a336;
+    --red: #f2555a;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 11px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .app { height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+
+  .brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+
+  .mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    background: var(--brand);
+    color: var(--on-brand);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex: 0 0 auto;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+
+  .brand h1 { font-size: 12px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .brand p { margin: 1px 0 0; font-size: 9.5px; color: var(--muted); letter-spacing: 0.02em; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 9.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+  }
+
+  .status.is-online { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, var(--border)); }
+  .status.is-connecting { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
+  .status.is-offline { color: var(--muted); }
+  .status.is-online .status-dot {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent);
+  }
+
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 10px;
+  }
+
+  .sink { display: flex; flex-direction: column; gap: 7px; flex: 0 0 auto; }
+
+  .sink-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .sink code {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 6px;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    transition: background 120ms ease, opacity 120ms ease, transform 60ms ease;
+  }
+
+  button:active:not(:disabled) { transform: translateY(1px); }
+
+  button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  .primary {
+    width: 100%;
+    height: 36px;
+    background: var(--brand);
+    color: var(--on-brand);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .primary:hover:not(:disabled) { filter: brightness(1.06); }
+
+  .primary:disabled {
+    background: var(--panel-strong);
+    color: var(--muted);
+    cursor: default;
+    box-shadow: none;
+  }
+
+  .primary.is-busy::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 700ms linear infinite;
+  }
+
+  .secondary {
+    width: 100%;
+    height: 30px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .secondary:hover:not(:disabled) { background: var(--panel-strong); }
+
+  .secondary:disabled { opacity: 0.45; cursor: default; }
+
+  .hint {
+    margin: 0;
+    font-size: 9.5px;
+    color: var(--muted);
+    min-height: 13px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    flex: 0 0 auto;
+  }
+
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 8px 6px;
+    min-width: 0;
+  }
+
+  .stat .value {
+    display: block;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat .label {
+    display: block;
+    margin-top: 1px;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+
+  .progress { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 9.5px;
+    color: var(--muted);
+  }
+
+  #progress-label { color: var(--text); font-weight: 500; }
+
+  #progress-elapsed { font-family: var(--mono); font-size: 9px; }
+
+  .track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--panel-strong);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar {
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: var(--brand);
+    transition: width 240ms ease, background 240ms ease;
+  }
+
+  .bar.is-running {
+    width: 38%;
+    animation: slide 1150ms ease-in-out infinite;
+  }
+
+  .bar.is-done { width: 100%; background: var(--green); animation: none; }
+  .bar.is-error { width: 100%; background: var(--red); animation: none; }
+
+  .log-section {
+    flex: 1 1 auto;
+    min-height: 84px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .log-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .log-head .pipeline {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    opacity: 0.75;
+  }
+
+  .ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid transparent;
+    padding: 2px 6px;
+    font-size: 9px;
+    border-radius: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .ghost:hover { background: var(--panel); color: var(--text); }
+
+  .log {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    line-height: 1.6;
+    scrollbar-width: thin;
+  }
+
+  .log-line { display: flex; gap: 7px; align-items: baseline; }
+  .log-time { color: var(--muted); opacity: 0.65; flex: 0 0 auto; font-size: 8.5px; }
+  .log-text { word-break: break-word; }
+  .log-line.is-error .log-text { color: var(--red); }
+  .log-line.is-warn .log-text { color: var(--amber); }
+  .log-line.is-success .log-text { color: var(--green); }
+
+  .log-empty { color: var(--muted); opacity: 0.75; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  @keyframes slide {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(280%); }
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar.is-running { animation: none; width: 100%; opacity: 0.6; }
+    .primary.is-busy::before { animation: none; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="mark" aria-hidden="true">RF</div>
+        <div>
+          <h1>Rea-FigmaDesign</h1>
+          <p>AST 探針 · 第一階段</p>
+        </div>
+      </div>
+      <div id="status" class="status is-connecting" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="status-text">連線中</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="sink">
+        <div class="sink-head">
+          <span class="eyebrow">本機 SQLite 接收端</span>
+          <code>ws://localhost:8765</code>
+        </div>
+        <button id="extract" class="primary" type="button" disabled>
+          <span id="extract-label">擷取 AST 至本機 SQLite</span>
+        </button>
+        <button id="census" class="secondary" type="button" disabled>
+          <span id="census-label">頁面普查（只列 Pages）</span>
+        </button>
+        <p class="hint" id="hint">等待本機中繼服務…</p>
+      </section>
+
+      <section class="stats" aria-label="同步計數">
+        <div class="stat">
+          <span class="value" id="count-variables">0</span>
+          <span class="label">變數</span>
+        </div>
+        <div class="stat">
+          <span class="value" id="count-components">0</span>
+          <span class="label">元件</span>
+        </div>
+        <div class="stat">
+          <span class="value" id="count-nodes">0</span>
+          <span class="label">節點</span>
+        </div>
+      </section>
+
+      <section class="progress" aria-live="polite">
+        <div class="progress-meta">
+          <span id="progress-label">閒置</span>
+          <span id="progress-elapsed"></span>
+        </div>
+        <div class="track" role="progressbar" aria-label="擷取進度">
+          <div class="bar" id="bar"></div>
+        </div>
+      </section>
+
+      <section class="log-section">
+        <div class="log-head">
+          <span>事件日誌 <span class="pipeline">· QuickJS → iframe → WAL</span></span>
+          <button id="clear" class="ghost" type="button">清除</button>
+        </div>
+        <div id="log" class="log" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var WS_URL = 'ws://localhost:8765';
+      var MAX_LOG_LINES = 200;
+      var MAX_WS_BUFFER = 4 * 1024 * 1024;
+      var FORWARDABLE = {
+        PAGE_CENSUS: true,
+        SYNC_START: true,
+        CHUNK_VARIABLES: true,
+        CHUNK_COMPONENTS: true,
+        CHUNK_NODES: true,
+        SYNC_COMPLETE: true
+      };
+
+      var els = {
+        status: document.getElementById('status'),
+        statusText: document.getElementById('status-text'),
+        extract: document.getElementById('extract'),
+        extractLabel: document.getElementById('extract-label'),
+        census: document.getElementById('census'),
+        censusLabel: document.getElementById('census-label'),
+        hint: document.getElementById('hint'),
+        countVariables: document.getElementById('count-variables'),
+        countComponents: document.getElementById('count-components'),
+        countNodes: document.getElementById('count-nodes'),
+        progressLabel: document.getElementById('progress-label'),
+        progressElapsed: document.getElementById('progress-elapsed'),
+        bar: document.getElementById('bar'),
+        log: document.getElementById('log'),
+        clear: document.getElementById('clear')
+      };
+
+      var socket = null;
+      var reconnectTimer = null;
+      var reconnectAttempt = 0;
+      var pumpTimer = null;
+      var pending = [];
+      var extracting = false;
+      var censusRunning = false;
+      var startedAt = 0;
+      var elapsedTimer = null;
+      var droppedPackets = 0;
+      var dropWarned = false;
+      var serverRejected = false;
+      var counters = { variables: 0, components: 0, nodes: 0 };
+
+      function pad(value) {
+        return value < 10 ? '0' + value : String(value);
+      }
+
+      function timestamp() {
+        var now = new Date();
+        return pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+      }
+
+      function formatNumber(value) {
+        try {
+          return value.toLocaleString('en-US');
+        } catch (error) {
+          return String(value);
+        }
+      }
+
+      function log(message, level) {
+        var line = document.createElement('div');
+        line.className = 'log-line' + (level ? ' is-' + level : '');
+
+        var time = document.createElement('span');
+        time.className = 'log-time';
+        time.textContent = timestamp();
+
+        var text = document.createElement('span');
+        text.className = 'log-text';
+        text.textContent = message;
+
+        line.appendChild(time);
+        line.appendChild(text);
+        els.log.appendChild(line);
+
+        while (els.log.childElementCount > MAX_LOG_LINES) {
+          els.log.removeChild(els.log.firstElementChild);
+        }
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+
+      function setStatus(kind, text) {
+        els.status.className = 'status is-' + kind;
+        els.statusText.textContent = text;
+      }
+
+      function isOnline() {
+        return socket !== null && socket.readyState === 1;
+      }
+
+      function updateCounters() {
+        els.countVariables.textContent = formatNumber(counters.variables);
+        els.countComponents.textContent = formatNumber(counters.components);
+        els.countNodes.textContent = formatNumber(counters.nodes);
+      }
+
+      function resetCounters() {
+        counters.variables = 0;
+        counters.components = 0;
+        counters.nodes = 0;
+        droppedPackets = 0;
+        dropWarned = false;
+        serverRejected = false;
+        updateCounters();
+      }
+
+      function updateButtonState() {
+        var online = isOnline();
+        var busy = extracting || censusRunning;
+        els.extract.disabled = busy || !online;
+        els.census.disabled = busy || !online;
+        els.extract.classList.toggle('is-busy', extracting);
+        els.census.classList.toggle('is-busy', censusRunning);
+        els.extractLabel.textContent = extracting
+          ? '正在擷取 AST…'
+          : '擷取 AST 至本機 SQLite';
+        els.censusLabel.textContent = censusRunning
+          ? '頁面普查中…'
+          : '頁面普查（只列 Pages）';
+
+        if (extracting) {
+          els.hint.textContent = online
+            ? '正在以每批 500 列的區塊串流節點…'
+            : '中繼離線，封包正在遺失；本次同步不完整。';
+        } else if (censusRunning) {
+          els.hint.textContent = online
+            ? '正在讀取 Pages 清單；不會寫入節點。'
+            : '中繼離線，頁面普查無法送出。';
+        } else if (online) {
+          els.hint.textContent = '就緒。可先頁面普查，再視需要擷取 AST。';
+        } else {
+          els.hint.textContent = '請先啟動本機服務：npm run start:server';
+        }
+      }
+
+      function setBar(state) {
+        els.bar.className = 'bar';
+        if (state === 'running') {
+          els.bar.classList.add('is-running');
+          els.bar.style.width = '';
+        } else if (state === 'done') {
+          els.bar.classList.add('is-done');
+          els.bar.style.width = '100%';
+        } else if (state === 'error') {
+          els.bar.classList.add('is-error');
+          els.bar.style.width = '100%';
+        } else {
+          els.bar.style.width = '0%';
+        }
+      }
+
+      function startElapsedTimer() {
+        stopElapsedTimer();
+        els.progressElapsed.textContent = '0.0 秒';
+        elapsedTimer = setInterval(function () {
+          if (!extracting) return;
+          els.progressElapsed.textContent = ((Date.now() - startedAt) / 1000).toFixed(1) + ' 秒';
+        }, 100);
+      }
+
+      function stopElapsedTimer() {
+        if (elapsedTimer !== null) {
+          clearInterval(elapsedTimer);
+          elapsedTimer = null;
+        }
+      }
+
+      function markDrop(type) {
+        droppedPackets += 1;
+        if (!dropWarned) {
+          dropWarned = true;
+          log('傳送 ' + type + ' 時中繼不可用，同步將不完整', 'error');
+        }
+      }
+
+      function pump() {
+        if (pumpTimer !== null || !isOnline()) return;
+        if (socket.bufferedAmount > MAX_WS_BUFFER / 2) {
+          pumpTimer = setTimeout(function () {
+            pumpTimer = null;
+            pump();
+          }, 25);
+          return;
+        }
+
+        var budget = 20;
+        while (pending.length > 0 && budget > 0 && socket.bufferedAmount < MAX_WS_BUFFER / 2) {
+          var next = pending.shift();
+          budget -= 1;
+          try {
+            socket.send(JSON.stringify(next));
+          } catch (error) {
+            pending.unshift(next);
+            break;
+          }
+        }
+
+        if (pending.length > 0) {
+          pumpTimer = setTimeout(function () {
+            pumpTimer = null;
+            pump();
+          }, 25);
+        }
+      }
+
+      function forward(message) {
+        if (!isOnline()) {
+          markDrop(message.type);
+          return;
+        }
+        if (socket.bufferedAmount > MAX_WS_BUFFER || pending.length > 0) {
+          pending.push(message);
+          pump();
+          return;
+        }
+        try {
+          socket.send(JSON.stringify(message));
+        } catch (error) {
+          pending.push(message);
+          pump();
+        }
+      }
+
+      function scheduleReconnect() {
+        if (reconnectTimer !== null) return;
+        var delay = Math.min(15000, 1000 * Math.pow(2, reconnectAttempt));
+        reconnectAttempt += 1;
+        setStatus('offline', Math.round(delay / 1000) + ' 秒後重試');
+        reconnectTimer = setTimeout(function () {
+          reconnectTimer = null;
+          connect();
+        }, delay);
+      }
+
+      function connect() {
+        if (socket !== null && (socket.readyState === 0 || socket.readyState === 1)) return;
+
+        setStatus('connecting', '連線中');
+        var ws;
+        try {
+          ws = new WebSocket(WS_URL);
+        } catch (error) {
+          log('WebSocket 無法使用：' + error.message, 'error');
+          scheduleReconnect();
+          return;
+        }
+        socket = ws;
+
+        ws.onopen = function () {
+          reconnectAttempt = 0;
+          dropWarned = false;
+          if (reconnectTimer !== null) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+          setStatus('online', '已連線');
+          log('中繼已連線 · ' + WS_URL, 'success');
+          updateButtonState();
+          pump();
+        };
+
+        ws.onmessage = function (event) {
+          var ack;
+          try {
+            ack = JSON.parse(event.data);
+          } catch (error) {
+            return;
+          }
+          if (ack && ack.status === 'ERROR') {
+            serverRejected = true;
+            log('伺服器拒絕 ' + (ack.receivedType || '封包') + '：' + (ack.error || '未知錯誤'), 'error');
+            return;
+          }
+          if (ack && ack.receivedType === 'SYNC_COMPLETE') {
+            log('SQLite 同步已確認 · file_meta 已寫入', 'success');
+          }
+          if (ack && ack.receivedType === 'PAGE_CENSUS') {
+            log('SQLite 已寫入頁面清單 · ' + (ack.count || 0) + ' 筆', 'success');
+          }
+        };
+
+        ws.onclose = function () {
+          if (socket !== ws) return; // A stale socket must not clear the live queue.
+          socket = null;
+          if (pending.length > 0) {
+            droppedPackets += pending.length;
+            pending.length = 0;
+          }
+          if (pumpTimer !== null) {
+            clearTimeout(pumpTimer);
+            pumpTimer = null;
+          }
+          setStatus('offline', '離線');
+          if (extracting) {
+            log('中繼在同步期間斷線，擷取結果將不完整', 'error');
+          } else if (censusRunning) {
+            censusRunning = false;
+            log('頁面普查期間中繼斷線；請確認後重新普查', 'error');
+          } else {
+            log('中繼已斷線，正在自動重試', 'warn');
+          }
+          updateButtonState();
+          scheduleReconnect();
+        };
+
+        ws.onerror = function () {
+          // onclose owns reconnect/logging; this avoids noisy duplicate errors.
+        };
+      }
+
+      function finishExtraction(success, durationMs) {
+        extracting = false;
+        stopElapsedTimer();
+        updateButtonState();
+
+        if (!success) {
+          setBar('error');
+          els.progressLabel.textContent = '不完整，請查看事件日誌';
+          return;
+        }
+
+        if (droppedPackets > 0 || serverRejected) {
+          setBar('error');
+          els.progressLabel.textContent = '不完整，請查看事件日誌';
+          log(
+            '同步結束但有資料遺失（' +
+              formatNumber(droppedPackets) +
+              ' 個封包遺失' +
+              (serverRejected ? '，伺服器拒絕了一個分塊' : '') +
+              '）；請重新執行擷取',
+            'error'
+          );
+          return;
+        }
+
+        var seconds = typeof durationMs === 'number' && durationMs > 0
+          ? durationMs / 1000
+          : (Date.now() - startedAt) / 1000;
+        setBar('done');
+        els.progressLabel.textContent = '完成 · ' + formatNumber(counters.nodes) + ' 個節點';
+        els.progressElapsed.textContent = seconds.toFixed(1) + ' 秒';
+      }
+
+      els.extract.addEventListener('click', function () {
+        if (extracting || censusRunning || !isOnline()) return;
+        resetCounters();
+        extracting = true;
+        startedAt = Date.now();
+        updateButtonState();
+        startElapsedTimer();
+        setBar('running');
+        els.progressLabel.textContent = '正在要求文件…';
+        log('正在要求 QuickJS 沙盒擷取 AST…');
+
+        parent.postMessage({ pluginMessage: { action: 'START_EXTRACTION' } }, '*');
+      });
+
+      els.census.addEventListener('click', function () {
+        if (extracting || censusRunning || !isOnline()) return;
+        censusRunning = true;
+        updateButtonState();
+        setBar('running');
+        els.progressElapsed.textContent = '';
+        els.progressLabel.textContent = '頁面普查中…';
+        log('正在讀取 Pages 清單（不會寫入節點）…');
+        parent.postMessage({ pluginMessage: { action: 'PAGE_CENSUS' } }, '*');
+      });
+
+      els.clear.addEventListener('click', function () {
+        els.log.textContent = '';
+        log('日誌已清除');
+      });
+
+      window.addEventListener('message', function (event) {
+        var message = event.data && event.data.pluginMessage;
+        if (!message || typeof message !== 'object') return;
+
+        if (message.type === 'ERROR') {
+          var detail = message.payload && typeof message.payload.message === 'string'
+            ? message.payload.message
+            : '未知的擷取錯誤';
+          if (censusRunning) {
+            censusRunning = false;
+            updateButtonState();
+            setBar('error');
+            els.progressLabel.textContent = '頁面普查失敗';
+            log('頁面普查失敗：' + detail, 'error');
+          } else {
+            log('擷取失敗：' + detail, 'error');
+            finishExtraction(false);
+          }
+          return;
+        }
+
+        if (!FORWARDABLE[message.type]) return;
+
+        var payload = message.payload;
+        var count = Array.isArray(payload) ? payload.length : 0;
+
+        if (message.type === 'PAGE_CENSUS') {
+          var censusRows = Array.isArray(payload) ? payload : [];
+          var contentPages = 0;
+          for (var censusIndex = 0; censusIndex < censusRows.length; censusIndex += 1) {
+            if (censusRows[censusIndex].is_empty === 0) contentPages += 1;
+          }
+          var emptyPages = censusRows.length - contentPages;
+          censusRunning = false;
+          updateButtonState();
+          setBar('done');
+          els.progressElapsed.textContent = '';
+          els.progressLabel.textContent = '頁面普查完成 · ' + contentPages + ' 有內容 / ' + emptyPages + ' 空頁';
+          log('頁面普查完成 · ' + censusRows.length + ' 頁（' + contentPages + ' 有內容 / ' + emptyPages + ' 空頁）', 'success');
+          forward(message);
+          return;
+        }
+
+        if (message.type === 'SYNC_START') {
+          resetCounters();
+          extracting = true;
+          startedAt = Date.now();
+          updateButtonState();
+          startElapsedTimer();
+          setBar('running');
+          els.progressLabel.textContent = '擷取中…';
+          var fileName = payload && typeof payload.file_name === 'string' ? payload.file_name : '未命名';
+          var pageCount = payload && typeof payload.page_count === 'number' ? payload.page_count : 0;
+          log('同步開始 · ' + fileName + '（' + pageCount + ' 頁）');
+        } else if (message.type === 'CHUNK_VARIABLES') {
+          counters.variables += count;
+          updateCounters();
+        } else if (message.type === 'CHUNK_COMPONENTS') {
+          counters.components += count;
+          updateCounters();
+        } else if (message.type === 'CHUNK_NODES') {
+          counters.nodes += count;
+          updateCounters();
+          if (counters.nodes > 0 && counters.nodes % 5000 === 0) {
+            log('已串流 ' + formatNumber(counters.nodes) + ' 個節點…');
+          }
+        } else if (message.type === 'SYNC_COMPLETE') {
+          var duration = payload && typeof payload.duration_ms === 'number' ? payload.duration_ms : 0;
+          log('擷取完成 · ' + formatNumber(counters.nodes) + ' 個節點，耗時 ' + (duration / 1000).toFixed(1) + ' 秒', 'success');
+          forward(message);
+          finishExtraction(true, duration);
+          return;
+        }
+
+        forward(message);
+      });
+
+      updateCounters();
+      setBar('idle');
+      log('等待本機 SQLite 中繼服務…');
+      connect();
+    })();
+  </script>
+</body>
+</html>

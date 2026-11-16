@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rea-FigmaDesign 第一階段 — 流水線推演</title>
+<style>
+  :root {
+    --bg: #080b11;
+    --surface: rgba(255, 255, 255, 0.032);
+    --surface-2: rgba(255, 255, 255, 0.055);
+    --border: rgba(255, 255, 255, 0.085);
+    --text: #e8eef9;
+    --muted: #8b98ad;
+    --dim: #5f6b7f;
+    --blue: #5c9bff;
+    --green: #3ddc97;
+    --amber: #ffb454;
+    --red: #ff7272;
+    --mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: Inter, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --accent: var(--blue);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(1100px 520px at 8% -12%, rgba(92, 155, 255, 0.18), transparent 60%),
+      radial-gradient(900px 480px at 96% 8%, rgba(61, 220, 151, 0.10), transparent 62%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 8px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .widget {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 18px 10px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0) 34%),
+      rgba(9, 13, 20, 0.78);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: --accent 200ms linear;
+  }
+
+  .widget[data-stage="0"] { --accent: #5c9bff; }
+  .widget[data-stage="1"] { --accent: #9b8cff; }
+  .widget[data-stage="2"] { --accent: #35d0c0; }
+  .widget[data-stage="3"] { --accent: #3ddc97; }
+
+  .head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex: 0 0 auto;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.14);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+
+  h1 {
+    margin: 5px 0 0;
+    font-size: 19px;
+    line-height: 1.25;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--muted); font-weight: 500; }
+
+  .counter {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    padding-top: 2px;
+    flex: 0 0 auto;
+  }
+
+  .counter #stage-num {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    transition: color 180ms ease;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.018);
+    flex: 0 0 auto;
+    align-self: flex-start;
+    overflow: hidden;
+  }
+
+  .tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+
+  .tab span {
+    font-family: var(--mono);
+    font-size: 9px;
+    opacity: 0.6;
+  }
+
+  .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+
+  .tab.is-active {
+    color: var(--text);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  }
+
+  .tab.is-active span { color: var(--accent); opacity: 1; }
+
+  .topology {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex: 0 0 auto;
+  }
+
+  .node {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: left;
+    appearance: none;
+    font-family: inherit;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 9px 11px;
+    min-height: 56px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 120ms ease;
+  }
+
+  .node:hover { background: var(--surface-2); color: var(--text); }
+
+  .node.is-active {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--accent) 62%, transparent);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 14%, transparent), var(--surface));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .node.is-done { border-color: rgba(61, 220, 151, 0.28); }
+
+  .node.is-done .node-index { color: var(--green); border-color: rgba(61, 220, 151, 0.3); }
+
+  .node-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+
+  .node-index {
+    display: inline-grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 8.5px;
+    color: var(--dim);
+    flex: 0 0 auto;
+  }
+
+  .node.is-active .node-index {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
+  .node-title {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .node-sub {
+    display: block;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    color: var(--muted);
+    opacity: 0.72;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .node.is-active .node-sub { opacity: 1; }
+
+  .connector {
+    flex: 0 0 30px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .connector-line {
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
+  }
+
+  .connector-line::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    top: -2px;
+    width: 5px;
+    height: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+    border-right: 1px solid rgba(255, 255, 255, 0.28);
+    transform: rotate(45deg);
+  }
+
+  .connector-label {
+    position: absolute;
+    top: calc(50% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 7px;
+    letter-spacing: 0.02em;
+    color: var(--dim);
+    white-space: nowrap;
+    background: rgba(8, 11, 17, 0.9);
+    padding: 0 2px;
+    border-radius: 2px;
+    opacity: 0.9;
+    transition: color 160ms ease;
+  }
+
+  .packet {
+    position: absolute;
+    top: calc(50% - 2px);
+    left: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    opacity: 0;
+  }
+
+  .connector.is-flowing .connector-line { background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+  .connector.is-flowing .connector-label { color: var(--accent); }
+  .connector.is-flowing .packet { opacity: 1; animation: packet 1.35s linear infinite; }
+  .connector.is-done .connector-line { background: linear-gradient(90deg, rgba(61, 220, 151, 0.12), rgba(61, 220, 151, 0.55)); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.06fr 1fr;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .panel {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 13px 14px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.008));
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+    margin-bottom: 10px;
+  }
+
+  .kicker {
+    display: block;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 2px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  .pill, .badge {
+    flex: 0 0 auto;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    white-space: nowrap;
+  }
+
+  .badge { color: var(--muted); border-color: var(--border); background: rgba(255, 255, 255, 0.03); }
+
+  .guards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1 1 auto;
+  }
+
+  .guards li {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 7px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.018);
+    border: 1px solid transparent;
+    animation: rise 260ms ease both;
+  }
+
+  .guards li:hover { border-color: var(--border); background: rgba(255, 255, 255, 0.03); }
+
+  .g-mark {
+    flex: 0 0 auto;
+    width: 13px;
+    height: 13px;
+    margin-top: 1px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+    color: var(--accent);
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  .guards code {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .guards p {
+    margin: 1px 0 0;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .insight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(255, 255, 255, 0.055);
+    flex: 0 0 auto;
+  }
+
+  .insight-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    flex: 0 0 auto;
+  }
+
+  .insight p {
+    margin: 0;
+    font-size: 9.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .samples {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex: 0 0 auto;
+  }
+
+  .sample {
+    appearance: none;
+    font-family: inherit;
+    font-size: 9.5px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 140ms ease;
+    white-space: nowrap;
+  }
+
+  .sample:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.18); }
+
+  .sample.is-active {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+
+  .payload {
+    margin: 0;
+    flex: 1 1 auto;
+    min-height: 160px;
+    max-height: 214px;
+    overflow: auto;
+    padding: 9px 10px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(3, 6, 11, 0.68);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    line-height: 1.55;
+    color: #c7d3e6;
+    tab-size: 2;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    scrollbar-width: thin;
+  }
+
+  .payload.pop { animation: payloadIn 240ms ease both; }
+
+  .j-key { color: #8ab4f8; }
+  .j-mixed { color: var(--amber); font-weight: 600; }
+  .j-alias { color: var(--green); }
+
+  .note {
+    margin: 8px 0 0;
+    font-size: 9.5px;
+    color: var(--muted);
+    line-height: 1.45;
+    min-height: 27px;
+    flex: 0 0 auto;
+  }
+
+  .note b { color: var(--text); font-weight: 500; }
+
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex: 0 0 auto;
+    padding-top: 2px;
+  }
+
+  .foot-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    font-size: 9px;
+    color: var(--dim);
+  }
+
+  .foot-stats b { color: var(--muted); font-weight: 600; font-family: var(--mono); }
+
+  .nav { display: flex; gap: 6px; flex: 0 0 auto; }
+
+  .nav-btn {
+    appearance: none;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+
+  .nav-btn:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+  .nav-btn:disabled { opacity: 0.32; cursor: default; }
+
+  .nav-primary {
+    color: #071018;
+    background: var(--accent);
+    border-color: transparent;
+    font-weight: 600;
+  }
+
+  .nav-primary:hover:not(:disabled) { color: #071018; background: var(--accent); filter: brightness(1.08); }
+
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.13); border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  @keyframes packet {
+    0% { left: 4px; opacity: 0; }
+    18% { opacity: 1; }
+    82% { opacity: 1; }
+    100% { left: calc(100% - 8px); opacity: 0; }
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes payloadIn {
+    from { opacity: 0.35; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  @media (max-width: 820px) {
+    body { padding: 10px; }
+    .widget { padding: 14px; border-radius: 14px; }
+    h1 { font-size: 17px; }
+    .topology { flex-wrap: wrap; gap: 8px; }
+    .node { flex: 1 1 calc(50% - 8px); }
+    .connector { display: none; }
+    .grid { grid-template-columns: 1fr; }
+    .payload { max-height: 240px; }
+    .foot { flex-direction: column; align-items: stretch; }
+    .nav { justify-content: flex-end; }
+    .tabs { width: 100%; }
+    .tab { flex: 1; justify-content: center; padding: 6px 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="widget" id="widget" data-stage="0">
+    <header class="head">
+      <div>
+        <div class="eyebrow"><span class="live-dot"></span>Rea-FigmaDesign · 第一階段推演</div>
+        <h1>四段受鎖定的跳躍 <span>從 Figma 沙盒到 SQLite</span></h1>
+      </div>
+      <div class="counter" aria-hidden="true">
+        <span id="stage-num">01</span><span>/</span><span>04</span>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" aria-label="流水線階段">
+      <button class="tab is-active" type="button" data-stage="0"><span>01</span>擷取</button>
+      <button class="tab" type="button" data-stage="1"><span>02</span>分塊</button>
+      <button class="tab" type="button" data-stage="2"><span>03</span>轉送</button>
+      <button class="tab" type="button" data-stage="3"><span>04</span>落庫</button>
+    </nav>
+
+    <section class="topology" aria-label="架構拓撲">
+      <button class="node is-active" type="button" data-card="0">
+        <span class="node-top"><span class="node-index">A</span></span>
+        <span class="node-title">Figma 文件</span>
+        <span class="node-sub">100 MB+ 頁面樹</span>
+      </button>
+      <div class="connector is-flowing" data-connector="0">
+        <span class="connector-line"></span>
+        <span class="packet"></span>
+        <span class="connector-label">figma</span>
+      </div>
+      <button class="node" type="button" data-card="1">
+        <span class="node-top"><span class="node-index">B</span></span>
+        <span class="node-title">QuickJS 沙盒</span>
+        <span class="node-sub">code.ts · 無 WebSocket</span>
+      </button>
+      <div class="connector" data-connector="1">
+        <span class="connector-line"></span>
+        <span class="packet"></span>
+        <span class="connector-label">IPC</span>
+      </div>
+      <button class="node" type="button" data-card="2">
+        <span class="node-top"><span class="node-index">C</span></span>
+        <span class="node-title">Iframe 中繼</span>
+        <span class="node-sub">ui.html · 無 figma.*</span>
+      </button>
+      <div class="connector" data-connector="2">
+        <span class="connector-line"></span>
+        <span class="packet"></span>
+        <span class="connector-label">WS</span>
+      </div>
+      <button class="node" type="button" data-card="3">
+        <span class="node-top"><span class="node-index">D</span></span>
+        <span class="node-title">SQLite 圖譜</span>
+        <span class="node-sub">WAL · 5 個索引</span>
+      </button>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="kicker" id="left-kicker">QuickJS 沙盒 · code.ts</span>
+            <h2 id="left-title">非同步遍歷與脫水</h2>
+          </div>
+          <span class="pill" id="stage-pill">階段 01</span>
+        </div>
+        <ul class="guards" id="guards"></ul>
+        <div class="insight">
+          <span class="insight-dot"></span>
+          <p id="insight"></p>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="kicker">傳輸格式</span>
+            <h2 id="payload-title">脫水後的 NodeRow</h2>
+          </div>
+          <span class="badge" id="payload-badge">—</span>
+        </div>
+        <div class="samples" id="samples" role="tablist" aria-label="載荷樣本">
+          <button class="sample is-active" type="button" data-sample="0">一般 Frame</button>
+          <button class="sample" type="button" data-sample="1">Mixed 文字</button>
+          <button class="sample" type="button" data-sample="2">向量圖示</button>
+        </div>
+        <pre class="payload" id="payload" aria-live="polite"></pre>
+        <p class="note" id="note"></p>
+      </article>
+    </section>
+
+    <footer class="foot">
+      <div class="foot-stats">
+        <span><b>500</b> 節點 / 批</span>
+        <span><b>1</b> 筆 WAL / 批</span>
+        <span><b>0</b> vectorPaths 讀取</span>
+        <span><b>&lt;10 ms</b> 遞迴 CTE</span>
+      </div>
+      <div class="nav">
+        <button class="nav-btn" type="button" id="prev">← 上一步</button>
+        <button class="nav-btn nav-primary" type="button" id="next">下一步 →</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var FRAME_ROW = {
+        id: '12:340',
+        parent_id: '12:301',
+        page_id: '0:1',
+        page_name: 'Checkout',
+        child_index: 4,
+        depth: 6,
+        type: 'FRAME',
+        name: 'Card / Payment',
+        visible: 1,
+        main_component_id: null,
+        is_icon_container: 0,
+        layout_mode: 'VERTICAL',
+        layout_props_json: '{"primaryAlign":"MIN","counterAlign":"CENTER","sizingH":"FILL","sizingV":"HUG","padding":[16,16,16,16],"itemSpacing":12,"counterAxisSpacing":null,"layoutWrap":"NO_WRAP"}',
+        bbox_x: 320,
+        bbox_y: 184,
+        bbox_w: 480,
+        bbox_h: 296,
+        style_json: '{"fills":[{"type":"SOLID","hex":"#FFFFFF","opacity":1}],"strokes":[{"type":"SOLID","hex":"#D0D5DD","opacity":1}],"strokeWeight":1,"strokeAlign":"INSIDE","cornerRadius":16,"effects":[{"type":"DROP_SHADOW","radius":24,"offset":[0,8],"hex":"#101828","opacity":0.12}]}',
+        bound_variables_json: '{"fills":[{"type":"VARIABLE_ALIAS","id":"VariableID:1:3"}],"itemSpacing":{"type":"VARIABLE_ALIAS","id":"VariableID:1:8"}}',
+        text_content: null,
+        text_style_json: null,
+        reactions_json: null
+      };
+
+      var MIXED_ROW = {
+        id: '12:418',
+        parent_id: '12:340',
+        page_id: '0:1',
+        page_name: 'Checkout',
+        child_index: 2,
+        depth: 7,
+        type: 'TEXT',
+        name: 'Price / total',
+        visible: 1,
+        main_component_id: null,
+        is_icon_container: 0,
+        layout_mode: 'NONE',
+        layout_props_json: '{}',
+        bbox_x: 352,
+        bbox_y: 404,
+        bbox_w: 148,
+        bbox_h: 28,
+        style_json: '{"fills":[{"type":"SOLID","hex":"#101828","opacity":1}],"strokes":[],"strokeWeight":null,"strokeAlign":null,"cornerRadius":null,"effects":[]}',
+        bound_variables_json: '{"characters":[{"type":"VARIABLE_ALIAS","id":"VariableID:1:10"}]}',
+        text_content: 'US$ 128.00',
+        text_style_json: '{"fontFamily":"Inter","fontStyle":"MIXED","fontSize":"MIXED","fontWeight":600,"lineHeight":"MIXED","textAlignHorizontal":"RIGHT"}',
+        reactions_json: null
+      };
+
+      var ICON_ROW = {
+        id: '12:512',
+        parent_id: '12:340',
+        page_id: '0:1',
+        page_name: 'Checkout',
+        child_index: 8,
+        depth: 7,
+        type: 'FRAME',
+        name: 'icon/24/chevron-right',
+        visible: 1,
+        main_component_id: null,
+        is_icon_container: 1,
+        layout_mode: 'NONE',
+        layout_props_json: '{}',
+        bbox_x: 768,
+        bbox_y: 226,
+        bbox_w: 24,
+        bbox_h: 24,
+        style_json: '{"fills":[],"strokes":[{"type":"SOLID","hex":"#667085","opacity":1}],"strokeWeight":1.5,"strokeAlign":"CENTER","cornerRadius":0,"effects":[]}',
+        bound_variables_json: '{"strokes":[{"type":"VARIABLE_ALIAS","id":"VariableID:1:5"}]}',
+        text_content: null,
+        text_style_json: null,
+        reactions_json: null
+      };
+
+      var SAMPLES = [
+        {
+          id: 'frame',
+          label: '一般 Frame',
+          row: FRAME_ROW,
+          insight: '22 個欄位 · 2 個變數別名 · 填色壓縮為 #HEX'
+        },
+        {
+          id: 'mixed',
+          label: 'Mixed 文字',
+          row: MIXED_ROW,
+          insight: '3 個 mixed 欄位 → "MIXED" · 仍可 JSON 序列化'
+        },
+        {
+          id: 'icon',
+          label: '向量圖示',
+          row: ICON_ROW,
+          insight: '已剪除 6 個向量後代 / 18,432 個路徑點'
+        }
+      ];
+
+      var STAGES = [
+        {
+          step: '01',
+          kicker: 'QuickJS 沙盒 · code.ts',
+          title: '非同步遍歷與脫水',
+          pill: '階段 01',
+          cards: [0, 1],
+          done: [],
+          flow: 0,
+          guards: [
+            ['await page.loadAsync()', 'documentAccess: "dynamic-page" 要求先載入頁面，才能讀取 page.children。'],
+            ['await getMainComponentAsync()', '實例的主元件必須非同步解析；同步 .mainComponent 已被禁用。'],
+            ['figma.mixed 防護', 'fills、fontSize、paddingLeft 一律轉成 "MIXED"，絕不對 Symbol 呼叫 .map()。'],
+            ['向量剪枝', '≤64×64 且後代全為向量時，標記 is_icon_container = 1，不再向下走訪。']
+          ]
+        },
+        {
+          step: '02',
+          kicker: '沙盒 → iframe 邊界',
+          title: '每批 500 節點的 IPC 分塊',
+          pill: '階段 02',
+          cards: [1, 2],
+          done: [0],
+          flow: 1,
+          guards: [
+            ['BATCH_SIZE = 500', '節點在沙盒內累積，滿 500 筆就立刻觸發一次分塊。'],
+            ['figma.ui.postMessage()', 'QuickJS 唯一的出口；沙盒內沒有 WebSocket、window 或 DOM。'],
+            ['await setTimeout(r, 0)', '每次分塊後讓出事件迴圈，100 MB 檔案也不會凍結編輯器。'],
+            ['不讀 vectorPaths', '幾何資料從不序列化；圖示在容器層就被剪枝。']
+          ]
+        },
+        {
+          step: '03',
+          kicker: 'Iframe · ui.html',
+          title: 'WebSocket 中繼',
+          pill: '階段 03',
+          cards: [2, 3],
+          done: [0, 1],
+          flow: 2,
+          guards: [
+            ['WebSocket 只在這裡', 'Socket 由 iframe 持有，沙盒永遠看不到任何網路原語。'],
+            ['白名單轉送', '只有 SYNC_* 與 CHUNK_* 會轉送到 ws://localhost:8765。'],
+            ['4 MB 背壓', 'bufferedAmount 過高時排入佇列，確保封包順序不變。'],
+            ['devAllowedDomains', 'allowedDomains: ["none"]，dev 僅開放 localhost 的 WebSocket；Figma 不接受 127.0.0.1。']
+          ]
+        },
+        {
+          step: '04',
+          kicker: 'Node 服務 · db.ts',
+          title: 'WAL 交易寫入',
+          pill: '階段 04',
+          cards: [3],
+          done: [0, 1, 2],
+          flow: -1,
+          guards: [
+            ['journal_mode = WAL', 'synchronous = NORMAL：分塊快速提交，同時避免圖譜損毀。'],
+            ['每批一筆交易', '預編譯 INSERT OR REPLACE，每批 500 列一次提交。'],
+            ['提交後才 ACK', '只有資料真正落地，中繼才會收到 { status: "OK", count }。'],
+            ['索引化圖譜', '5 個索引讓遞迴 CTE 子樹查詢維持在 1 毫秒內。']
+          ]
+        }
+      ];
+
+      var state = { stage: 0, sample: 0 };
+
+      var els = {
+        widget: document.getElementById('widget'),
+        stageNum: document.getElementById('stage-num'),
+        tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
+        cards: Array.prototype.slice.call(document.querySelectorAll('.node')),
+        connectors: Array.prototype.slice.call(document.querySelectorAll('.connector')),
+        samples: Array.prototype.slice.call(document.querySelectorAll('.sample')),
+        leftKicker: document.getElementById('left-kicker'),
+        leftTitle: document.getElementById('left-title'),
+        stagePill: document.getElementById('stage-pill'),
+        guards: document.getElementById('guards'),
+        insight: document.getElementById('insight'),
+        payloadTitle: document.getElementById('payload-title'),
+        payloadBadge: document.getElementById('payload-badge'),
+        payload: document.getElementById('payload'),
+        note: document.getElementById('note'),
+        prev: document.getElementById('prev'),
+        next: document.getElementById('next')
+      };
+
+      function clamp(value, min, max) {
+        if (isNaN(value)) return min;
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function byteSize(text) {
+        try {
+          return new TextEncoder().encode(text).length;
+        } catch (error) {
+          return text.length;
+        }
+      }
+
+      function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        return (bytes / 1024).toFixed(1) + ' KB';
+      }
+
+      function highlightJson(text) {
+        var newline = String.fromCharCode(10);
+        var lines = text.split(newline);
+        var output = [];
+
+        for (var i = 0; i < lines.length; i += 1) {
+          var line = escapeHtml(lines[i]);
+          var firstQuote = line.indexOf('"');
+          var closeQuote = firstQuote >= 0 ? line.indexOf('"', firstQuote + 1) : -1;
+
+          if (firstQuote >= 0 && closeQuote > firstQuote && line.charAt(closeQuote + 1) === ':') {
+            var key = line.slice(firstQuote, closeQuote + 1);
+            line = line.slice(0, firstQuote) + '<span class="j-key">' + key + '</span>' + line.slice(closeQuote + 1);
+          }
+
+          line = line.replace(/"MIXED"/g, '<span class="j-mixed">"MIXED"</span>');
+          line = line.replace(/"VARIABLE_ALIAS"/g, '<span class="j-alias">"VARIABLE_ALIAS"</span>');
+          output.push(line);
+        }
+
+        return output.join(newline);
+      }
+
+      function noteFor(stage, sample) {
+        var id = sample.id;
+
+        if (id === 'mixed') {
+          if (stage === 0) return '3 個 mixed 值在 JSON.stringify 前壓成 <b>"MIXED"</b>；Symbol 不會進入 postMessage。';
+          if (stage === 3) return '這列完整落庫：text_style_json 存的是 <b>"MIXED"</b> 字串，不是 QuickJS Symbol。';
+          return '到了這個邊界已是合法 JSON，後續階段不需要任何特殊處理。';
+        }
+
+        if (id === 'icon') {
+          if (stage === 0) return '只做偵測：子樹在脫水前被剪掉，<b>18,432 個路徑點</b>從未被轉換。';
+          if (stage === 3) return '只有約 170 B 的容器列進入 SQLite；向量幾何從不進入管線。';
+          return 'is_icon_container = 1 讓後續分析能統計圖示，卻不需要收到任何路徑資料。';
+        }
+
+        if (stage === 0) return 'AutoLayout、填色與 2 個變數別名都保留；<b>vectorPaths</b> 從不進入這列。';
+        if (stage === 1) return 'postMessage 分塊中的 500 列之一；iframe 不解析、也不修改內容。';
+        if (stage === 2) return '單一 WebSocket 文字幀；中繼只轉送，不檢查節點載荷。';
+        return '688 KB 的驗證資料庫，遞迴子樹 CTE 約 <b>0.7 ms</b> 完成。';
+      }
+
+      function buildPayload() {
+        var stage = state.stage;
+        var sample = SAMPLES[state.sample];
+        var rowText = JSON.stringify(sample.row, null, 2);
+        var rowBytes = byteSize(JSON.stringify(sample.row));
+        var chunkBytes = Math.round(rowBytes * 500);
+
+        if (stage === 0) {
+          return {
+            title: '脫水後的 NodeRow',
+            badge: formatBytes(byteSize(rowText)) + ' / 列',
+            text: rowText,
+            note: noteFor(0, sample)
+          };
+        }
+
+        if (stage === 1) {
+          var packet = { type: 'CHUNK_NODES', payload: [sample.row] };
+          return {
+            title: 'CHUNK_NODES · postMessage',
+            badge: '≈ ' + formatBytes(chunkBytes) + ' / 500 列',
+            text: JSON.stringify(packet, null, 2),
+            note: noteFor(1, sample)
+          };
+        }
+
+        if (stage === 2) {
+          var frameBytes = byteSize(JSON.stringify({ type: 'CHUNK_NODES', payload: [sample.row] })) * 500;
+          var frame = {
+            socket: 'ws://localhost:8765',
+            forwarded: 'CHUNK_NODES',
+            frame_bytes: frameBytes,
+            buffered_amount: 0,
+            backpressure_limit: 4194304
+          };
+          return {
+            title: 'WebSocket 文字幀',
+            badge: '≈ ' + formatBytes(frameBytes) + ' / 幀',
+            text: JSON.stringify(frame, null, 2),
+            note: noteFor(2, sample)
+          };
+        }
+
+        return {
+          title: 'SQLite 落庫 → ACK',
+          badge: '持久化 ACK',
+          text: JSON.stringify({
+            ack: 'OK',
+            receivedType: 'CHUNK_NODES',
+            count: 500,
+            journal_mode: 'wal',
+            db_kb: 688,
+            nodes_total: 1500,
+            cte_ms: 0.7
+          }, null, 2),
+          note: noteFor(3, sample)
+        };
+      }
+
+      function render() {
+        var stage = STAGES[state.stage];
+        var sample = SAMPLES[state.sample];
+        var payload = buildPayload();
+
+        els.widget.setAttribute('data-stage', String(state.stage));
+        els.stageNum.textContent = stage.step;
+        els.leftKicker.textContent = stage.kicker;
+        els.leftTitle.textContent = stage.title;
+        els.stagePill.textContent = stage.pill;
+
+        for (var t = 0; t < els.tabs.length; t += 1) {
+          var isActive = Number(els.tabs[t].getAttribute('data-stage')) === state.stage;
+          els.tabs[t].classList.toggle('is-active', isActive);
+          els.tabs[t].setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        }
+
+        for (var c = 0; c < els.cards.length; c += 1) {
+          els.cards[c].classList.toggle('is-active', stage.cards.indexOf(c) !== -1);
+          els.cards[c].classList.toggle('is-done', stage.done.indexOf(c) !== -1);
+        }
+
+        for (var k = 0; k < els.connectors.length; k += 1) {
+          els.connectors[k].classList.toggle('is-flowing', stage.flow === k);
+          els.connectors[k].classList.toggle('is-done', stage.flow > k);
+        }
+
+        var markup = '';
+        for (var g = 0; g < stage.guards.length; g += 1) {
+          markup += '<li style="animation-delay:' + (g * 45) + 'ms">' +
+            '<span class="g-mark">✓</span>' +
+            '<div><code>' + escapeHtml(stage.guards[g][0]) + '</code>' +
+            '<p>' + escapeHtml(stage.guards[g][1]) + '</p></div></li>';
+        }
+        els.guards.innerHTML = markup;
+
+        for (var s = 0; s < els.samples.length; s += 1) {
+          var selected = Number(els.samples[s].getAttribute('data-sample')) === state.sample;
+          els.samples[s].classList.toggle('is-active', selected);
+          els.samples[s].setAttribute('aria-selected', selected ? 'true' : 'false');
+        }
+
+        els.insight.textContent = sample.insight;
+        els.payloadTitle.textContent = payload.title;
+        els.payloadBadge.textContent = payload.badge;
+        els.payload.innerHTML = highlightJson(payload.text);
+        els.note.innerHTML = payload.note;
+
+        els.payload.classList.remove('pop');
+        void els.payload.offsetWidth;
+        els.payload.classList.add('pop');
+
+        els.prev.disabled = state.stage === 0;
+        els.next.disabled = state.stage === STAGES.length - 1;
+      }
+
+      function goToStage(index) {
+        state.stage = clamp(index, 0, STAGES.length - 1);
+        render();
+      }
+
+      for (var t = 0; t < els.tabs.length; t += 1) {
+        els.tabs[t].addEventListener('click', function (event) {
+          goToStage(Number(event.currentTarget.getAttribute('data-stage')));
+        });
+      }
+
+      for (var c = 0; c < els.cards.length; c += 1) {
+        els.cards[c].addEventListener('click', function (event) {
+          var card = Number(event.currentTarget.getAttribute('data-card'));
+          if (card <= 1) goToStage(0);
+          else if (card === 2) goToStage(2);
+          else goToStage(3);
+        });
+      }
+
+      for (var s = 0; s < els.samples.length; s += 1) {
+        els.samples[s].addEventListener('click', function (event) {
+          state.sample = Number(event.currentTarget.getAttribute('data-sample'));
+          render();
+        });
+      }
+
+      els.prev.addEventListener('click', function () { goToStage(state.stage - 1); });
+      els.next.addEventListener('click', function () { goToStage(state.stage + 1); });
+
+      document.addEventListener('keydown', function (event) {
+        var target = event.target;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+        if (event.key === 'ArrowRight') { event.preventDefault(); goToStage(state.stage + 1); }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); goToStage(state.stage - 1); }
+      });
+
+      var params = new URLSearchParams(window.location.search);
+      var initialStage = parseInt(params.get('stage') || '1', 10) - 1;
+      var initialSample = parseInt(params.get('sample') || '1', 10) - 1;
+      state.stage = clamp(initialStage, 0, STAGES.length - 1);
+      state.sample = clamp(initialSample, 0, SAMPLES.length - 1);
+
+      render();
+    })();
+  </script>
+</body>
+</html>

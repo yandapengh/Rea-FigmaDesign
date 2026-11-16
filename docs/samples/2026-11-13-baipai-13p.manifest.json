@@ -1,0 +1,179 @@
+{
+  "sample_id": "2026-11-13-baipai-13p",
+  "captured_at": "2026-11-13T09:56:31+08:00",
+  "source": {
+    "file_key": "0:0",
+    "file_name": "payment product (anonymised)",
+    "extracted_at": "2026-11-13T01:51:16.497Z",
+    "sync_complete": true
+  },
+  "artifact": {
+    "path": "data/samples/2026-11-13-baipai-13p.sqlite",
+    "bytes": 484954112,
+    "sha256": "47497aed0beb60af7facd86130f6363a69b93cea0d6f4e5c43d9b93e39ae843b",
+    "journal_mode": "delete"
+  },
+  "counts": {
+    "nodes": 117166,
+    "pages": 13,
+    "components": 83,
+    "variables": 0
+  },
+  "stats": {
+    "depth_max": 20,
+    "instances": 45895,
+    "instances_local_main": 191,
+    "nodes_with_bound_vars": 13575,
+    "icon_containers": 12945,
+    "roots": 25
+  },
+  "node_types": {
+    "INSTANCE": 45895,
+    "FRAME": 26298,
+    "TEXT": 18656,
+    "VECTOR": 12761,
+    "GROUP": 4014,
+    "RECTANGLE": 3710,
+    "LINE": 2676,
+    "BOOLEAN_OPERATION": 1069,
+    "SLOT": 924,
+    "ELLIPSE": 541,
+    "CONNECTOR": 419,
+    "COMPONENT": 72,
+    "SECTION": 65,
+    "SHAPE_WITH_TEXT": 45,
+    "COMPONENT_SET": 11,
+    "STAR": 6,
+    "STICKY": 4
+  },
+  "pages": [
+    {
+      "index": 0,
+      "name": "NFC",
+      "empty": false,
+      "nodes": 40009
+    },
+    {
+      "index": 1,
+      "name": "BSC",
+      "empty": true,
+      "nodes": 0
+    },
+    {
+      "index": 2,
+      "name": "Request money",
+      "empty": false,
+      "nodes": 11746
+    },
+    {
+      "index": 3,
+      "name": "CSB & User payemnt",
+      "empty": false,
+      "nodes": 12260
+    },
+    {
+      "index": 4,
+      "name": "Bank Topup",
+      "empty": false,
+      "nodes": 8069
+    },
+    {
+      "index": 5,
+      "name": "Bulk disbursement",
+      "empty": false,
+      "nodes": 4791
+    },
+    {
+      "index": 6,
+      "name": "Withdraw",
+      "empty": false,
+      "nodes": 7677
+    },
+    {
+      "index": 7,
+      "name": "Biometrices login management",
+      "empty": false,
+      "nodes": 10581
+    },
+    {
+      "index": 8,
+      "name": "T & C",
+      "empty": false,
+      "nodes": 2675
+    },
+    {
+      "index": 9,
+      "name": "User delete account",
+      "empty": false,
+      "nodes": 9232
+    },
+    {
+      "index": 10,
+      "name": "Get help",
+      "empty": false,
+      "nodes": 2226
+    },
+    {
+      "index": 11,
+      "name": "Notification settings",
+      "empty": false,
+      "nodes": 2205
+    },
+    {
+      "index": 12,
+      "name": "Set language",
+      "empty": false,
+      "nodes": 5695
+    }
+  ],
+  "library_sources": {
+    "distinct": 55,
+    "top": [
+      {
+        "lib": "5304871114df50ca54a8b2ba2131981aec3ad5c1",
+        "vars": 6432
+      },
+      {
+        "lib": "1c85405f7660eb10f3c482498dbb1f8af3e17afd",
+        "vars": 4847
+      },
+      {
+        "lib": "40a726e9e1f1d54004a92e2591c3220b69aab51b",
+        "vars": 4699
+      },
+      {
+        "lib": "c2a2f56bbb22d756434438b9645f298494070d17",
+        "vars": 4079
+      },
+      {
+        "lib": "2abfddec794f03cfeed8f9e263cd8eee837f5393",
+        "vars": 2953
+      },
+      {
+        "lib": "8949e69e492ff8699aee9be14efd861f70105252",
+        "vars": 2810
+      },
+      {
+        "lib": "e3268cdfde12c4dac7d867ebd9990345fc20aa78",
+        "vars": 2388
+      },
+      {
+        "lib": "13c8bca9ec10ecec9a06b768194e0c0147a45051",
+        "vars": 2254
+      },
+      {
+        "lib": "c7b96e114b70fe542cd7d3859885d5beb0cffdac",
+        "vars": 1729
+      },
+      {
+        "lib": null,
+        "vars": 1713
+      }
+    ]
+  },
+  "notes": [
+    "variables table is empty: all variable bindings reference remote library variables",
+    "45,704 of 45,895 INSTANCE nodes point at a main component that is not in this file",
+    "13,575 nodes carry bound_variables_json referencing 30+ distinct library file keys"
+  ]
+}

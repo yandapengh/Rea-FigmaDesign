@@ -1,0 +1,13 @@
+{
+  "name": "Rea-FigmaDesign AST 探針",
+  "id": "rea-figma-ast-probe-local",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "ui.html",
+  "documentAccess": "dynamic-page",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:8765", "ws://localhost:8765"]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "note": "Operator-named screens. Empty in a fresh checkout; fill taxonomy first.",
+  "taxonomy": {
+    "page": [],
+    "dialog": []
+  },
+  "screens": []
+}
