@@ -11,7 +11,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import { Graph, profileOf } from './core/graph';
+import { Graph, archetypeOf, headlineOf, profileOf, slotsOf } from './core/graph';
 import { buildSheetCard, diffScreens, findSimilar } from './core/analyze';
 import { deriveFamilyAxes, groupStats, classifyWith, decideLabel, loadLabels, type LabelEntry, type ScreenLabel } from './core/semantics';
 
@@ -22,6 +22,27 @@ const LABELS = resolve(ROOT, 'labels');
 const SCRATCH = resolve(ROOT, '.scratch');
 
 const graphs = new Map<string, Graph>();
+
+/** Screen roots: 390x844 frames with no candidate ancestor (same rule as sheets --unique). */
+function screenRoots(g: Graph): string[] {
+  const cand = new Set<string>();
+  for (const [id, n] of g.nodes) {
+    if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
+    if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
+    cand.add(id);
+  }
+  const roots: string[] = [];
+  for (const id of cand) {
+    let p = g.nodes.get(id)?.parent_id ?? null;
+    let nested = false;
+    while (p) {
+      if (cand.has(p)) { nested = true; break; }
+      p = g.nodes.get(p)?.parent_id ?? null;
+    }
+    if (!nested) roots.push(id);
+  }
+  return roots.sort();
+}
 
 const CALL_LOG = resolve(ROOT, '.scratch/mcp-calls.jsonl');
 const STARTED_AT = new Date().toISOString();
@@ -133,6 +154,58 @@ const TOOL_DEFS: ToolDef[] = [
       additionalProperties: false,
     },
     handler: (a) => buildSheetCard(graphFor(a.sample as string), samplePath(a.sample as string), String(a.id), { labels: labelsFile() }),
+  },
+  {
+    name: 'list_screens',
+    description: 'All unique screens with their layout archetype (page / overlay-panel / overlay), plus a count by archetype. Answers questions like "how many overlay screens are there" without scanning the database.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        archetype: { type: 'string', description: 'optional filter: page | overlay-panel | overlay | unknown' },
+        sample: { type: 'string' },
+        limit: { type: 'number', description: 'max rows to return (default 500)' },
+        unique: { type: 'boolean', description: 'one representative per structural family (default true)' },
+      },
+      additionalProperties: false,
+    },
+    handler: (a) => {
+      const g = graphFor(a.sample as string);
+      const roots = screenRoots(g);
+      const unique = a.unique !== false;
+      const seen = new Set<string>();
+      const counts: Record<string, number> = {};
+      const rows: Array<Record<string, unknown>> = [];
+      for (const id of roots) {
+        const nodes = g.subtree(id).length;
+        if (nodes < 40) continue;
+        const hash = g.hash.get(id)!;
+        const key = hash + '|' + headlineOf(slotsOf(g, id).texts);
+        if (unique && seen.has(key)) continue;
+        seen.add(key);
+        const n = g.nodes.get(id)!;
+        const archetype = archetypeOf(g, id);
+        counts[archetype] = (counts[archetype] ?? 0) + 1;
+        rows.push({
+          id,
+          name: n.name,
+          page: n.page_name ?? '',
+          archetype,
+          nodes,
+          family: hash.slice(0, 12),
+        });
+      }
+      const want = typeof a.archetype === 'string' ? a.archetype : '';
+      const filtered = want ? rows.filter((r) => r.archetype === want) : rows;
+      const limit = typeof a.limit === 'number' ? Math.max(1, Math.min(2000, a.limit)) : 500;
+      return {
+        total: rows.length,
+        byArchetype: counts,
+        archetype: want || 'all',
+        matched: filtered.length,
+        returned: Math.min(filtered.length, limit),
+        screens: filtered.slice(0, limit),
+      };
+    },
   },
   {
     name: 'screen_family',

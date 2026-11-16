@@ -69,6 +69,7 @@
   <a href="#p1-4">04 我們的做法</a>
   <a href="#p1-5">05 成效與實驗方法</a>
   <a class="part">Part 2 · 怎麼做</a>
+  <a href="graph.html">↳ 數據脫水的核心方法</a>
   <a href="#p2-1">06 整體架構</a>
   <a href="#p2-2">07 技術棧與取捨</a>
   <a href="#p2-3">08 三個關鍵設計</a>
@@ -267,7 +268,7 @@ server/core/*             純函式：結構 hash、風格指紋、分類、變�
   <table>
     <tr><th>入口</th><th>給誰</th><th>特性</th></tr>
     <tr><td><code>npm run query -- &lt;cmd&gt;</code></td><td>開發者 / CI</td><td>唯讀、可 <code>--json</code>、錯誤有 code</td></tr>
-    <tr><td><code>npm run mcp</code></td><td>其他 agent</td><td>stdio JSON-RPC，9 個工具，跨 host 可用</td></tr>
+    <tr><td><code>npm run mcp</code></td><td>其他 agent</td><td>stdio JSON-RPC，10 個工具，跨 host 可用</td></tr>
     <tr><td><code>/rea-figma-review</code></td><td>設計師</td><td>DSH 斜線命令，零 token、直接開看板</td></tr>
   </table>
   <p>三個入口都只做「參數解析 + 排版」，所有計算在 <code>server/core/</code>。<code>npm run test:parity</code> 會把 CLI 的 JSON 輸出與 core 的結果<strong>逐位元比對</strong>——只要有人偷偷重算，測試就會紅。</p>
@@ -349,7 +350,7 @@ npm run sync            # 特徵表 → 預測 → 複審看板 → parity → �
 
 <footer>
   Rea-FigmaDesign · Part 1 背景與問題 · Part 2 技術架構<br>
-  延伸閱讀：<code>docs/DECISIONS.md</code>（每個決定的理由）、<code>docs/QUERY.md</code>（命令契約）、<code>docs/SKILL.md</code>（agent 操作規範）、<code>PLAN.md</code>（驗收與邊界）
+  <a href="graph.html">數據脫水的核心方法</a> · 延伸閱讀：<code>docs/DECISIONS.md</code>（每個決定的理由）、<code>docs/QUERY.md</code>（命令契約）、<code>docs/SKILL.md</code>（agent 操作規範）、<code>PLAN.md</code>（驗收與邊界）
 </footer>
 </main>
 </div>

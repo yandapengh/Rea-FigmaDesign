@@ -31,11 +31,12 @@ server/query.ts            CLI 轉接頭：參數、排版、寫檔、開瀏覽�
 npm run mcp      # JSON-RPC 2.0 over stdio, 無需額外 SDK
 ```
 
-9 個工具，唯讀 8 個、變更 1 個：
+10 個工具，唯讀 9 個、變更 1 個：
 
 | 工具 | 讀/寫 | 說明 |
 |---|---|---|
 | `list_samples` | 讀 | live db 與所有凍結樣本 |
+| `list_screens` | 讀 | 所有唯一畫面 + 版面原型計數（可依 archetype 過濾） |
 | `screen_sheet` | 讀 | 單頁特徵卡（含 AST 判不了的清單） |
 | `screen_family` | 讀 | 精確結構家族成員 |
 | `screen_variants` | 讀 | 無詞彙變體軸 |

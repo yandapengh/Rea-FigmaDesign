@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 數據脫水的核心方法</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151922; --line:#242b38; --text:#e8ebf2; --muted:#8b93a7;
+    --accent:#2f6df6; --accent2:#7a5cff; --ok:#25b47a; --warn:#e0a03a;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:flex;max-width:1180px;margin:0 auto}
+  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  main{flex:1;min-width:0;padding:56px 48px 120px}
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:40px;line-height:1.22;margin:12px 0 10px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:720px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  section{padding:42px 0 10px;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:25px;margin:0 0 8px;letter-spacing:-.01em}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{color:#cfd5e2;max-width:740px}
+  ul,ol{color:#cfd5e2;max-width:740px}
+  li{margin:6px 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
+  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;padding:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px}
+  /* 精簡流程圖 */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:20px 0 6px}
+  .flow .box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:#dbe3f2;font-size:13px;line-height:1.5}
+  .flow .box.hot{border-color:#2f6df6;background:#16203a;color:#fff}
+  .flow .arrow{color:var(--muted);font-size:14px}
+  .caption{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+  /* 步驟 */
+  .step{display:flex;gap:14px;margin:22px 0}
+  .step .n{flex:0 0 28px;height:28px;border-radius:50%;background:#1c2740;color:#9fb4ff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+  .step .body{min-width:0}
+  .step h3{margin:2px 0 6px}
+  .tool{background:#131a26;border:1px solid #22304a;border-radius:10px;padding:12px 14px;margin:10px 0;font-size:14px}
+  .tool b{color:#cfe0ff;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .tool .k{color:var(--muted);font-size:12px;display:inline-block;min-width:38px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+  .split .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .split .card .big{font-size:30px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+  .split .card .sub{color:var(--muted);font-size:13px}
+  figure{margin:22px 0}
+  figure img{width:100%;border:1px solid var(--line);border-radius:12px;display:block}
+  figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+  footer{color:var(--muted);font-size:13px;padding-top:36px}
+  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:31px}.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="brand">Rea-FigmaDesign</div>
+  <a href="#s0">00 為什麼拆開黑盒</a>
+  <a href="#s1">01 一個問題，兩個答案</a>
+  <a href="#s2">02 把檔案攤平</a>
+  <a href="#s3">03 長出圖譜</a>
+  <a href="#s4">04 模型接到任務</a>
+  <a href="#s5">05 為什麼可信</a>
+  <a href="#s6">06 換個專案還能用</a>
+  <a href="#s7">07 邊界</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">Core method · 2026</div>
+  <h1>數據脫水的<span>核心方法</span></h1>
+  <p class="lede">一個 462 MB 的 Figma 檔，如何變成一張能回答「有多少個彈窗頁面」的圖譜——以及為什麼模型可以靠它工作。</p>
+  <div class="meta">這頁只講一件事：資料被壓成什麼形狀，模型才答得出來。背景與整體架構見 <a href="index.html">index.html</a>。</div>
+</header>
+
+<section id="s0">
+  <h2><span class="num">00</span>為什麼要拆開黑盒</h2>
+  <p>招聘方問「你的資料是怎麼脫水的」，真正想確認的不是技術名詞，而是：<strong>這件事你能不能控制、能不能改、能不能換一個場景重做。</strong></p>
+  <p>黑盒的問題不在於它不準，而在於它不準的時候你不知道為什麼，要改的時候不知道從哪改。</p>
+  <div class="quote">把原理攤開，工作才能迭代，產品才能複製。</div>
+  <p>所以這頁不用「AI 自動理解設計」這種說法，而是把每一步拆成可驗證的動作：丟掉什麼、留下什麼、壓成什麼、模型在哪裡介入、答案從哪裡來。</p>
+</section>
+
+<section id="s1">
+  <h2><span class="num">01</span>一個問題，兩個答案</h2>
+  <p>先看真實的問題：「這份檔案裡有多少個彈窗頁面？」</p>
+  <p>這個問題其實是<strong>兩個問題</strong>，取決於「彈窗」指什麼：</p>
+  <div class="split">
+    <div class="card">
+      <div class="sub">結構定義：畫面上有沒有遮罩層</div>
+      <div class="big">119</div>
+      <div class="sub">87 個有面板 + 32 個無面板</div>
+    </div>
+    <div class="card">
+      <div class="sub">語意定義：設計師分類屬於 dialog</div>
+      <div class="big">?</div>
+      <div class="sub">需要人工標註；未標註的畫面不能算</div>
+    </div>
+  </div>
+  <p>結構定義可以從資料算出來，而且<strong>對全部 291 個畫面都成立</strong>。語意定義需要人先建立分類，只能回答已標註的部分。</p>
+  <p>下面的引導，就是模型怎麼在兩者之間走完一次完整的查詢。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">02</span>第一步：把檔案攤平</h2>
+  <p>Figma 檔不是資料庫，是一棵由節點組成的樹。要能查詢，先把它變成表格。</p>
+
+  <div class="flow">
+    <div class="box">Figma 檔<br><span class="caption">462 MB</span></div>
+    <div class="arrow">→</div>
+    <div class="box hot">插件抽取<br><span class="caption">只讀 20 個欄位</span></div>
+    <div class="arrow">→</div>
+    <div class="box">分批送出<br><span class="caption">500 筆 / 批</span></div>
+    <div class="arrow">→</div>
+    <div class="box">SQLite<br><span class="caption">節點表</span></div>
+  </div>
+  <p class="caption">圖 1：抽取只做一次；之後所有問題都問這張表。</p>
+
+  <h3>丟掉什麼</h3>
+  <table>
+    <tr><th>丟掉</th><th>為什麼</th></tr>
+    <tr><td>向量幾何（path / network）</td><td>資料量最大，但對「這是什麼頁、什麼狀態」沒有幫助</td></tr>
+    <tr><td>完整的 style 物件</td><td>只留顏色、字階、圓角、陰影等統計需要的欄位</td></tr>
+    <tr><td>圖示內部的節點</td><td>小於 64×64 且全為向量時，標記「這裡有圖示」就停止往下</td></tr>
+  </table>
+
+  <h3>留下什麼</h3>
+  <p>大約 20 個欄位，其中三個撐起整個結構：</p>
+  <pre><code>parent_id      邊：誰是誰的父節點
+child_index    順序：誰蓋在誰上面（z-order）
+type / bbox    形狀：這是什麼、多大</code></pre>
+  <p>這一步之後，檔案變成「16 萬列的表格」。但它還不是圖譜——只是一堆互不相關的列。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">03</span>第二步：長出圖譜</h2>
+  <p>把表格變成圖譜，只做一件事：<strong>讓「相同」可以被計算。</strong></p>
+
+  <div class="flow">
+    <div class="box">16 萬個節點</div>
+    <div class="arrow">→</div>
+    <div class="box">用 parent + child_index<br>接回一棵樹</div>
+    <div class="arrow">→</div>
+    <div class="box hot">每個節點算一個 hash<br><span class="caption">type + 子節點 hash</span></div>
+    <div class="arrow">→</div>
+    <div class="box">相同 hash = 相同結構</div>
+  </div>
+  <p class="caption">圖 2：子樹被壓成 32 字元；比較結構不用再比 16 萬個節點。</p>
+
+  <h3>這個 hash 是怎麼來的</h3>
+  <pre><code>hash(節點) = md5( 型別 + 依序的子節點 hash )
+
+畫面 A：FRAME [TEXT, FRAME [TEXT, ICON], BUTTON]
+畫面 B：FRAME [TEXT, FRAME [TEXT, ICON], BUTTON]
+         → 同一個 hash → 同一個家族</code></pre>
+
+  <h3>壓完之後的數字</h3>
+  <table>
+    <tr><th>階段</th><th>數量</th><th>意義</th></tr>
+    <tr><td>390×844 的畫面</td><td>512</td><td>原始數量（含複本）</td></tr>
+    <tr><td>結構 + 文案去重後</td><td><strong>291</strong></td><td>真正不同的畫面</td></tr>
+    <tr><td>結構簽名</td><td><strong>68</strong></td><td>只差文案、不差結構的歸為同一種</td></tr>
+  </table>
+
+  <p>這裡有一個很容易被誤解的點：<strong>291 不是「291 個 hash」</strong>。有些畫面結構相同、但標題文案不同（例如成功／失敗），它們是同一種結構的不同狀態。所以去重的鍵是「結構 hash + 標題」，這也是為什麼 291 大於 68。</p>
+
+  <h3>圖譜上額外長出的三個欄位</h3>
+  <table>
+    <tr><th>欄位</th><th>算法</th><th>回答什麼</th></tr>
+    <tr><td>archetype</td><td>與畫布同尺寸 + 無文字 + 上方有更小的兄弟</td><td>這頁是不是彈窗</td></tr>
+    <tr><td>family</td><td>同一個 hash 的成員</td><td>這頁有幾個複本</td></tr>
+    <tr><td>style profile</td><td>色票 / 字階 / 圓角 / 陰影統計</td><td>這頁屬於哪個世代</td></tr>
+  </table>
+  <p class="note">「圖譜」指的是：<strong>樹狀結構 + 子樹相等性</strong>。不是一張視覺化的網，而是讓「相同」變成一個可以查的欄位。</p>
+</section>
+
+<section id="s4">
+  <h2><span class="num">04</span>第三步：模型接到任務</h2>
+  <p>現在把鏡頭切到模型。它收到的不是資料，是一句話：</p>
+  <div class="quote">「幫我看一下，這份檔案裡有多少個彈窗頁面？」</div>
+
+  <div class="flow">
+    <div class="box">一句話</div>
+    <div class="arrow">→</div>
+    <div class="box hot">模型<br><span class="caption">選工具、讀欄位</span></div>
+    <div class="arrow">→</div>
+    <div class="box">MCP 工具</div>
+    <div class="arrow">→</div>
+    <div class="box">圖譜</div>
+    <div class="arrow">→</div>
+    <div class="box">答案 + ID</div>
+  </div>
+  <p class="caption">圖 3：模型站在問題與工具之間；它不讀 16 萬個節點，只決定「查什麼、怎麼查、怎麼解釋」。</p>
+
+  <div class="step">
+    <div class="n">1</div>
+    <div class="body">
+      <h3>聽懂，並拆成可查的問法</h3>
+      <p>「彈窗」有兩個定義（見第 01 節）。模型不能直接猜一個，它要先知道：結構定義能回答全部，語意定義只能回答已標註的部分。</p>
+      <p><strong>這一步沒有查任何資料</strong>，只是把自然語言變成一個可以執行的計畫。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">2</div>
+    <div class="body">
+      <h3>呼叫第一個工具：list_screens</h3>
+      <div class="tool">
+        <div><b>list_screens</b> <span class="k">作用</span>一次拿到所有畫面的版面原型與計數</div>
+        <div><span class="k">輸入</span>無（可選 archetype 過濾）</div>
+        <div><span class="k">回傳</span>total、byArchetype、每個畫面的 id / 頁面 / 原型 / 節點數</div>
+      </div>
+      <p>真實回傳（去掉列表，只留統計）：</p>
+      <pre><code>total     291
+page      172
+overlay-panel  87
+overlay    32</code></pre>
+      <p><strong>模型在這一步做的事</strong>：呼叫、讀三個數字。它沒有「理解」16 萬個節點，也不需要。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">3</div>
+    <div class="body">
+      <h3>讀懂數字，發現差異</h3>
+      <p>87 + 32 = <strong>119</strong>。兩個數字都對，但回答的是不同問題：</p>
+      <ul>
+        <li><strong>119</strong>：所有「蓋在頁面上」的畫面（含沒有面板、只有遮罩的）</li>
+        <li><strong>87</strong>：有面板的彈窗（一般人說「彈窗」時想到的那種）</li>
+      </ul>
+      <p>模型的工作是<strong>把這個差異講清楚</strong>，而不是挑一個數字丟給使用者。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">4</div>
+    <div class="body">
+      <h3>如果要清單，再往下鑽</h3>
+      <div class="tool">
+        <div><b>screen_family</b> <span class="k">作用</span>這一頁在檔案裡有幾個複本</div>
+        <div><span class="k">回傳</span>同一個結構 hash 的所有成員 id</div>
+      </div>
+      <div class="tool">
+        <div><b>screen_sheet</b> <span class="k">作用</span>單頁的特徵卡</div>
+        <div><span class="k">回傳</span>結構 hash、風格指紋、標題文案、變體軸</div>
+      </div>
+      <div class="tool">
+        <div><b>review_queue</b> <span class="k">作用</span>待人工確認的分類清單</div>
+        <div><span class="k">回傳</span>待分類畫面（可用 archetype 過濾）</div>
+      </div>
+      <p>下鑽的價值：使用者不只知道「有 87 個」，還能把 ID 貼回 Figma 逐一確認。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">5</div>
+    <div class="body">
+      <h3>給出答案，附上定義與可驗證的 ID</h3>
+      <p>完整的回答長這樣：</p>
+      <div class="note">
+        這份檔案有 <strong>291</strong> 個不同畫面。其中<strong>結構上的彈窗</strong>有 <strong>119</strong> 個（87 個帶面板、32 個只有遮罩）；如果你指的是「設計師分類為 dialog」，目前只有 42 個畫面有標註，其餘無法判定。<br>
+        例：<code>1:102743</code>、<code>1:102744</code> 都是 page；要看彈窗清單我可以列出 ID。
+      </div>
+      <p>注意最後一句：<strong>每個數字都掛著可查證的 ID</strong>。這是「不是黑盒」最具體的證據。</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="num">05</span>這個答案為什麼可信</h2>
+  <p>三個理由，都不是「模型很聰明」：</p>
+
+  <h3>1. 數字是查詢算的，不是模型生成的</h3>
+  <p>291、87、32 都來自同一次 <code>list_screens</code> 的計數。模型就算講錯話，數字也不會變。這是把「計算」與「語言」切開的好處。</p>
+
+  <h3>2. 規則被人工標註驗證過</h3>
+  <table>
+    <tr><th>驗證</th><th>結果</th></tr>
+    <tr><td>42 個人工標註的版面原型</td><td>precision / recall <strong>1.00</strong></td></tr>
+    <tr><td>10 個節點實地抽查（設計師在 Figma 比對）</td><td><strong>10 / 10</strong> 一致</td></tr>
+    <tr><td>全量抽取對帳</td><td>163,601 / 163,601</td></tr>
+  </table>
+
+  <h3>3. 結果可以被重跑</h3>
+  <p>同一份資料、同一個版本，每次跑出來都是 291 / 87 / 32。模型換一個、對話換一個，數字不變。</p>
+
+  <figure>
+    <img src="review-board.png" alt="複審看板：左側分類導航、表格列出 ID、頁面、複本數、狀態、預測分類與信心">
+    <figcaption>複審看板：每一列都是一個可貼回 Figma 的 ID；左側導航就是第 03 節算出來的結構分組。設計師在這裡按一下，就把「我判斷錯了」寫回資料。</figcaption>
+  </figure>
+</section>
+
+<section id="s6">
+  <h2><span class="num">06</span>換一個專案，為什麼還能用</h2>
+  <p>因為整套方法只依賴三件事，而這三件事在每一個 Figma 檔裡都有：</p>
+  <table>
+    <tr><th>依賴</th><th>換專案時要改嗎</th></tr>
+    <tr><td>節點有父子關係與順序</td><td>不用，這是 Figma 的資料模型</td></tr>
+    <tr><td>遮罩 = 與畫布同尺寸、無文字、上方有面板</td><td>不用，這是設計師的慣例</td></tr>
+    <tr><td>畫面尺寸（例如 390×844）</td><td><strong>要改</strong>，換成該專案的畫布尺寸</td></tr>
+  </table>
+  <p>需要換的還有「分類字典」——但字典可以是空的。沒有字典時，工具仍然回答結構問題（119 / 87），只是不回答語意問題。</p>
+  <div class="quote">這套方法不需要先學會你的詞彙，才能開始工作。</div>
+  <p>這就是為什麼它在支付產品上成立，換到醫療、電商、內部系統也成立：<strong>變的是內容，不變的是「結構可以比較」這件事</strong>。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="num">07</span>邊界</h2>
+  <table>
+    <tr><th>限制</th><th>影響</th></tr>
+    <tr><td>語意分類需要標註</td><td>沒有標註時，只能回答結構問題；模型不能發明分類</td></tr>
+    <tr><td>沒有縮圖</td><td>看板用色票、型別比例、文案當視覺替代；要看真圖得回 Figma</td></tr>
+    <tr><td>分類預測只有全票可信</td><td>留一驗證 57%，全票 86%；其餘進人工複審</td></tr>
+  </table>
+  <p>把邊界寫出來，不是為了免責，而是讓下一個使用者知道<strong>什麼時候不該用這個工具</strong>。</p>
+</section>
+
+<footer>
+  Rea-FigmaDesign · 數據脫水的核心方法<br>
+  延伸：<a href="index.html">背景與整體架構</a> · <a href="DECISIONS.md">每個決定的理由</a> · <a href="VALIDATION.md">驗證方法</a> · <a href="ARCHITECTURE.md">分層與資料契約</a>
+</footer>
+</main>
+</div>
+</body>
+</html>

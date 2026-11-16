@@ -60,7 +60,7 @@ npm run sync            # 特徵表 → 預測 → 複審看板 → parity → �
 | 入口 | 給誰 | 特性 |
 |---|---|---|
 | `npm run query -- <cmd>` | 開發者 / CI | 唯讀、`--json`、錯誤有 code |
-| `npm run mcp` | 其他 agent | stdio JSON-RPC，9 個工具 |
+| `npm run mcp` | 其他 agent | stdio JSON-RPC，10 個工具 |
 | `/rea-figma-review` | 設計師（DSH） | 斜線命令，零 token、直接開看板 |
 
 三者都只做參數解析與排版；所有計算在 `server/core/`。`npm run test:parity` 會把 CLI 的 JSON 輸出與 core 逐位元比對。
