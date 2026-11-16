@@ -107,6 +107,7 @@ interface ToolDef {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  annotations?: Record<string, unknown>;
   handler: (args: Record<string, unknown>) => unknown;
 }
 
@@ -157,13 +158,13 @@ const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: 'list_screens',
-    description: 'All unique screens with their layout archetype (page / overlay-panel / overlay), plus a count by archetype. Answers questions like "how many overlay screens are there" without scanning the database.',
+    description: 'Enumerate screens with their layout archetype and count them by archetype. Default unique:true keeps one row per (structure hash + headline), so 512 duplicated screens collapse to 291; unique:false returns every screen. Answers "how many overlay screens are there" without scanning the database.',
     inputSchema: {
       type: 'object',
       properties: {
-        archetype: { type: 'string', description: 'optional filter: page | overlay-panel | overlay | unknown' },
+        archetype: { type: 'string', enum: ['page', 'overlay-panel', 'overlay', 'unknown'], description: 'optional filter' },
         sample: { type: 'string' },
-        limit: { type: 'number', description: 'max rows to return (default 500)' },
+        limit: { type: 'number', minimum: 1, maximum: 2000, description: 'max rows to return (default 500)' },
         unique: { type: 'boolean', description: 'one representative per structural family (default true)' },
       },
       additionalProperties: false,
@@ -298,7 +299,10 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Pending category decisions from the last propagate run, optionally filtered by layout archetype (page / overlay-panel / overlay).',
     inputSchema: {
       type: 'object',
-      properties: { archetype: { type: 'string' }, limit: { type: 'number' } },
+      properties: {
+        archetype: { type: 'string', enum: ['page', 'overlay-panel', 'overlay', 'unknown'] },
+        limit: { type: 'number', minimum: 1, maximum: 500 },
+      },
       additionalProperties: false,
     },
     handler: (a) => {
@@ -314,6 +318,7 @@ const TOOL_DEFS: ToolDef[] = [
   {
     name: 'apply_labels',
     description: 'MUTATING: write category/note decisions into labels/screens.json. Requires confirm:true. Use dryRun:true to preview.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: 'object',
       properties: {
@@ -323,6 +328,7 @@ const TOOL_DEFS: ToolDef[] = [
             type: 'object',
             properties: { id: { type: 'string' }, category: { type: 'string' }, note: { type: 'string' } },
             required: ['id'],
+            additionalProperties: false,
           },
         },
         dryRun: { type: 'boolean' },
@@ -367,7 +373,12 @@ function handlerFor(name: string): ToolDef | undefined {
 }
 
 const toolsList = {
-  tools: TOOL_DEFS.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
+  tools: TOOL_DEFS.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: t.inputSchema,
+    annotations: (t as { annotations?: Record<string, unknown> }).annotations ?? { readOnlyHint: true, openWorldHint: false },
+  })),
 };
 
 function respond(id: unknown, payload: Record<string, unknown>): void {

@@ -21,7 +21,7 @@
       ▼
     server/core/*               純函式：結構 hash、風格指紋、分類、變體軸
       ├── server/query.ts       CLI（人與 CI；--json envelope）
-      ├── server/mcp.ts         MCP（stdio JSON-RPC；10 個工具）
+      ├── server/mcp.ts         MCP（stdio JSON-RPC；11 個工具）
       └── dsh-plugin/           DSH 斜線命令（設計師；零 token）
 
 Figma 的雙沙箱是硬約束，不是設計選擇：**code.ts 永遠不碰 WebSocket，ui.html 永遠不碰 figma.***。違反的話 plugin 直接無法載入。
@@ -80,7 +80,7 @@ Figma 的雙沙箱是硬約束，不是設計選擇：**code.ts 永遠不碰 Web
       audit-db.ts        唯讀稽核（完成標記、資料品質、頁面覆蓋）
       doctor.ts          前置檢查（runtime / data / labels / workspace / scripts）
       query.ts           CLI：18 支命令、envelope、錯誤碼
-      mcp.ts             MCP：stdio JSON-RPC、10 個工具、呼叫紀錄
+      mcp.ts             MCP：stdio JSON-RPC、11 個工具、呼叫紀錄
       verify-mock.ts     Phase 1 端到端驗證（不需 Figma）
       verify-parity.ts   CLI 與 core 的位元比對
       core/graph.ts      圖與特徵
