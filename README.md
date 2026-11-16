@@ -2,6 +2,8 @@
 
 > 把 Figma 檔案的 AST 抽成本地 SQLite 圖譜，讓設計師用 ID 與分類複審、讓 agent 直接查詢。
 
+**線上閱讀**：https://yandapengh.github.io/Rea-FigmaDesign/
+
 ![Rea-FigmaDesign 複審看板](docs/review-board.png)
 
 **為什麼做這個**：一份跑了兩年的支付設計檔有 163,601 個節點、512 個手機畫面，去重後只有 291 個是真的；設計師常用的名稱只有 27 種，背後卻有 68 種不同結構。Figma 擅長「畫」，不擅長「查」。
