@@ -28,6 +28,8 @@
 
 ## 已完成（2026-11-17）
 
+- [x] `docs/graph-concept.html`：用渲染的節點樹／家族／成本圖解釋圖譜（給非技術讀者）
+
 - [x] `list_screens` 的缺口判定與 `DECISIONS.md` D13（列舉 / 單體 / 聚合三種查詢形狀）
 - [x] `docs/QUERY.md`「工具約束與守則」：可強制 / 不可強制 / 真正的保證
 - [x] schema 收緊：`archetype` enum、`limit` 範圍、`annotations`、`apply_labels.rows` 嚴格化
