@@ -159,22 +159,24 @@ overlay        32</code></pre>
 
   <p>先看它在資料庫裡的三個直接子節點：</p>
   <table>
-    <tr><th>child_index</th><th>型別</th><th>名稱</th><th>尺寸</th><th>直接文字節點</th></tr>
+    <tr><th>child_index</th><th>型別</th><th>名稱</th><th>尺寸</th><th>子樹文字節點</th></tr>
     <tr><td>0</td><td>SLOT</td><td>page-slot</td><td>390 × 844</td><td>0</td></tr>
     <tr><td>1</td><td>INSTANCE</td><td>mask</td><td>390 × 844</td><td>0</td></tr>
-    <tr><td>2</td><td>SLOT</td><td>Dialog-Slot</td><td>280 × 276</td><td>0</td></tr>
+    <tr><td>2</td><td>SLOT</td><td>Dialog-Slot</td><td>280 × 276</td><td><strong>7</strong></td></tr>
   </table>
 
+  <p>注意看最後一欄：<strong>面板裡有 7 個文字節點</strong>，遮罩層是 0。彈窗當然有文字——文字在面板那一層，不在遮罩層。判斷的是<strong>遮罩</strong>沒有文字，不是整個彈窗沒有文字。</p>
   <div class="cond">
-    <div class="c"><div class="k">條件一</div><b>與畫布同尺寸</b><span>390 × 844，容差 ±3px</span></div>
-    <div class="c"><div class="k">條件二</div><b>不含任何文字</b><span>子樹裡沒有 TEXT 節點</span></div>
-    <div class="c"><div class="k">條件三</div><b>上方有更小的兄弟</b><span>child_index 2 的 Dialog-Slot，280 × 276</span></div>
+    <div class="c"><div class="k">條件一</div><b>這一層與畫布同尺寸</b><span>mask：390 × 844，容差 ±3px</span></div>
+    <div class="c"><div class="k">條件二</div><b>這一層的子樹沒有文字</b><span>mask 子樹 0 個 TEXT；面板有 7 個，但不算在內</span></div>
+    <div class="c"><div class="k">條件三</div><b>緊鄰上方是更小的面板</b><span>child_index 2 的 Dialog-Slot，280 × 276，面積小於畫布一半</span></div>
   </div>
   <div class="and">三個條件同時成立 → <strong>overlay-panel</strong></div>
 
   <p>換一個對照：<code>1:102743</code>（Withdraw 頁）的子節點是狀態列 390×47、導覽列 390×44、內容 390×492、Home indicator 390×34、Toast 96×96。沒有任何一個是 390×844——所以它是 <code>page</code>。</p>
 
-  <div class="note">判斷用的是 <strong>bbox + child_index + 子樹有沒有文字</strong>。這三個欄位在第一次抽取時就寫進 SQLite，之後每次查詢都不必再開 Figma。</div>
+  <div class="note">判斷用的是 <strong>bbox + child_index + 這一層子樹有沒有文字</strong>。這三個欄位在第一次抽取時就寫進 SQLite，之後每次查詢都不必再開 Figma。</div>
+  <p class="caption">為什麼要檢查文字？如果一個「整頁大小的圖層」上面浮著小元件（例如 Toast），沒有文字檢查就會被誤判成彈窗。遮罩是純色／半透明矩形，不該有文字；有文字的整頁圖層是內容，不是遮罩。</p>
 </section>
 
 <section id="c5">

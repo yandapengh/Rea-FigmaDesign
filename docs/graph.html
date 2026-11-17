@@ -184,7 +184,7 @@ type / bbox    形狀：這是什麼、多大</code></pre>
   <h3>圖譜上額外長出的三個欄位</h3>
   <table>
     <tr><th>欄位</th><th>算法</th><th>回答什麼</th></tr>
-    <tr><td>archetype</td><td>與畫布同尺寸 + 無文字 + 上方有更小的兄弟</td><td>這頁是不是彈窗</td></tr>
+    <tr><td>archetype</td><td>與畫布同尺寸 + 這一層無文字 + 緊鄰上方有更小的兄弟</td><td>這頁是不是彈窗</td></tr>
     <tr><td>family</td><td>同一個 hash 的成員</td><td>這頁有幾個複本</td></tr>
     <tr><td>style profile</td><td>色票 / 字階 / 圓角 / 陰影統計</td><td>這頁屬於哪個世代</td></tr>
   </table>
@@ -314,7 +314,7 @@ overlay    32</code></pre>
   <table>
     <tr><th>依賴</th><th>換專案時要改嗎</th></tr>
     <tr><td>節點有父子關係與順序</td><td>不用，這是 Figma 的資料模型</td></tr>
-    <tr><td>遮罩 = 與畫布同尺寸、無文字、上方有面板</td><td>不用，這是設計師的慣例</td></tr>
+    <tr><td>遮罩 = 這一層與畫布同尺寸、無文字、上方有面板</td><td>不用，這是設計師的慣例</td></tr>
     <tr><td>畫面尺寸（例如 390×844）</td><td><strong>要改</strong>，換成該專案的畫布尺寸</td></tr>
   </table>
   <p>需要換的還有「分類字典」——但字典可以是空的。沒有字典時，工具仍然回答結構問題（119 / 87），只是不回答語意問題。</p>

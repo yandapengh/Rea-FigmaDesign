@@ -245,7 +245,7 @@ REA_DB_PATH=~/Downloads/rea-figma-data-2026-11-13/live/rea-figma.sqlite npm run 
 `page` / `overlay-panel` / `overlay` 由規則算出，不用聚類：
 
 1. 只有一個滿版子節點時往內拆（wrapper）
-2. 找**與畫布同尺寸（±3px）且不含文字**的子節點＝遮罩
+2. 找**與畫布同尺寸（±3px）且這一層不含文字**的子節點＝遮罩
 3. 遮罩之上還有更小的兄弟節點（面積 <50%）＝彈窗面板
 
 驗證：42 個人工標註，precision 1.00 / recall 1.00。
