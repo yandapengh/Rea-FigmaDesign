@@ -103,9 +103,9 @@
   <div class="warnbox">不是每個 host 都會驗 schema。所以 server 自己也驗：<code>archetype</code> 傳 <code>popup</code> 會直接回錯誤，不會默默回 0 筆。</div>
 
   <p>schema 還帶一個給 host 看的訊號：<code>annotations</code>。</p>
-  <pre><code>readOnlyHint     true   → 唯讀，不需要確認
-apply_labels     false  → 會寫檔
-destructiveHint  true   → 可能覆蓋既有分類</code></pre>
+  <pre><code>readOnlyHint     true            → 唯讀，不需要確認
+readOnlyHint     false（apply_labels）→ 會寫檔
+destructiveHint  true（apply_labels）→ 可能覆蓋既有分類</code></pre>
   <p>Host 可以用它決定要不要跳確認視窗；這是給人看的，不是給模型看的。</p>
 </section>
 
