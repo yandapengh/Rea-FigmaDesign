@@ -56,11 +56,32 @@
   .crumbs{font-size:12.5px;color:var(--muted);margin:0 0 16px}
   .crumbs a{color:#9fb4ff}
   .crumbs .sep{margin:0 6px;color:#4a556b}
+  .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:16px;padding:10px 24px;background:rgba(15,17,21,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .topbar .wordmark{font-weight:600;font-size:14px;letter-spacing:.02em;color:#fff}
+  .topbar .links{display:flex;align-items:center;gap:18px;margin-left:auto;font-size:13.5px}
+  .topbar .links a{color:#b9c2d6}
+  .topbar .links a.active{color:#fff}
+  .topbar .links a.cta{background:var(--accent);color:#fff;padding:6px 12px;border-radius:8px}
+  .topbar .links a.cta:hover{text-decoration:none;filter:brightness(1.08)}
+  .hero-cta{margin:18px 0 0;display:flex;gap:10px;flex-wrap:wrap}
+  .btn{display:inline-block;background:var(--accent);color:#fff;padding:9px 16px;border-radius:9px;font-size:14px}
+  .btn:hover{text-decoration:none;filter:brightness(1.08)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:#cfd5e2}
   footer{color:var(--muted);font-size:13px;padding-top:40px}
   @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:32px}}
+  @media (max-width:700px){.topbar .links a:not(.cta){display:none}}
 </style>
 </head>
 <body>
+<header class="topbar">
+  <a class="wordmark" href="index.html">Rea-FigmaDesign</a>
+  <nav class="links">
+    <a href="index.html" class="active">產品介紹</a>
+    <a href="explainers.html">深入解釋</a>
+    <a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub</a>
+    <a class="cta" href="explainers.html">五篇技術解釋 →</a>
+  </nav>
+</header>
 <div class="layout">
 <nav>
   <div class="brand">Rea-FigmaDesign</div>
@@ -91,6 +112,7 @@
   <h1>從混亂的設計稿<br>到<span>可查詢的設計圖譜</span></h1>
   <p class="lede">一個把 Figma AST 抽成 SQLite、讓設計師能用 ID 與分類複審、讓 agent 能直接查詢的本地工具鏈。</p>
   <div class="meta">Part 1 說明它為什麼存在；Part 2 說明它怎麼被做出來，以及為什麼這樣選型。</div>
+  <p class="hero-cta"><a class="btn" href="explainers.html">看技術解釋（五篇）→</a><a class="btn ghost" href="#p1-0">先看故事</a></p>
 </header>
 
 <!-- ============ PART 1 ============ -->
