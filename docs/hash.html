@@ -44,6 +44,9 @@
   .accentbox{fill:#16203a;stroke:#2f6df6}
   .room{fill:#1b2230;stroke:#39445c}
   .accentroom{fill:#1d2c4d;stroke:#4c7dff}
+  .series{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:36px 0 0;padding:14px 0;border-top:1px solid var(--line);font-size:13px}
+  .series a{color:#9fb4ff}
+  .series .mid{color:var(--muted)}
   footer{color:var(--muted);font-size:13px;padding-top:36px}
   @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}}
 </style>
@@ -262,6 +265,12 @@
   </table>
   <p>所以查詢是分層的：<strong>精確（身分證）→ 近構（型別分佈 cosine ≥ 0.9）→ 樣式（色票／字階／圓角）</strong>。身分證只負責第一層，但它是最快、最確定的一層。</p>
 </section>
+
+<div class="series">
+  <a href="graph-concept.html">← 上一篇：圖譜是什麼</a>
+  <a class="mid" href="explainers.html">系列總覽</a>
+  <a href="graph.html">下一篇：數據脫水 →</a>
+</div>
 
 <footer>
   Rea-FigmaDesign · 房型身分證（hash）<br>
