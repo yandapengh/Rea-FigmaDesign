@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 圖譜是什麼：一張可以被問問題的結構圖</title>
+<style>
+  :root{--bg:#0f1115;--panel:#151922;--line:#242b38;--text:#e8ebf2;--muted:#8b93a7;--accent:#2f6df6;--accent2:#7a5cff;--ok:#25b47a}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:flex;max-width:1180px;margin:0 auto}
+  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  main{flex:1;min-width:0;padding:56px 48px 120px}
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:38px;line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:720px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  section{padding:40px 0 10px;border-bottom:1px solid var(--line)}section:last-of-type{border-bottom:0}
+  h2{font-size:25px;margin:0 0 8px}h2 .num{color:var(--accent);margin-right:10px;font-variant-numeric:tabular-nums}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{color:#cfd5e2;max-width:740px}ul,ol{color:#cfd5e2;max-width:740px}li{margin:6px 0}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
+  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;padding:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px;margin:14px 0}
+  .caption{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  figure{margin:22px 0}
+  figure svg{width:100%;height:auto;display:block;background:#101722;border:1px solid var(--line);border-radius:12px}
+  figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+  .figlabel{font:12px ui-monospace,Menlo,monospace;fill:#9fb4ff}
+  .figtext{font:12px -apple-system,"PingFang TC",sans-serif;fill:#cfd5e2}
+  .figsmall{font:11px -apple-system,"PingFang TC",sans-serif;fill:#8b93a7}
+  .figbox{fill:#151922;stroke:#2b3b5e}
+  .fighl{fill:#16203a;stroke:#2f6df6}
+  .figedge{stroke:#39445c;stroke-width:1.2}
+  footer{color:var(--muted);font-size:13px;padding-top:36px}
+  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="brand">Rea-FigmaDesign</div>
+  <a href="#g0">00 一張圖，三個問題</a>
+  <a href="#g1">01 一個畫面的骨架</a>
+  <a href="#g2">02 同一種，怎麼算</a>
+  <a href="#g3">03 規則疊在圖上</a>
+  <a href="#g4">04 不是掃全量</a>
+  <a href="#g5">05 為什麼準</a>
+  <a href="#g6">06 邊界</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">Concept · 圖譜 · 2026</div>
+  <h1>圖譜是什麼：<span>一張可以被問問題的結構圖</span></h1>
+  <p class="lede">不是視覺化的網，也不是 AI 的腦。它是一棵樹，加上一張「身分證」規則——讓「哪些頁面一樣、哪些是彈窗」變成可以算的問題。</p>
+  <div class="meta">實作篇：<a href="case-popup.html">一次真實的查詢</a> · 方法篇：<a href="graph.html">數據脫水的核心方法</a></div>
+</header>
+
+<section id="g0">
+  <h2><span class="num">00</span>一張圖，先回答三個問題</h2>
+  <p>對非技術讀者，圖譜只需要回答三件事：</p>
+  <table>
+    <tr><th>問題</th><th>答案的一句話</th></tr>
+    <tr><td>為什麼要長成這樣？</td><td>因為設計稿本身就是「誰包含誰、誰蓋在誰上面」的樹</td></tr>
+    <tr><td>為什麼 agent 拿到的資料是準的？</td><td>它拿的是算好的欄位，不是自己看圖；每個答案都掛著可查的 ID</td></tr>
+    <tr><td>為什麼不是掃一遍全量？</td><td>判斷只看每個畫面的頂層結構（全檔 2.3% 的節點），其餘靠預先算好的索引</td></tr>
+  </table>
+</section>
+
+<section id="g1">
+  <h2><span class="num">01</span>一個畫面的骨架</h2>
+  <p>這是 <code>1:102753</code>（一個真實的彈窗）在圖譜裡的樣子。每個方塊是一個節點；線是「包含」關係；z 是誰蓋在誰上面。</p>
+
+  <figure>
+    <svg viewBox="0 0 880 430" role="img" aria-label="1:102753 的節點樹：根節點 390x844，三個子節點 page-slot、mask、Dialog-Slot，z 序 0 到 2">
+      <path class="figedge" d="M430 92 L430 120 M160 120 L700 120 M160 120 L160 150 M430 120 L430 150 M700 120 L700 150"/>
+      <rect class="figbox" x="300" y="28" width="260" height="64" rx="10"/>
+      <text class="figlabel" x="316" y="52">1:102753 · INSTANCE</text>
+      <text class="figtext" x="316" y="72">390 × 844　hash d4319d6dc784</text>
+      <rect class="figbox" x="40" y="150" width="240" height="86" rx="10"/>
+      <text class="figlabel" x="56" y="176">page-slot · SLOT</text>
+      <text class="figtext" x="56" y="196">390 × 844 · z 0</text>
+      <text class="figsmall" x="56" y="216">被蓋住的頁面</text>
+      <rect class="fighl" x="320" y="150" width="240" height="86" rx="10"/>
+      <text class="figlabel" x="336" y="176">mask · INSTANCE</text>
+      <text class="figtext" x="336" y="196">390 × 844 · z 1</text>
+      <text class="figsmall" x="336" y="216">子樹文字：0　← 候選遮罩</text>
+      <rect class="figbox" x="600" y="150" width="240" height="86" rx="10"/>
+      <text class="figlabel" x="616" y="176">Dialog-Slot · SLOT</text>
+      <text class="figtext" x="616" y="196">280 × 276 · z 2</text>
+      <text class="figsmall" x="616" y="216">子樹文字：7　← 面板</text>
+      <path class="figedge" d="M720 236 L720 262"/>
+      <circle cx="660" cy="284" r="7" fill="#1b2230" stroke="#39445c"/>
+      <circle cx="700" cy="284" r="7" fill="#1b2230" stroke="#39445c"/>
+      <circle cx="740" cy="284" r="7" fill="#1b2230" stroke="#39445c"/>
+      <text class="figsmall" x="760" y="288">＋7 個 TEXT</text>
+      <text class="figsmall" x="40" y="300">z 越大＝越上層；規則用「緊鄰上方」判斷誰是面板。</text>
+      <text class="figsmall" x="40" y="322">遮罩：同尺寸、無文字。面板：更小、有文字。</text>
+    </svg>
+    <figcaption>圖 1：一個畫面的區域圖。判斷彈窗不需要看完整棵樹，只需要看這三個直接子節點。</figcaption>
+  </figure>
+
+  <p>從這張圖可以直接讀出三件事，也就是圖譜的三個元素：</p>
+  <table>
+    <tr><th>元素</th><th>在這張圖上</th><th>可以回答什麼</th></tr>
+    <tr><td><strong>邊</strong></td><td>誰連到誰（<code>parent_id</code>）</td><td>這頁包含哪些區塊</td></tr>
+    <tr><td><strong>順序</strong></td><td>z：0 → 1 → 2</td><td>誰蓋在誰上面（彈窗的關鍵）</td></tr>
+    <tr><td><strong>尺寸</strong></td><td>390×844 vs 280×276</td><td>誰是遮罩、誰是面板</td></tr>
+  </table>
+</section>
+
+<section id="g2">
+  <h2><span class="num">02</span>同一種，怎麼算</h2>
+  <p>人看得懂「這兩個彈窗長一樣」，程式不行。所以每個節點先算一張身分證：</p>
+  <pre><code>hash(節點) = md5( 型別 + 依序的子節點 hash )</code></pre>
+  <p>算法是<strong>由下往上</strong>：先算子節點，再把子節點的號碼依序串起來，算父節點。所以整棵子樹的形狀，最後會變成一個短碼。</p>
+
+  <figure>
+    <svg viewBox="0 0 880 300" role="img" aria-label="四個結構相同的彈窗，得到同一個 hash，形成一個家族">
+      <text class="figsmall" x="40" y="34">同一個 hash → 同一個家族</text>
+      <rect class="fighl" x="40" y="52" width="190" height="70" rx="10"/>
+      <rect class="fighl" x="250" y="52" width="190" height="70" rx="10"/>
+      <rect class="fighl" x="460" y="52" width="190" height="70" rx="10"/>
+      <rect class="fighl" x="670" y="52" width="170" height="70" rx="10"/>
+      <text class="figlabel" x="56" y="78">1:102753</text><text class="figsmall" x="56" y="98">Dialog-page · 51 nodes</text>
+      <text class="figlabel" x="266" y="78">1:102761</text><text class="figsmall" x="266" y="98">Dialog-page · 51 nodes</text>
+      <text class="figlabel" x="476" y="78">1:102765</text><text class="figsmall" x="476" y="98">Dialog-page · 51 nodes</text>
+      <text class="figlabel" x="686" y="78">1:103166</text><text class="figsmall" x="686" y="98">Dialog-page · 51 nodes</text>
+      <path class="figedge" d="M135 52 L135 40 L755 40 L755 52"/>
+      <text class="figlabel" x="330" y="30">hash d4319d6dc784</text>
+      <text class="figsmall" x="40" y="160">在資料裡，它們不是四張圖，是同一張身分證出現四次。</text>
+      <text class="figsmall" x="40" y="184">「這頁有幾個複本」＝這個 hash 出現幾次。</text>
+      <text class="figsmall" x="40" y="208">這也是「相似」在離散資料上的定義：結構相同，不是像素接近。</text>
+    </svg>
+    <figcaption>圖 2：家族不是分群演算法，是同一個 hash 的成員集合。</figcaption>
+  </figure>
+</section>
+
+<section id="g3">
+  <h2><span class="num">03</span>規則疊在圖上</h2>
+  <p>有了圖與身分證，彈窗就可以寫成三個條件，而且每個條件都對應圖上的一個位置：</p>
+  <table>
+    <tr><th>條件</th><th>在圖 1 的哪裡</th></tr>
+    <tr><td>這一層與畫布同尺寸（±3px）</td><td>mask 的 390×844</td></tr>
+    <tr><td>這一層的子樹沒有文字</td><td>mask 子樹 0 個 TEXT（面板的 7 個不算）</td></tr>
+    <tr><td>緊鄰上方是更小的面板</td><td>z2 的 Dialog-Slot 280×276</td></tr>
+  </table>
+  <p>三個都成立 → <code>overlay-panel</code>。所以「判斷彈窗」在圖譜上不是找相似圖片，是<strong>對每個畫面的頂層子節點做一次條件檢查</strong>。</p>
+  <div class="note">這就是為什麼 agent 拿到的答案是準的：它拿到的是「這個檢查已經跑完的結果」——archetype 這個欄位——而不是需要它自己看圖推論的東西。</div>
+</section>
+
+<section id="g4">
+  <h2><span class="num">04</span>不是掃全量</h2>
+  <p>「不掃全量」不是修辭，是可以量的。這份檔案有 163,601 個節點，判斷實際只碰了 <strong>3,831 個（2.3%）</strong>：</p>
+
+  <figure>
+    <svg viewBox="0 0 880 300" role="img" aria-label="163,601 個節點中，判斷只看 3,831 個，最後得到 87 個彈窗">
+      <rect class="figbox" x="20" y="46" width="240" height="150" rx="10"/>
+      <text class="figlabel" x="36" y="72">163,601 節點</text>
+      <g fill="#243047">
+        <circle cx="46" cy="96" r="4"/><circle cx="70" cy="96" r="4"/><circle cx="94" cy="96" r="4"/><circle cx="118" cy="96" r="4"/><circle cx="142" cy="96" r="4"/><circle cx="166" cy="96" r="4"/><circle cx="190" cy="96" r="4"/><circle cx="214" cy="96" r="4"/><circle cx="238" cy="96" r="4"/>
+        <circle cx="46" cy="116" r="4"/><circle cx="70" cy="116" r="4"/><circle cx="94" cy="116" r="4"/><circle cx="118" cy="116" r="4"/><circle cx="142" cy="116" r="4"/><circle cx="166" cy="116" r="4"/><circle cx="190" cy="116" r="4"/><circle cx="214" cy="116" r="4"/><circle cx="238" cy="116" r="4"/>
+        <circle cx="46" cy="136" r="4"/><circle cx="70" cy="136" r="4"/><circle cx="94" cy="136" r="4"/><circle cx="118" cy="136" r="4"/><circle cx="142" cy="136" r="4"/><circle cx="166" cy="136" r="4"/><circle cx="190" cy="136" r="4"/><circle cx="214" cy="136" r="4"/><circle cx="238" cy="136" r="4"/>
+      </g>
+      <text class="figsmall" x="36" y="176">全部節點（抽取時一次寫入）</text>
+      <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#39445c"/></marker></defs>
+      <path class="figedge" d="M262 121 L318 121" marker-end="url(#a)"/>
+      <rect class="fighl" x="320" y="46" width="240" height="150" rx="10"/>
+      <text class="figlabel" x="336" y="72">3,831（2.3%）</text>
+      <text class="figtext" x="336" y="100">291 個畫面的</text>
+      <text class="figtext" x="336" y="122">頂層子節點 + 候選遮罩</text>
+      <text class="figsmall" x="336" y="150">每個畫面平均 5 個節點</text>
+      <text class="figsmall" x="336" y="170">不是 16 萬</text>
+      <path class="figedge" d="M562 121 L618 121" marker-end="url(#a)"/>
+      <rect class="figbox" x="620" y="46" width="240" height="150" rx="10"/>
+      <text class="figlabel" x="636" y="72">結果</text>
+      <text class="figtext" x="636" y="104" style="font-size:26px;fill:#fff">87</text>
+      <text class="figtext" x="636" y="128">overlay-panel</text>
+      <text class="figsmall" x="636" y="152">每個都帶 node id</text>
+      <text class="figsmall" x="636" y="172">可貼回 Figma 查</text>
+      <text class="figsmall" x="36" y="240">載入整份圖譜仍是一次性成本（約 1–2 秒）；但「判斷」只看每個畫面的頂層，不是逐節點掃描。</text>
+    </svg>
+    <figcaption>圖 3：判斷的成本是「291 個畫面的頂層」，不是「16 萬個節點」。數字由實際執行量測。</figcaption>
+  </figure>
+
+  <p>為什麼可以只看頂層？因為彈窗的定義是「畫布上蓋了一層遮罩」，這件事發生在<strong>畫面的頂層</strong>，不會藏在第 20 層的子節點裡。</p>
+</section>
+
+<section id="g5">
+  <h2><span class="num">05</span>為什麼這樣是準的</h2>
+  <p>三個理由，都不依賴模型：</p>
+  <table>
+    <tr><th>理由</th><th>證據</th></tr>
+    <tr><td>規則被人工標註驗證過</td><td>42 個標註：precision / recall 1.00</td></tr>
+    <tr><td>實地抽查過</td><td>10 個節點，設計師在 Figma 逐一比對：10/10</td></tr>
+    <tr><td>答案可回查</td><td>每個結果都帶 node id；說錯可以重跑</td></tr>
+  </table>
+  <p>Agent 的工作只是把「已算好的欄位」翻譯成句子；它不需要相信自己的眼睛，也不需要相信模型的印象。</p>
+</section>
+
+<section id="g6">
+  <h2><span class="num">06</span>邊界</h2>
+  <table>
+    <tr><th>情況</th><th>會怎樣</th></tr>
+    <tr><td>遮罩被畫進元件內部、沒有獨立圖層</td><td>可能判成 <code>page</code>，需要人工複審</td></tr>
+    <tr><td>全螢幕但沒有遮罩（引導頁）</td><td>落在 <code>page</code>，這是對的</td></tr>
+    <tr><td>畫布尺寸不同（不是 390×844）</td><td>要改掃描尺寸參數，否則掃不到</td></tr>
+  </table>
+  <p>所以答案永遠帶著定義：「<strong>結構上的</strong>彈窗有 87 個」。</p>
+</section>
+
+<footer>
+  Rea-FigmaDesign · 圖譜是什麼<br>
+  延伸：<a href="case-popup.html">一次真實的查詢</a> · <a href="graph.html">數據脫水的核心方法</a> · <a href="index.html">背景與架構</a>
+</footer>
+</main>
+</div>
+</body>
+</html>
