@@ -68,7 +68,17 @@
   .btn:hover{text-decoration:none;filter:brightness(1.08)}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:#cfd5e2}
   footer{color:var(--muted);font-size:13px;padding-top:40px}
-  @media (max-width:900px){.layout > nav{display:none}main{padding:32px 22px 80px}h1{font-size:32px}}
+  @media (max-width:900px){
+    .layout{display:block}
+    .layout > nav{display:none}
+    main{padding:28px 18px 72px}
+    h1{font-size:30px}
+    table{display:block;overflow-x:auto;white-space:nowrap}
+    pre{max-width:100%}
+    .topbar{padding:10px 16px}
+    .topbar .links a.cta{font-size:12.5px;padding:6px 10px}
+    code{word-break:break-word}
+  }
   @media (max-width:700px){.topbar .links a:not(.cta){display:none}}
 </style>
 </head>
