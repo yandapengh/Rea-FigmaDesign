@@ -21,6 +21,25 @@
 
 > 三層分工：**命令**（固定動作、零 token）→ **agent**（自然語言 → 精確分類）→ **CLI**（exact match，錯了回 `did you mean`，絕不猜）。
 
+## 工具選擇（MCP）
+
+問什麼問題，用什麼工具。不要在能用列舉工具時先猜一個 ID。
+
+| 問題 | 工具 |
+|---|---|
+| 這份檔案有哪些畫面？各類型有幾個？ | `list_screens`（可帶 `archetype`） |
+| 這一頁長什麼樣？ | `screen_sheet` |
+| 這一頁有幾個複本？ | `screen_family` |
+| 這兩個版本差在哪？ | `diff_screens` |
+| 有没有長得像的頁面？ | `find_similar` |
+| 待分類的清單？ | `review_queue` |
+
+規則：
+
+1. 「有多少」一律先 `list_screens`，不要自己遍歷資料庫。
+2. 沒有 labels 時，語意分類回 `unknown`，不要用版面原型的答案代替。
+3. 回答時附上具體 node id，讓使用者能貼回 Figma 驗證。
+
 ## 開工前
 
 ```bash

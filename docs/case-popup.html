@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 一次真實的查詢：哪些頁面是彈窗</title>
+<style>
+  :root{--bg:#0f1115;--panel:#151922;--line:#242b38;--text:#e8ebf2;--muted:#8b93a7;--accent:#2f6df6;--accent2:#7a5cff;--ok:#25b47a}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:flex;max-width:1180px;margin:0 auto}
+  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  main{flex:1;min-width:0;padding:56px 48px 120px}
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:38px;line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:720px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  section{padding:42px 0 10px;border-bottom:1px solid var(--line)}section:last-of-type{border-bottom:0}
+  h2{font-size:25px;margin:0 0 8px}h2 .num{color:var(--accent);margin-right:10px;font-variant-numeric:tabular-nums}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{color:#cfd5e2;max-width:740px}ul,ol{color:#cfd5e2;max-width:740px}li{margin:6px 0}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
+  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;padding:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:20px 0 6px}
+  .flow .box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:#dbe3f2;font-size:13px;line-height:1.5}
+  .flow .box.hot{border-color:#2f6df6;background:#16203a;color:#fff}
+  .flow .arrow{color:var(--muted);font-size:14px}
+  .caption{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+  .cond{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+  .cond .c{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .cond .c .k{color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .cond .c b{display:block;margin:4px 0;color:#fff}
+  .cond .c span{color:#b9c2d6;font-size:13px}
+  .and{text-align:center;color:var(--muted);font-size:13px;margin:6px 0}
+  .result{background:#12251c;border:1px solid #1f4a36;border-radius:10px;padding:14px 16px;color:#bfe9cf;margin:10px 0}
+  .result b{color:#6fe0a4}
+  figure{margin:22px 0}figure img{width:100%;border:1px solid var(--line);border-radius:12px;display:block}
+  figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+  footer{color:var(--muted);font-size:13px;padding-top:36px}
+  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}.cond{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="brand">Rea-FigmaDesign</div>
+  <a href="#c0">00 任務</a>
+  <a href="#c1">01 agent 的起點</a>
+  <a href="#c2">02 選工具</a>
+  <a href="#c3">03 回傳</a>
+  <a href="#c4">04 為什麼是彈窗</a>
+  <a href="#c5">05 為什麼「相似」可算</a>
+  <a href="#c6">06 邊界</a>
+  <a href="#c7">07 回到任務</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">Case · MCP + 圖譜 · 2026</div>
+  <h1>一次真實的查詢：<span>哪些頁面是彈窗</span></h1>
+  <p class="lede">從一句話，到一個可以貼回 Figma 的答案。中間發生了什麼、用了哪個工具、為什麼那些數字能代表彈窗。</p>
+  <div class="meta">這是「數據脫水的核心方法」的實作篇：<a href="graph.html">方法</a>講資料形狀，這裡講一次完整的執行。</div>
+</header>
+
+<section id="c0">
+  <h2><span class="num">00</span>任務</h2>
+  <div class="quote">「這份檔案裡，哪些頁面是彈窗？大概有多少個？」</div>
+  <p>這句話裡有三個模糊的地方：</p>
+  <ul>
+    <li><strong>「彈窗」</strong>——是視覺上有遮罩層，還是設計師分類為 dialog？</li>
+    <li><strong>「哪些」</strong>——要清單還是只要數量？</li>
+    <li><strong>「這份檔案」</strong>——資料在哪裡、用哪個版本？</li>
+  </ul>
+  <p>Agent 不會一開始就知道答案。它先要知道<strong>自己有什麼工具</strong>，再決定怎麼問資料。</p>
+</section>
+
+<section id="c1">
+  <h2><span class="num">01</span>agent 的起點：工具清單與操作規範</h2>
+  <p>Agent 啟動時看到兩樣東西，沒有第三樣：</p>
+
+  <h3>1. 工具清單（MCP 提供）</h3>
+  <p>每個工具的名稱、描述、參數 schema。例如：</p>
+  <pre><code>list_screens
+  Enumerate screens with their layout archetype and count them
+  by archetype. Default unique:true keeps one row per (structure
+  hash + headline), so 512 duplicated screens collapse to 291.</code></pre>
+  <p>描述裡已經寫清楚：這是「列舉 + 計數」，預設去重，去重的鍵是結構 hash 加標題。</p>
+
+  <h3>2. 操作規範（docs/SKILL.md）</h3>
+  <p>專案自己的規則，補上工具描述不會講的事：</p>
+  <pre><code>| 這份檔案有哪些畫面？各類型有幾個？ | list_screens |
+| 這一頁長什麼樣？                   | screen_sheet |
+
+「有多少」一律先 list_screens，不要自己遍歷資料庫。</code></pre>
+
+  <div class="note">Agent 不是讀了一份神秘的「工具呼叫 skill」。它的起點是<strong>公開的工具描述</strong>加上<strong>專案的操作規範</strong>，兩者都可以被人檢查與修改。</div>
+</section>
+
+<section id="c2">
+  <h2><span class="num">02</span>選工具：列舉，而不是單體</h2>
+  <p>任務問的是「哪些、多少」——這是<strong>列舉</strong>問題，不是「這一頁長什麼樣」。</p>
+
+  <div class="flow">
+    <div class="box">任務語意<br><span class="caption">哪些 / 多少</span></div>
+    <div class="arrow">→</div>
+    <div class="box hot">讀工具描述 + SKILL</div>
+    <div class="arrow">→</div>
+    <div class="box">選 list_screens<br><span class="caption">列舉 + 計數</span></div>
+    <div class="arrow">→</div>
+    <div class="box">不要先猜 ID</div>
+  </div>
+  <p class="caption">圖 1：工具的選擇來自任務形狀，不是關鍵字。</p>
+
+  <p>如果選錯工具會怎樣？</p>
+  <table>
+    <tr><th>選錯</th><th>後果</th></tr>
+    <tr><td><code>screen_sheet</code></td><td>它一次只回一頁，要先知道 ID。拿它回答「有多少」只能靠猜</td></tr>
+    <tr><td>直接查資料庫</td><td>Agent 得自己寫 SQL、自己判斷版面原型——把計算搬進模型，結果不可重跑</td></tr>
+  </table>
+  <p>選 <code>list_screens</code> 的理由很單純：它一次回全部，而且數字是 server 算的。</p>
+</section>
+
+<section id="c3">
+  <h2><span class="num">03</span>呼叫與回傳</h2>
+  <p>實際呼叫（<code>{}</code> 代表不帶參數、取預設去重）：</p>
+  <pre><code>tools/call  list_screens  {}</code></pre>
+  <p>回傳（省略 291 筆明細，只留統計）：</p>
+  <pre><code>total  291
+page   172
+overlay-panel  87
+overlay        32</code></pre>
+
+  <p>其中一筆明細長這樣：</p>
+  <pre><code>{ "id": "1:102753", "name": "Dialog-page", "page": "Withdraw",
+  "archetype": "overlay-panel", "nodes": 51,
+  "family": "d4319d6dc784" }</code></pre>
+
+  <p>三個數字放在一起，答案的形狀就出來了：</p>
+  <div class="result">
+    <b>87</b> 個有面板的彈窗 · <b>32</b> 個只有遮罩、沒有面板 · 合計 <b>119</b>
+  </div>
+  <p>291 是「不同畫面」的數量（結構 + 標題去重），不是節點數，也不是畫面總數（原始 512 張含複本）。</p>
+</section>
+
+<section id="c4">
+  <h2><span class="num">04</span>為什麼 <code>1:102753</code> 是彈窗</h2>
+  <p>這不是模型「看圖」判斷的，是三個條件在資料上都成立。</p>
+
+  <p>先看它在資料庫裡的三個直接子節點：</p>
+  <table>
+    <tr><th>child_index</th><th>型別</th><th>名稱</th><th>尺寸</th><th>直接文字節點</th></tr>
+    <tr><td>0</td><td>SLOT</td><td>page-slot</td><td>390 × 844</td><td>0</td></tr>
+    <tr><td>1</td><td>INSTANCE</td><td>mask</td><td>390 × 844</td><td>0</td></tr>
+    <tr><td>2</td><td>SLOT</td><td>Dialog-Slot</td><td>280 × 276</td><td>0</td></tr>
+  </table>
+
+  <div class="cond">
+    <div class="c"><div class="k">條件一</div><b>與畫布同尺寸</b><span>390 × 844，容差 ±3px</span></div>
+    <div class="c"><div class="k">條件二</div><b>不含任何文字</b><span>子樹裡沒有 TEXT 節點</span></div>
+    <div class="c"><div class="k">條件三</div><b>上方有更小的兄弟</b><span>child_index 2 的 Dialog-Slot，280 × 276</span></div>
+  </div>
+  <div class="and">三個條件同時成立 → <strong>overlay-panel</strong></div>
+
+  <p>換一個對照：<code>1:102743</code>（Withdraw 頁）的子節點是狀態列 390×47、導覽列 390×44、內容 390×492、Home indicator 390×34、Toast 96×96。沒有任何一個是 390×844——所以它是 <code>page</code>。</p>
+
+  <div class="note">判斷用的是 <strong>bbox + child_index + 子樹有沒有文字</strong>。這三個欄位在第一次抽取時就寫進 SQLite，之後每次查詢都不必再開 Figma。</div>
+</section>
+
+<section id="c5">
+  <h2><span class="num">05</span>為什麼離散的資料能判斷「相似」</h2>
+  <p>因為「相似」不是比圖片，是比結構。</p>
+
+  <h3>每個節點都有一個結構 hash</h3>
+  <pre><code>hash(節點) = md5( 型別 + 依序的子節點 hash )</code></pre>
+  <p>子樹被壓成 32 字元。相同結構 → 相同 hash → 同一個家族。</p>
+
+  <p>回到 <code>1:102753</code>，它的 hash 是 <code>d4319d6dc784</code>。問「這頁有幾個複本」：</p>
+  <pre><code>screen_family  1:102753
+→ hash d4319d6dc784
+→ members: 1:103166, 1:102908, 1:102765, 1:102761 …
+   每個都是 51 個節點，Dialog-page</code></pre>
+  <p>這就是「特徵相似」在離散資料上的樣子：<strong>不是像素接近，是同一組結構關係</strong>。同一個彈窗被複製了 20 次，在資料裡就是同一個 hash 出現 20 次。</p>
+
+  <h3>那規則本身怎麼來的？</h3>
+  <p>三條件不是憑空發明，是從設計師的工作方式反推的：</p>
+  <table>
+    <tr><th>設計師怎麼做</th><th>資料上長怎樣</th></tr>
+    <tr><td>彈窗會蓋住整個畫面</td><td>遮罩與畫布同尺寸</td></tr>
+    <tr><td>遮罩本身沒有內容</td><td>遮罩子樹沒有文字</td></tr>
+    <tr><td>面板浮在遮罩上面</td><td>child_index 更大、尺寸更小</td></tr>
+  </table>
+  <p>三個條件在 42 個人工標註上 precision / recall 都是 1.00，10 個節點實地抽查 10/10 一致。</p>
+</section>
+
+<section id="c6">
+  <h2><span class="num">06</span>邊界：什麼時候會不準</h2>
+  <table>
+    <tr><th>情況</th><th>會怎樣</th></tr>
+    <tr><td>遮罩被畫進元件內部，沒有獨立圖層</td><td>可能判成 <code>page</code>，需要人工複審</td></tr>
+    <tr><td>全螢幕但沒有遮罩的頁面（例如引導頁）</td><td>會落在 <code>page</code>，這是對的</td></tr>
+    <tr><td>畫布尺寸不是 390×844</td><td>需要改掃描的尺寸參數，否則一頁都掃不到</td></tr>
+  </table>
+  <p>所以答案要附定義與 ID：<strong>「結構上的彈窗有 87 個」</strong>，而不是「彈窗有 87 個」。</p>
+</section>
+
+<section id="c7">
+  <h2><span class="num">07</span>回到任務</h2>
+  <p>完整的回答：</p>
+  <div class="note">
+    這份檔案有 <strong>291</strong> 個不同畫面。結構上的彈窗有 <strong>119</strong> 個：<strong>87</strong> 個帶面板、<strong>32</strong> 個只有遮罩。<br>
+    如果你指的是「設計師分類為 dialog」，目前只有 42 個畫面有標註，其餘無法判定。<br>
+    例：<code>1:102753</code> 是帶面板的彈窗（51 個節點，家族 <code>d4319d6dc784</code>）。
+  </div>
+  <p>要清單就再往下鑽（<code>list_screens</code> 帶 <code>archetype</code>）；要確認就開複審看板，設計師勾選後把判斷寫回 labels。</p>
+  <p>整個流程裡，模型只做了三件事：<strong>讀懂任務、選對工具、把數字翻譯成答案</strong>。計數、分群、判斷，全部在資料層完成。</p>
+</section>
+
+<footer>
+  Rea-FigmaDesign · 一次真實的查詢<br>
+  延伸：<a href="graph.html">數據脫水的核心方法</a> · <a href="index.html">背景與架構</a> · <a href="QUERY.md">命令與工具契約</a> · <a href="DECISIONS.md">決策理由</a>
+</footer>
+</main>
+</div>
+</body>
+</html>
