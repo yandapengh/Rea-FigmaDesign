@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 深入解釋：五個章節</title>
+<style>
+  :root{--bg:#0f1115;--panel:#151922;--line:#242b38;--text:#e8ebf2;--muted:#8b93a7;--accent:#2f6df6;--accent2:#7a5cff}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}a:hover{text-decoration:underline}
+  .wrap{max-width:980px;margin:0 auto;padding:64px 32px 120px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:42px;line-height:1.22;margin:12px 0 12px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:700px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:36px 0 8px;font-size:13px}
+  .flow .b{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:#dbe3f2}
+  .flow .arrow{color:var(--muted)}
+  .caption{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:38px 0 0}
+  .card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;transition:border-color .15s,transform .15s}
+  .card:hover{border-color:#3b5b9a;transform:translateY(-2px);text-decoration:none}
+  .card .n{color:var(--accent);font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.08em}
+  .card h2{font-size:19px;margin:6px 0 8px;color:#fff}
+  .card p{margin:0 0 12px;color:#b9c2d6;font-size:14px}
+  .card .tags{display:flex;gap:6px;flex-wrap:wrap}
+  .card .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#1e2635;color:#a9b6cd}
+  .card .time{margin-left:auto;color:var(--muted);font-size:12px}
+  .row{display:flex;align-items:center;gap:8px}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px;margin:26px 0 0}
+  .crumbs{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .crumbs a{color:#9fb4ff}
+  .crumbs .sep{margin:0 6px;color:#4a556b}
+  footer{color:var(--muted);font-size:13px;padding-top:40px;margin-top:40px;border-top:1px solid var(--line)}
+  @media (max-width:760px){.cards{grid-template-columns:1fr}h1{font-size:32px}.wrap{padding:44px 22px 90px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="font-size:12.5px;color:#8b93a7;margin-bottom:16px"><a href="index.html" style="color:#9fb4ff">首頁</a> / 深入解釋</div>
+  <div class="kicker">Explainers · 五個章節 · 2026</div>
+  <h1>深入解釋：<span>從圖譜到工具契約</span></h1>
+  <p class="lede">看完產品介紹，下一個問題通常是：這是怎麼做到的？靠不靠譜？這五頁依序回答，每一頁也能單獨看懂。</p>
+  <div class="meta">產品首頁：<a href="index.html">回到產品介紹</a> · 原始碼：<a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub</a></div>
+
+  <div class="flow">
+    <span class="b">1 圖譜是什麼</span><span class="arrow">→</span>
+    <span class="b">2 房型身分證</span><span class="arrow">→</span>
+    <span class="b">3 數據脫水</span><span class="arrow">→</span>
+    <span class="b">4 一次真實查詢</span><span class="arrow">→</span>
+    <span class="b">5 工具約束</span>
+  </div>
+  <p class="caption">從「為什麼」到「怎麼做」，最後回到「別人怎麼安全地使用」。</p>
+
+  <div class="cards">
+    <a class="card" href="graph-concept.html">
+      <div class="row"><span class="n">01</span><span class="time">約 8 分鐘</span></div>
+      <h2>圖譜是什麼</h2>
+      <p>用一棵節點樹、一張家族圖、一張成本圖，回答「為什麼不掃全量、為什麼 agent 拿到的是準的」。</p>
+      <div class="tags"><span class="tag">非技術讀者</span><span class="tag">節點樹</span><span class="tag">2.3%</span></div>
+    </a>
+    <a class="card" href="hash.html">
+      <div class="row"><span class="n">02</span><span class="time">約 7 分鐘</span></div>
+      <h2>房型身分證</h2>
+      <p>16 萬個房間，只有 2,779 種房型。hash 只看型別與順序，不看名字、顏色、座標。</p>
+      <div class="tags"><span class="tag">大廈比喻</span><span class="tag">Merkle</span><span class="tag">家族</span></div>
+    </a>
+    <a class="card" href="graph.html">
+      <div class="row"><span class="n">03</span><span class="time">約 10 分鐘</span></div>
+      <h2>數據脫水的核心方法</h2>
+      <p>欄位 → 結構 → 語意三層；119 與 87 為什麼是兩個答案，以及模型站在哪個位置。</p>
+      <div class="tags"><span class="tag">方法論</span><span class="tag">119 vs 87</span><span class="tag">MCP</span></div>
+    </a>
+    <a class="card" href="case-popup.html">
+      <div class="row"><span class="n">04</span><span class="time">約 6 分鐘</span></div>
+      <h2>一次真實的查詢</h2>
+      <p>對話紀錄：從一句話、選工具、真實回傳，到「為什麼這頁算彈窗」的追問。</p>
+      <div class="tags"><span class="tag">對話式</span><span class="tag">工具呼叫</span><span class="tag">可回查</span></div>
+    </a>
+    <a class="card" href="constraints.html">
+      <div class="row"><span class="n">05</span><span class="time">約 8 分鐘</span></div>
+      <h2>當別人的 agent 用你的 MCP</h2>
+      <p>四道閘門：schema、server、文件、資料；以及 schema 管不到的四件事。</p>
+      <div class="tags"><span class="tag">給開發者</span><span class="tag">契約</span><span class="tag">test:mcp</span></div>
+    </a>
+    <a class="card" href="index.html">
+      <div class="row"><span class="n">↩</span></div>
+      <h2>回到產品首頁</h2>
+      <p>背景故事、成效、整體架構，以及這個專案為什麼存在。</p>
+      <div class="tags"><span class="tag">Part 1</span><span class="tag">Part 2</span></div>
+    </a>
+  </div>
+
+  <div class="note">閱讀順序是建議，不是規則。如果你只想看「為什麼可信」，直接跳到第 4 頁；只想知道「別人會不會亂用」，去第 5 頁。</div>
+
+  <footer>
+    Rea-FigmaDesign · 深入解釋索引<br>
+    其他文件：<a href="DECISIONS.md">決策紀錄</a> · <a href="ARCHITECTURE.md">架構</a> · <a href="VALIDATION.md">驗證</a> · <a href="QUERY.md">工具契約</a>
+  </footer>
+</div>
+</body>
+</html>
