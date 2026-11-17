@@ -15,10 +15,10 @@
   a{color:#9fb4ff;text-decoration:none}
   a:hover{text-decoration:underline}
   .layout{display:flex;max-width:1180px;margin:0 auto}
-  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
-  nav .brand{font-size:13px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
-  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
-  nav a.part{margin-top:18px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .layout > nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  .layout > nav .brand{font-size:13px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  .layout > nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  .layout > nav a.part{margin-top:18px;color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
   main{flex:1;min-width:0;padding:56px 48px 120px}
   header.hero{border-bottom:1px solid var(--line);padding-bottom:36px;margin-bottom:12px}
   .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
@@ -68,19 +68,19 @@
   .btn:hover{text-decoration:none;filter:brightness(1.08)}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:#cfd5e2}
   footer{color:var(--muted);font-size:13px;padding-top:40px}
-  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:32px}}
+  @media (max-width:900px){.layout > nav{display:none}main{padding:32px 22px 80px}h1{font-size:32px}}
   @media (max-width:700px){.topbar .links a:not(.cta){display:none}}
 </style>
 </head>
 <body>
 <header class="topbar">
   <a class="wordmark" href="index.html">Rea-FigmaDesign</a>
-  <nav class="links">
+  <div class="links">
     <a href="index.html" class="active">產品介紹</a>
     <a href="explainers.html">深入解釋</a>
     <a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub</a>
     <a class="cta" href="explainers.html">五篇技術解釋 →</a>
-  </nav>
+  </div>
 </header>
 <div class="layout">
 <nav>
