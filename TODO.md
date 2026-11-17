@@ -65,7 +65,7 @@
 ## 之後（不著急）
 
 - [x] 把 case-popup.html 改成對話式（使用者一句話 → 工具呼叫卡片 → 回傳 → 解釋）
-- [ ] **工具約束的敘事頁（先做這個）**：獨立的 HTML 專題，不併進 graph.html；素材在 `docs/QUERY.md`「工具約束與守則」與 `npm run test:mcp`
+- [x] **工具約束的敘事頁**：`docs/constraints.html`（schema / server / 文件 / 資料四道閘門 + 管不到的事 + test:mcp 驗證）
 - [ ] **hash 解釋頁（等工具約束完成後）**：`docs/hash.html`，兩張圖就夠——
   - 圖一：三個子節點往上捲成父節點 hash，標註「名稱／顏色／座標不參與」
   - 圖二：`d4319d6dc784` 的 10 個成員，各自不同標題（形狀相同、狀態不同）

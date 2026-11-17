@@ -98,6 +98,14 @@ async function main(): Promise<void> {
   const unknown = await rpc(3, 'tools/call', { name: 'not_a_tool', arguments: {} });
   check('unknown tool returns a JSON-RPC error', unknown.error !== undefined);
 
+  const badArchetype = await rpc(5, 'tools/call', { name: 'list_screens', arguments: { archetype: 'popup' } });
+  const badText = badArchetype.result?.content?.[0]?.text ?? '';
+  check('invalid archetype is rejected', badText.indexOf('invalid archetype') !== -1);
+
+  const noConfirm = await rpc(6, 'tools/call', { name: 'apply_labels', arguments: { rows: [{ id: '1:1' }] } });
+  const noConfirmText = noConfirm.result?.content?.[0]?.text ?? '';
+  check('apply_labels without confirm is refused', noConfirmText.indexOf('mutating') !== -1);
+
   const info = await rpc(4, 'tools/call', { name: 'server_info', arguments: {} });
   const infoText = info.result?.content?.[0]?.text ?? '';
   check('server_info answers ok', infoText.indexOf('"ok": true') !== -1);

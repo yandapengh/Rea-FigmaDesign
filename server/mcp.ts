@@ -170,6 +170,9 @@ const TOOL_DEFS: ToolDef[] = [
       additionalProperties: false,
     },
     handler: (a) => {
+      const want = typeof a.archetype === 'string' ? a.archetype : '';
+      const allowed = ['page', 'overlay-panel', 'overlay', 'unknown'];
+      if (want && allowed.indexOf(want) === -1) throw new Error('invalid archetype: ' + want + ' (allowed: ' + allowed.join(', ') + ')');
       const g = graphFor(a.sample as string);
       const roots = screenRoots(g);
       const unique = a.unique !== false;
@@ -195,7 +198,6 @@ const TOOL_DEFS: ToolDef[] = [
           family: hash.slice(0, 12),
         });
       }
-      const want = typeof a.archetype === 'string' ? a.archetype : '';
       const filtered = want ? rows.filter((r) => r.archetype === want) : rows;
       const limit = typeof a.limit === 'number' ? Math.max(1, Math.min(2000, a.limit)) : 500;
       return {
@@ -309,7 +311,10 @@ const TOOL_DEFS: ToolDef[] = [
       const path = resolve(SCRATCH, 'predictions.jsonl');
       if (!existsSync(path)) throw new Error('no predictions yet: run sync first');
       const rows = readFileSync(path, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l) as Record<string, unknown>);
-      const filtered = a.archetype ? rows.filter((r) => String(r.archetype) === a.archetype) : rows;
+      const want = typeof a.archetype === 'string' ? a.archetype : '';
+      const allowed = ['page', 'overlay-panel', 'overlay', 'unknown'];
+      if (want && allowed.indexOf(want) === -1) throw new Error('invalid archetype: ' + want + ' (allowed: ' + allowed.join(', ') + ')');
+      const filtered = want ? rows.filter((r) => String(r.archetype) === want) : rows;
       const limit = typeof a.limit === 'number' ? a.limit : 20;
       filtered.sort((x, y) => Number(x.confidence) - Number(y.confidence));
       return { total: rows.length, filtered: filtered.length, items: filtered.slice(0, limit) };

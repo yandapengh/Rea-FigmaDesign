@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 當別人的 agent 用你的 MCP</title>
+<style>
+  :root{--bg:#0f1115;--panel:#151922;--line:#242b38;--text:#e8ebf2;--muted:#8b93a7;--accent:#2f6df6;--accent2:#7a5cff;--ok:#25b47a;--warn:#e0a03a}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:flex;max-width:1180px;margin:0 auto}
+  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  main{flex:1;min-width:0;padding:56px 48px 120px}
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:38px;line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:720px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  section{padding:40px 0 10px;border-bottom:1px solid var(--line)}section:last-of-type{border-bottom:0}
+  h2{font-size:25px;margin:0 0 8px}h2 .num{color:var(--accent);margin-right:10px;font-variant-numeric:tabular-nums}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{color:#cfd5e2;max-width:740px}ul,ol{color:#cfd5e2;max-width:740px}li{margin:6px 0}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
+  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;padding:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px;margin:14px 0}
+  .warnbox{background:#241c12;border:1px solid #4a3a1f;border-radius:10px;padding:14px 16px;color:#e8d3ab;font-size:14px;margin:14px 0}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:20px 0 6px}
+  .flow .gate{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:150px;flex:1}
+  .flow .gate .tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .flow .gate b{display:block;margin:2px 0 4px;color:#fff;font-size:14px}
+  .flow .gate span{font-size:12.5px;color:#b9c2d6}
+  .flow .gate.hard{border-color:#2f6df6}
+  .flow .gate.soft{border-color:#3a4a6a}
+  .flow .arrow{align-self:center;color:var(--muted)}
+  .caption{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  footer{color:var(--muted);font-size:13px;padding-top:36px}
+  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}.flow{flex-direction:column}.flow .arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="brand">Rea-FigmaDesign</div>
+  <a href="#k0">00 你控制什麼</a>
+  <a href="#k1">01 schema 管形狀</a>
+  <a href="#k2">02 server 管動作</a>
+  <a href="#k3">03 文件管流程</a>
+  <a href="#k4">04 資料管來源</a>
+  <a href="#k5">05 管不到的事</a>
+  <a href="#k6">06 驗證</a>
+  <a href="#k7">07 三條規則</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">Contract · MCP · 2026</div>
+  <h1>當別人的 agent <span>用你的 MCP</span></h1>
+  <p class="lede">別人的 host、別人的模型、別人的提示詞——你控制不了。你能控制的是四道閘門，以及一道管不到的地方。</p>
+  <div class="meta">工具契約：<a href="QUERY.md">docs/QUERY.md</a> · 一次真實查詢：<a href="case-popup.html">case-popup.html</a></div>
+</header>
+
+<section id="k0">
+  <h2><span class="num">00</span>你控制什麼，不控制什麼</h2>
+  <table>
+    <tr><th>不在你手上</th><th>在你手上</th></tr>
+    <tr><td>host 是哪一個、會不會驗 schema</td><td>schema 長什麼樣</td></tr>
+    <tr><td>模型是哪一個、提示詞怎麼寫</td><td>server 怎麼回應、拒絕什麼</td></tr>
+    <tr><td>它先問哪個問題、怎麼解讀答案</td><td>文件寫什麼、資料能證明什麼</td></tr>
+  </table>
+  <p>所以「約束」不是一個開關，是四個先後不同的閘門。</p>
+
+  <div class="flow">
+    <div class="gate hard"><div class="tag">強制</div><b>schema</b><span>參數形狀</span></div>
+    <div class="arrow">→</div>
+    <div class="gate hard"><div class="tag">強制</div><b>server</b><span>動作與副作用</span></div>
+    <div class="arrow">→</div>
+    <div class="gate soft"><div class="tag">引導</div><b>文件</b><span>選工具、解讀</span></div>
+    <div class="arrow">→</div>
+    <div class="gate soft"><div class="tag">保證</div><b>資料</b><span>數字與來源</span></div>
+  </div>
+  <p class="caption">圖 1：前兩道是程式可強制的；後兩道不是「強制」，是讓錯誤變得可被發現。</p>
+</section>
+
+<section id="k1">
+  <h2><span class="num">01</span>第一道：schema 管形狀</h2>
+  <p>每個工具都帶一份 JSON Schema。它管的是「參數能不能被接受」，不是「模型該不該這樣做」。</p>
+  <pre><code>list_screens.inputSchema
+  archetype : string, enum: page | overlay-panel | overlay | unknown
+  limit     : number, minimum 1, maximum 2000
+  unique    : boolean
+  additionalProperties: false</code></pre>
+  <p>打錯型別、多給欄位、給不存在的 enum 值，都會在這一層被擋下——<strong>如果 host 有驗的話</strong>。</p>
+
+  <div class="warnbox">不是每個 host 都會驗 schema。所以 server 自己也驗：<code>archetype</code> 傳 <code>popup</code> 會直接回錯誤，不會默默回 0 筆。</div>
+
+  <p>schema 還帶一個給 host 看的訊號：<code>annotations</code>。</p>
+  <pre><code>readOnlyHint     true   → 唯讀，不需要確認
+apply_labels     false  → 會寫檔
+destructiveHint  true   → 可能覆蓋既有分類</code></pre>
+  <p>Host 可以用它決定要不要跳確認視窗；這是給人看的，不是給模型看的。</p>
+</section>
+
+<section id="k2">
+  <h2><span class="num">02</span>第二道：server 管動作</h2>
+  <p>schema 被繞過（或 host 不驗）時，server 是最後一道程式防線。</p>
+
+  <h3>不合法的參數：直接拒絕</h3>
+  <pre><code>tools/call list_screens { "archetype": "popup" }
+
+error: invalid archetype: popup
+       (allowed: page, overlay-panel, overlay, unknown)</code></pre>
+  <p>不是回 0 筆——回 0 筆會讓模型以為「這份檔案沒有彈窗」。</p>
+
+  <h3>有副作用的動作：要明確確認</h3>
+  <pre><code>tools/call apply_labels { "rows": [...] }
+
+error: apply_labels is mutating:
+       pass confirm:true (or dryRun:true)</code></pre>
+
+  <h3>不存在的工具：協議層錯誤</h3>
+  <pre><code>tools/call not_a_tool {}
+→ JSON-RPC error: unknown tool: not_a_tool</code></pre>
+
+  <p>三個拒絕都帶<strong>可讀的原因</strong>。模型看到原因，可以自己修正；人看到原因，知道是用法錯了，不是資料錯了。</p>
+</section>
+
+<section id="k3">
+  <h2><span class="num">03</span>第三道：文件管流程</h2>
+  <p>schema 可以強制「參數是 enum」，但不能強制「模型選對工具」。這件事只能靠文件與提示詞。</p>
+
+  <table>
+    <tr><th>文件裡的規則</th><th>解決什麼</th></tr>
+    <tr><td>「有多少」一律先用 <code>list_screens</code></td><td>模型拿單頁工具去數全部</td></tr>
+    <tr><td>沒有 labels 時，語意分類回 <code>unknown</code></td><td>把結構答案說成語意答案</td></tr>
+    <tr><td>回答附 node id</td><td>講得好像對，但無法查證</td></tr>
+  </table>
+
+  <p>這一層是「引導」而不是「強制」：模型可以不照做。所以還需要第四道。</p>
+</section>
+
+<section id="k4">
+  <h2><span class="num">04</span>第四道：資料管來源</h2>
+  <p>前三道都可能被繞過。最後這道不依賴 agent 合作，因為它管的是「答案從哪裡來」。</p>
+
+  <table>
+    <tr><th>保證</th><th>怎麼做到</th></tr>
+    <tr><td>數字不是模型算的</td><td><code>list_screens</code> 回傳 server 端計數</td></tr>
+    <tr><td>答案可以回查</td><td>每一列都帶 Figma node id</td></tr>
+    <tr><td>重跑結果相同</td><td>核心是決定性的，沒有隨機性</td></tr>
+    <tr><td>錯了能被抓到</td><td>ID 貼回 Figma 對一次就知道</td></tr>
+  </table>
+
+  <div class="quote">模型可以說錯話，但改不了數字。</div>
+  <p>這是四道裡唯一「不要求 agent 守規矩」的一道——它要求的是<strong>答案可被驗證</strong>。</p>
+</section>
+
+<section id="k5">
+  <h2><span class="num">05</span>schema 管不到的事</h2>
+  <table>
+    <tr><th>做不到</th><th>後果</th></tr>
+    <tr><td>模型選哪個工具</td><td>可以用 <code>screen_sheet</code> 硬數，得到錯的答案</td></tr>
+    <tr><td>模型怎麼解讀 119 與 87</td><td>可以說成同一個數字，或挑對自己有利的那個</td></tr>
+    <tr><td>模型是否標註定義與來源</td><td>可以只給數字，不說是結構還是語意</td></tr>
+    <tr><td>模型是否先問清需求</td><td>可以假設「彈窗 = dialog」直接回答</td></tr>
+  </table>
+  <p>這一頁不假裝這些被解決了。它們被<strong>降低</strong>：文件寫清楚、資料可回查、錯誤有代價。</p>
+</section>
+
+<section id="k6">
+  <h2><span class="num">06</span>驗證：不是靠聲明，是靠測試</h2>
+  <p><code>npm run test:mcp</code> 每次啟動一個真的 server，跑 14 項檢查：</p>
+  <pre><code>ok  tools/list advertises 11 tools — 11
+ok  tool present: list_screens
+ok  list_screens archetype is an enum — page,overlay-panel,overlay,unknown
+ok  list_screens is read-only
+ok  apply_labels is destructive
+ok  unknown tool returns a JSON-RPC error
+ok  invalid archetype is rejected
+ok  apply_labels without confirm is refused
+ok  server_info answers ok
+
+RESULT: OK — MCP surface, constraints and annotations match the contract</code></pre>
+  <p>這些檢查會隨 <code>doctor</code> 一起跑。如果哪天有人改了 schema 或拿掉 confirm，測試會紅，而不是等使用者踩到。</p>
+</section>
+
+<section id="k7">
+  <h2><span class="num">07</span>給外部 agent 的三條規則</h2>
+  <ol>
+    <li><strong>問「有多少」先用 <code>list_screens</code></strong>，不要自己遍歷資料庫，也不要拿單頁工具硬數。</li>
+    <li><strong>沒有 labels 就回 <code>unknown</code></strong>；結構答案不能冒充語意答案。</li>
+    <li><strong>附上 node id</strong>；沒有 ID 的答案，使用者無法驗證，等於沒有答案。</li>
+  </ol>
+  <p>這三條不在 schema 裡，因為它們管的是<strong>判斷</strong>，不是<strong>形狀</strong>。協議約束形狀，文件約束流程，資料保證來源。</p>
+</section>
+
+<footer>
+  Rea-FigmaDesign · 當別人的 agent 用你的 MCP<br>
+  延伸：<a href="case-popup.html">一次真實的查詢</a> · <a href="graph-concept.html">圖譜是什麼</a> · <a href="QUERY.md">工具契約</a>
+</footer>
+</main>
+</div>
+</body>
+</html>

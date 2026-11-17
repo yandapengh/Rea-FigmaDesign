@@ -89,6 +89,8 @@ MCP 的 schema 只能約束**形狀**，不能約束**意圖**。下面三張表
 3. 引用具體 ID，讓使用者能貼回 Figma 驗證。
 
 > 設計原則：**協議約束形狀，文件約束流程，資料保證來源。** 三者缺一，模型就會變成黑盒。
+>
+> 完整敘事：[docs/constraints.html](constraints.html)。
 
 上述約束由 `npm run test:mcp` 自動檢查（工具數、enum、annotations、未知工具錯誤、`server_info`）。
 
