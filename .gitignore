@@ -12,3 +12,4 @@ backups/*
 *.sqlite-shm
 *.log
 .DS_Store
+TODO.md

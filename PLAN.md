@@ -54,7 +54,7 @@ rea-figma/
 └── plugin/src/code.ts
 ```
 
-Plus the built `plugin/dist/code.js` (esbuild output, required by Figma) and the optional `docs/architecture-widget.html` walkthrough.
+Plus the built `plugin/dist/code.js` (esbuild output, required by Figma).
 
 ---
 
