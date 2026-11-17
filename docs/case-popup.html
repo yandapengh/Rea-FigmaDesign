@@ -50,6 +50,9 @@
   .series{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:36px 0 0;padding:14px 0;border-top:1px solid var(--line);font-size:13px}
   .series a{color:#9fb4ff}
   .series .mid{color:var(--muted)}
+  .crumbs{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .crumbs a{color:#9fb4ff}
+  .crumbs .sep{margin:0 6px;color:#4a556b}
   footer{color:var(--muted);font-size:13px;padding-top:40px;border-top:1px solid var(--line);margin-top:20px}
   @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}.cond{grid-template-columns:1fr}}
 </style>
@@ -68,11 +71,12 @@
 </nav>
 
 <main>
+<nav class="crumbs"><a href="index.html">深入解釋</a><span class="sep">/</span><span>一次真實的查詢</span></nav>
 <header class="hero">
   <div class="kicker">Case · 對話紀錄 · 2026</div>
   <h1>一次真實的查詢：<span>哪些頁面是彈窗</span></h1>
   <p class="lede">從一句話，到一個可以貼回 Figma 的答案。中間每一次工具呼叫、每一組數字，都是實際跑出來的。</p>
-  <div class="meta">方法篇：<a href="graph.html">數據脫水的核心方法</a> · 架構篇：<a href="index.html">背景與整體架構</a></div>
+  <div class="meta">方法篇：<a href="graph.html">數據脫水的核心方法</a> · 架構篇：<a href="product.html">背景與整體架構</a></div>
 </header>
 
 <section id="t1">
@@ -228,13 +232,13 @@ members  1:103166, 1:102908, 1:102765, 1:102761 …
 
 <div class="series">
   <a href="graph.html">← 上一篇：數據脫水</a>
-  <a class="mid" href="explainers.html">系列總覽</a>
+  <a class="mid" href="index.html">系列總覽</a>
   <a href="constraints.html">下一篇：工具約束 →</a>
 </div>
 
 <footer>
   Rea-FigmaDesign · 一次真實的查詢（對話紀錄）<br>
-  延伸：<a href="constraints.html">工具約束</a> · <a href="graph-concept.html">圖譜是什麼</a> · <a href="graph.html">數據脫水的核心方法</a> · <a href="index.html">背景與整體架構</a> · <a href="QUERY.md">命令與工具契約</a> · <a href="DECISIONS.md">決策理由</a>
+  延伸：<a href="constraints.html">工具約束</a> · <a href="graph-concept.html">圖譜是什麼</a> · <a href="graph.html">數據脫水的核心方法</a> · <a href="product.html">背景與整體架構</a> · <a href="QUERY.md">命令與工具契約</a> · <a href="DECISIONS.md">決策理由</a>
 </footer>
 </main>
 </div>

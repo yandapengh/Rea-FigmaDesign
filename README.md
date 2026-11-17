@@ -10,7 +10,7 @@
 
 這個專案只做一次抽取，之後所有問題都問本地圖譜——不再翻頁、不再靠圖層名稱、不再人工比對。
 
-→ 完整背景、實驗方法與技術取捨：**[docs/index.html](docs/index.html)**（Part 1 為什麼做 / Part 2 怎麼做）
+→ 完整背景、實驗方法與技術取捨：**[docs/product.html](docs/product.html)**（Part 1 為什麼做 / Part 2 怎麼做）
 
 ---
 
@@ -87,7 +87,8 @@ npm run query -- verify-source   # 每個 ID 都必須存在於樣本
 
 | 文件 | 內容 |
 |---|---|
-| [docs/index.html](docs/index.html) | 對外說明：背景故事、實驗方法、技術架構 |
+| [docs/index.html](docs/index.html) | 深入解釋總覽（五篇導讀） |
+| [docs/product.html](docs/product.html) | 對外說明：背景故事、實驗方法、技術架構 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 分層、資料契約、模組地圖、擴充點 |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | 12 條設計決定的理由與代價 |
 | [docs/VALIDATION.md](docs/VALIDATION.md) | 驗證方法：實地抽查、留一驗證、四道 gate、冷啟動 |

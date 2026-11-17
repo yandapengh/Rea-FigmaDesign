@@ -65,6 +65,9 @@
   .series{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:36px 0 0;padding:14px 0;border-top:1px solid var(--line);font-size:13px}
   .series a{color:#9fb4ff}
   .series .mid{color:var(--muted)}
+  .crumbs{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .crumbs a{color:#9fb4ff}
+  .crumbs .sep{margin:0 6px;color:#4a556b}
   footer{color:var(--muted);font-size:13px;padding-top:36px}
   @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:31px}.split{grid-template-columns:1fr}}
 </style>
@@ -84,11 +87,12 @@
 </nav>
 
 <main>
+<nav class="crumbs"><a href="index.html">深入解釋</a><span class="sep">/</span><span>數據脫水</span></nav>
 <header class="hero">
   <div class="kicker">Core method · 2026</div>
   <h1>數據脫水的<span>核心方法</span></h1>
   <p class="lede">一個 462 MB 的 Figma 檔，如何變成一張能回答「有多少個彈窗頁面」的圖譜——以及為什麼模型可以靠它工作。</p>
-  <div class="meta">這頁只講一件事：資料被壓成什麼形狀，模型才答得出來。背景與整體架構見 <a href="index.html">index.html</a>。</div>
+  <div class="meta">這頁只講一件事：資料被壓成什麼形狀，模型才答得出來。背景與整體架構見 <a href="product.html">product.html</a>。</div>
 </header>
 
 <section id="s0">
@@ -338,13 +342,13 @@ overlay    32</code></pre>
 
 <div class="series">
   <a href="hash.html">← 上一篇：房型身分證</a>
-  <a class="mid" href="explainers.html">系列總覽</a>
+  <a class="mid" href="index.html">系列總覽</a>
   <a href="case-popup.html">下一篇：一次真實的查詢 →</a>
 </div>
 
 <footer>
   Rea-FigmaDesign · 數據脫水的核心方法<br>
-  延伸：<a href="hash.html">房型身分證（hash）</a> · <a href="constraints.html">工具約束（給外部 agent）</a> · <a href="graph-concept.html">圖譜是什麼（給非技術讀者）</a> · <a href="case-popup.html">一次真實的查詢（實作篇）</a> · <a href="index.html">背景與整體架構</a> · <a href="DECISIONS.md">每個決定的理由</a> · <a href="VALIDATION.md">驗證方法</a> · <a href="ARCHITECTURE.md">分層與資料契約</a>
+  延伸：<a href="hash.html">房型身分證（hash）</a> · <a href="constraints.html">工具約束（給外部 agent）</a> · <a href="graph-concept.html">圖譜是什麼（給非技術讀者）</a> · <a href="case-popup.html">一次真實的查詢（實作篇）</a> · <a href="product.html">背景與整體架構</a> · <a href="DECISIONS.md">每個決定的理由</a> · <a href="VALIDATION.md">驗證方法</a> · <a href="ARCHITECTURE.md">分層與資料契約</a>
 </footer>
 </main>
 </div>
