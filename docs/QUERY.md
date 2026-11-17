@@ -48,6 +48,50 @@ npm run mcp      # JSON-RPC 2.0 over stdio, 無需額外 SDK
 
 要點：MCP adapter 直接 import `server/core/*`，**不 spawn CLI**；錯誤以 `{ok:false,error:{code,message}}` 回傳並標記 `isError`。
 
+### 工具約束與守則
+
+MCP 的 schema 只能約束**形狀**，不能約束**意圖**。下面三張表把界線說清楚，外部 agent 接入時應以此為準。
+
+#### 1. schema 與 server 能強制的
+
+| 約束 | 在哪裡 | 效果 |
+|---|---|---|
+| 型別 / 必填 | `inputSchema` | 參數形狀不對，client 就在送出前擋下 |
+| `enum` | `list_screens.archetype`、`review_queue.archetype` | 只接受 `page` / `overlay-panel` / `overlay` / `unknown` |
+| 數值範圍 | `limit` 的 `minimum` / `maximum` | 避免一次拉出整份資料 |
+| `additionalProperties: false` | 所有工具與 `apply_labels.rows` | 打錯欄位名會被拒絕，不會靜默忽略 |
+| `annotations` | 全部工具 | `readOnlyHint` / `destructiveHint` 讓 host 能顯示風險 |
+| `confirm: true` | `apply_labels` | 沒有明確確認就不寫檔 |
+| server 端驗證 | handler | 節點不存在、樣本不存在、沒有 predictions，都回 `error.code` 與 `fix` |
+
+#### 2. schema 不能強制的
+
+| 做不到 | 為什麼 |
+|---|---|
+| 模型選哪個工具 | 工具描述只能引導，不能規定推理路徑 |
+| 模型怎麼解讀數字 | 它可以把 119 說成 87，或把結構答案說成語意答案 |
+| 模型是否標註來源 | 它可能不給 ID、不說明定義 |
+| 模型是否先問清定義 | 需要 host 的提示詞或 SKILL 約束，協議層管不到 |
+
+#### 3. 真正的保證
+
+| 保證 | 來源 |
+|---|---|
+| 數字是算出來的，不是生成的 | `list_screens` 回傳 server 端計數 |
+| 每個畫面都能回查 | 回傳帶 Figma node id |
+| 同一份資料、同一版本，答案相同 | 核心是決定性的，沒有隨機性 |
+| 錯了能自我修正 | 錯誤帶 `code` 與 `fix`，模型可重試 |
+
+#### 對外部 agent 的期待
+
+1. 問「有多少」先用 `list_screens`（可帶 `archetype`），不要自己遍歷資料庫。
+2. 沒有 labels 時，語意分類一律回 `unknown`，不要用結構答案冒充。
+3. 引用具體 ID，讓使用者能貼回 Figma 驗證。
+
+> 設計原則：**協議約束形狀，文件約束流程，資料保證來源。** 三者缺一，模型就會變成黑盒。
+
+上述約束由 `npm run test:mcp` 自動檢查（工具數、enum、annotations、未知工具錯誤、`server_info`）。
+
 ### DSH 斜線命令（plugin）
 
 確定性操作不需要模型，做成命令可以零 token、即時執行：
@@ -98,8 +142,11 @@ DSH 用 `@deepseek-ai/dsh-mcp-client`，每個 server 一個 plugin 實例。在
   config:
     serverName: rea-figma
     transport: stdio
-    command: /path/to/rea-figma/node_modules/.bin/tsx
+    # 用 node 直接跑 tsx 的 CLI，不要用 node_modules/.bin/tsx：
+    # 那個 shim 靠 /usr/bin/env node，host 的 PATH 沒有 node 時會啟動失敗。
+    command: /usr/local/bin/node
     args:
+      - /path/to/rea-figma/node_modules/tsx/dist/cli.mjs
       - /path/to/rea-figma/server/mcp.ts
     cwd: /path/to/rea-figma
     failOnStartupError: true

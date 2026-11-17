@@ -79,6 +79,7 @@ npm run sync            # 特徵表 → 預測 → 複審看板 → parity → �
 npm run doctor          # 環境、資料、labels、workspace
 npm run test:pipeline   # Phase 1 端到端（不需要 Figma）
 npm run test:parity     # CLI 輸出與 core 逐位元一致
+npm run test:mcp        # 工具表面、schema 約束與 annotations
 npm run query -- verify-source   # 每個 ID 都必須存在於樣本
 ```
 

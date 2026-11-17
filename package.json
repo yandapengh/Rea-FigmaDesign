@@ -13,6 +13,7 @@
     "start:server": "tsx server/ws-server.ts",
     "test:pipeline": "tsx server/verify-mock.ts",
     "test:parity": "tsx server/verify-parity.ts",
+    "test:mcp": "tsx server/verify-mcp.ts",
     "audit:db": "tsx server/audit-db.ts",
     "query": "tsx server/query.ts",
     "doctor": "tsx server/doctor.ts",

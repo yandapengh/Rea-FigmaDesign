@@ -171,7 +171,7 @@ function checkScripts(): void {
   const pkgPath = resolve(ROOT, 'package.json');
   try {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { scripts?: Record<string, string> };
-    for (const name of ['start:server', 'sync', 'query', 'typecheck', 'test:pipeline', 'test:parity']) {
+    for (const name of ['start:server', 'sync', 'query', 'typecheck', 'test:pipeline', 'test:parity', 'test:mcp']) {
       if (pkg.scripts && pkg.scripts[name]) ok('npm run ' + name);
       else bad('missing npm script: ' + name, 'restore it in package.json');
     }

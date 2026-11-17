@@ -26,20 +26,27 @@
 - [x] repo 衛生 — 確認 `data/`、`backups/`、`.scratch/`、`dsh-plugin/dist/` 未入版控；無密鑰；LICENSE
 - [x] 樣本打包 — 只發 `*.manifest.json` 與 sha256，不發 SQLite
 
-## 明天（2026-11-17）：MCP 工具表面與約束
+## 已完成（2026-11-17）
+
+- [x] `list_screens` 的缺口判定與 `DECISIONS.md` D13（列舉 / 單體 / 聚合三種查詢形狀）
+- [x] `docs/QUERY.md`「工具約束與守則」：可強制 / 不可強制 / 真正的保證
+- [x] schema 收緊：`archetype` enum、`limit` 範圍、`annotations`、`apply_labels.rows` 嚴格化
+- [x] 新增 `npm run test:mcp`（工具數、enum、annotations、未知工具、server_info）並納入 `doctor`
+- [x] **修復 PATH 依賴**：MCP 與 DSH plugin 改用 `node + tsx/dist/cli.mjs`，不再依賴 `.bin/tsx` 的 `env node`
+## 2026-11-17：MCP 工具表面與約束
 
 背景：寫 `docs/graph.html` 時發現 MCP 少了「列出全部畫面」這個原語，補了 `list_screens`（工具數 9 → 11，含先前的 `server_info`）。使用者問了三個問題，明天要回答並落地：
 
-- [ ] **`list_screens` 是不是漏掉的工具？** 是：MCP 原本只覆蓋「單頁 / 家族 / 待分類」，沒有列舉原語；列舉只在 CLI 的 `sheets --unique`。把這個判斷寫進 `docs/DECISIONS.md`（新增一條：工具表面要覆蓋「列舉、單體、聚合」三種查詢形狀）
-- [ ] **完善之後，別人的模型會守規矩嗎？** 需要把「schema 只能約束形狀、不能約束意圖」講清楚：
+- [x] **`list_screens` 是不是漏掉的工具？** 是：MCP 原本只覆蓋「單頁 / 家族 / 待分類」，沒有列舉原語；列舉只在 CLI 的 `sheets --unique`。把這個判斷寫進 `docs/DECISIONS.md`（新增一條：工具表面要覆蓋「列舉、單體、聚合」三種查詢形狀）
+- [x] **完善之後，別人的模型會守規矩嗎？** 需要把「schema 只能約束形狀、不能約束意圖」講清楚：
   - 可強制：型別、必填、enum、數值範圍、`additionalProperties:false`、`apply_labels` 的 `confirm:true`、server 端驗證與 error code
   - 不可強制：模型選哪個工具、怎麼解讀數字、會不會把結構答案說成語意答案
   - 真正的保證：數字由 server 計算、輸出帶可驗證 ID；說錯可被重跑抓出
-- [ ] **schema 有沒有對應約束？** 已加：`archetype` enum（page / overlay-panel / overlay / unknown）、`limit` 的 minimum/maximum、`annotations`（readOnlyHint / destructiveHint）、`apply_labels.rows` 的 `additionalProperties:false`。明天驗證 `tools/list` 實際輸出並補測試
-- [ ] 在 `docs/QUERY.md` 加一節「工具約束與守則」：上面「可強制 / 不可強制 / 真正的保證」三段
-- [ ] 重啟 MCP 子進程，確認 11 個工具與 annotations 生效（`kill` 後 client 會自動重連）
-- [ ] 評估是否再補 `verify_source`（來源檢查）與 `manifest`（工具表面）兩個工具；若不做，寫明理由
-- [ ] 把 `docs/graph.html` 的 04 節與新約束對照，確認敘述一致
+- [x] **schema 有沒有對應約束？** 已加：`archetype` enum（page / overlay-panel / overlay / unknown）、`limit` 的 minimum/maximum、`annotations`（readOnlyHint / destructiveHint）、`apply_labels.rows` 的 `additionalProperties:false`。明天驗證 `tools/list` 實際輸出並補測試
+- [x] 在 `docs/QUERY.md` 加一節「工具約束與守則」：上面「可強制 / 不可強制 / 真正的保證」三段
+- [x] 重啟 MCP 子進程，確認 11 個工具與 annotations 生效（`kill` 後 client 會自動重連）
+- [x] 評估是否再補 `verify_source`（來源檢查）與 `manifest`（工具表面）兩個工具；若不做，寫明理由
+- [x] 把 `docs/graph.html` 的 04 節與新約束對照，確認敘述一致
 - [x] 推送今天的 commit（2026-11-16 完成）
 
 ## 待你決定

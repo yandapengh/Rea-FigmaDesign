@@ -9,6 +9,7 @@
  */
 
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const name = 'dsh-plugin-rea-figma';
@@ -39,7 +40,8 @@ function tail(text: string, lines: number): string {
 
 export function apply(ctx: { commands: { register: (def: Record<string, unknown>) => unknown } }, config: PluginConfig = {}): void {
   const root = config.root || process.env.REA_FIGMA_ROOT || '';
-  const tsx = root ? join(root, 'node_modules/.bin/tsx') : '';
+  const tsxCli = root ? join(root, 'node_modules/tsx/dist/cli.mjs') : '';
+  const nodeBin = ['/usr/local/bin/node', '/opt/homebrew/bin/node', '/usr/bin/node'].find((p) => existsSync(p)) ?? 'node';
 
   const requireRoot = (): string | null => (root ? null : 'Rea-FigmaDesign root is not configured: set config.root in cordis.patch.yml');
 
@@ -74,7 +76,7 @@ export function apply(ctx: { commands: { register: (def: Record<string, unknown>
     handler: async () => {
       const missing = requireRoot();
       if (missing) return { kind: 'error', text: missing };
-      const res = await exec(tsx, [join(root, 'server/doctor.ts')], root);
+      const res = await exec(nodeBin, [tsxCli, join(root, 'server/doctor.ts')], root);
       const last = tail(res.out, 3);
       if (res.code !== 0) {
         return { kind: 'error', text: 'doctor failed (exit ' + res.code + ')\n' + last + (res.err ? '\n' + tail(res.err, 5) : '') };
