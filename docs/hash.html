@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rea-FigmaDesign · 一棟 16 萬房間的大樓，只有 2,779 種房型</title>
+<style>
+  :root{--bg:#0f1115;--panel:#151922;--line:#242b38;--text:#e8ebf2;--muted:#8b93a7;--accent:#2f6df6;--accent2:#7a5cff;--ok:#25b47a;--warn:#e0a03a}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
+  a{color:#9fb4ff;text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:flex;max-width:1180px;margin:0 auto}
+  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
+  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
+  main{flex:1;min-width:0;padding:56px 48px 120px}
+  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
+  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  h1{font-size:38px;line-height:1.25;margin:12px 0 10px;letter-spacing:-.01em}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:#c3cad9;font-size:18px;max-width:720px}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px}
+  section{padding:40px 0 10px;border-bottom:1px solid var(--line)}section:last-of-type{border-bottom:0}
+  h2{font-size:25px;margin:0 0 8px}h2 .num{color:var(--accent);margin-right:10px;font-variant-numeric:tabular-nums}
+  h3{font-size:17px;margin:26px 0 8px}
+  p{color:#cfd5e2;max-width:740px}ul,ol{color:#cfd5e2;max-width:740px}li{margin:6px 0}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
+  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
+  pre code{background:none;padding:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
+  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px;margin:14px 0}
+  .caption{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  figure{margin:22px 0}
+  figure svg{width:100%;height:auto;display:block;background:#101722;border:1px solid var(--line);border-radius:12px}
+  figcaption{color:var(--muted);font-size:13px;margin-top:8px}
+  .svglabel{font:12px ui-monospace,Menlo,monospace;fill:#9fb4ff}
+  .svgtext{font:12.5px -apple-system,"PingFang TC",sans-serif;fill:#cfd5e2}
+  .svgsmall{font:11px -apple-system,"PingFang TC",sans-serif;fill:#8b93a7}
+  .svgbig{font:600 22px -apple-system,"PingFang TC",sans-serif;fill:#fff}
+  .fillbox{fill:#1a2233;stroke:#2b3b5e}
+  .accentbox{fill:#16203a;stroke:#2f6df6}
+  .room{fill:#1b2230;stroke:#39445c}
+  .accentroom{fill:#1d2c4d;stroke:#4c7dff}
+  footer{color:var(--muted);font-size:13px;padding-top:36px}
+  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:30px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="brand">Rea-FigmaDesign</div>
+  <a href="#h0">00 超級大廈</a>
+  <a href="#h1">01 一間房裡有什麼</a>
+  <a href="#h2">02 房型身分證怎麼印</a>
+  <a href="#h3">03 同一張身分證的房間</a>
+  <a href="#h4">04 找關係＝比身分證</a>
+  <a href="#h5">05 代價</a>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kicker">Concept · Hash · 2026</div>
+  <h1>一棟 16 萬房間的大樓，<span>只有 2,779 種房型</span></h1>
+  <p class="lede">如果每一間房都要走進去比對，你永遠比不完。所以我們不記地址，記「房型」——一張由房間結構算出來的身分證。</p>
+  <div class="meta">圖譜概念：<a href="graph-concept.html">graph-concept.html</a> · 工具約束：<a href="constraints.html">constraints.html</a></div>
+</header>
+
+<section id="h0">
+  <h2><span class="num">00</span>超級大廈：16 萬個房間</h2>
+  <p>把一份 Figma 檔想成一棟超級大廈：<strong>163,601 個房間</strong>。每個房間有門牌（node id）、有大小、有「誰在誰裡面」、也有「誰站在誰前面」。</p>
+
+  <figure>
+    <svg viewBox="0 0 880 380" role="img" aria-label="一棟大廈，畫滿窗戶，標註 163,601 個房間與 2,779 種房型">
+      <!-- building -->
+      <rect class="fillbox" x="330" y="50" width="220" height="290" rx="6"/>
+      <rect class="fillbox" x="360" y="24" width="160" height="30" rx="4"/>
+      <text class="svgsmall" x="372" y="44">Figma 檔</text>
+      <!-- floors + windows -->
+      <g>
+        <line x1="330" y1="86" x2="550" y2="86" stroke="#2b3b5e"/>
+        <line x1="330" y1="122" x2="550" y2="122" stroke="#2b3b5e"/>
+        <line x1="330" y1="158" x2="550" y2="158" stroke="#2b3b5e"/>
+        <line x1="330" y1="194" x2="550" y2="194" stroke="#2b3b5e"/>
+        <line x1="330" y1="230" x2="550" y2="230" stroke="#2b3b5e"/>
+        <line x1="330" y1="266" x2="550" y2="266" stroke="#2b3b5e"/>
+        <line x1="330" y1="302" x2="550" y2="302" stroke="#2b3b5e"/>
+      </g>
+      <g>
+        <rect x="346" y="98" width="26" height="14" fill="#243047"/><rect x="392" y="98" width="26" height="14" fill="#243047"/><rect x="438" y="98" width="26" height="14" fill="#243047"/><rect x="484" y="98" width="26" height="14" fill="#243047"/><rect x="522" y="98" width="18" height="14" fill="#243047"/>
+        <rect x="346" y="134" width="26" height="14" fill="#243047"/><rect x="392" y="134" width="26" height="14" fill="#243047"/><rect x="438" y="134" width="26" height="14" fill="#1d2c4d"/><rect x="484" y="134" width="26" height="14" fill="#243047"/><rect x="522" y="134" width="18" height="14" fill="#243047"/>
+        <rect x="346" y="170" width="26" height="14" fill="#243047"/><rect x="392" y="170" width="26" height="14" fill="#243047"/><rect x="438" y="170" width="26" height="14" fill="#243047"/><rect x="484" y="170" width="26" height="14" fill="#243047"/><rect x="522" y="170" width="18" height="14" fill="#243047"/>
+        <rect x="346" y="206" width="26" height="14" fill="#1d2c4d"/><rect x="392" y="206" width="26" height="14" fill="#243047"/><rect x="438" y="206" width="26" height="14" fill="#243047"/><rect x="484" y="206" width="26" height="14" fill="#243047"/><rect x="522" y="206" width="18" height="14" fill="#243047"/>
+        <rect x="346" y="242" width="26" height="14" fill="#243047"/><rect x="392" y="242" width="26" height="14" fill="#243047"/><rect x="438" y="242" width="26" height="14" fill="#243047"/><rect x="484" y="242" width="26" height="14" fill="#243047"/><rect x="522" y="242" width="18" height="14" fill="#243047"/>
+        <rect x="346" y="278" width="26" height="14" fill="#243047"/><rect x="392" y="278" width="26" height="14" fill="#243047"/><rect x="438" y="278" width="26" height="14" fill="#243047"/><rect x="484" y="278" width="26" height="14" fill="#243047"/><rect x="522" y="278" width="18" height="14" fill="#243047"/>
+      </g>
+      <!-- callouts -->
+      <path d="M300 120 L180 120" stroke="#39445c" stroke-dasharray="4 3"/>
+      <text class="svgbig" x="40" y="108">163,601</text>
+      <text class="svgtext" x="40" y="130">個房間（節點）</text>
+      <path d="M580 120 L700 120" stroke="#39445c" stroke-dasharray="4 3"/>
+      <text class="svgbig" x="700" y="108">2,779</text>
+      <text class="svgtext" x="700" y="130">種房型（結構 hash）</text>
+      <text class="svgsmall" x="40" y="330">同一個房型平均被用了 58.9 次；最常見的房型是一間「文字房」，蓋了 24,809 間。</text>
+    </svg>
+    <figcaption>圖 1：房間很多，但房型很少。這是整頁最重要的比例。</figcaption>
+  </figure>
+
+  <table>
+    <tr><th>大廈</th><th>圖譜</th></tr>
+    <tr><td>房間</td><td>節點（node）</td></tr>
+    <tr><td>門牌號</td><td>node id（<code>1:102753</code>）</td></tr>
+    <tr><td>房間包含小房間</td><td><code>parent_id</code></td></tr>
+    <tr><td>誰站在誰前面</td><td><code>child_index</code>（z-order）</td></tr>
+    <tr><td><strong>房型圖紙</strong></td><td><strong>結構 hash</strong></td></tr>
+  </table>
+  <div class="note">門牌和房型是兩件事：門牌是「它在哪」（會變），房型是「它長怎樣」（不變）。我們比對的是房型，不是門牌。</div>
+</section>
+
+<section id="h1">
+  <h2><span class="num">01</span>一間房裡有什麼</h2>
+  <p>房型不是看這間房叫什麼名字，而是看「它裡面有什麼、按什麼順序排」。一間房只有三種資訊會被拿來算：</p>
+  <table>
+    <tr><th>資訊</th><th>在大廈裡的意思</th></tr>
+    <tr><td>型別</td><td>這是房間、櫃子、還是文字牌</td></tr>
+    <tr><td>子房間</td><td>這間房裡隔了哪些小房間</td></tr>
+    <tr><td>順序</td><td>這些小房間由內到外、由下到上的排列</td></tr>
+  </table>
+
+  <figure>
+    <svg viewBox="0 0 880 300" role="img" aria-label="一間房內含三個小房間，依序標示，算出一個房型代碼">
+      <!-- room -->
+      <rect class="fillbox" x="30" y="50" width="280" height="200" rx="10"/>
+      <text class="svglabel" x="46" y="76">一間房（節點）</text>
+      <rect class="room" x="52" y="96" width="236" height="36" rx="6"/>
+      <text class="svgtext" x="66" y="119">0　型別 A（最大）</text>
+      <rect class="accentroom" x="52" y="142" width="236" height="36" rx="6"/>
+      <text class="svgtext" x="66" y="165">1　型別 B（遮罩）</text>
+      <rect class="room" x="52" y="188" width="236" height="36" rx="6"/>
+      <text class="svgtext" x="66" y="211">2　型別 C（面板）</text>
+      <!-- arrow -->
+      <path d="M322 150 L372 150" stroke="#39445c" stroke-width="1.5" marker-end="url(#m1)"/>
+      <defs><marker id="m1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#39445c"/></marker></defs>
+      <!-- stamp -->
+      <rect class="fillbox" x="384" y="96" width="150" height="108" rx="8"/>
+      <text class="svglabel" x="404" y="126">MD5 蓋章</text>
+      <text class="svgsmall" x="404" y="152">型別 + 子房號</text>
+      <text class="svgsmall" x="404" y="172">依序串起來</text>
+      <!-- card -->
+      <rect class="accentbox" x="574" y="86" width="270" height="128" rx="10"/>
+      <text class="svgsmall" x="592" y="112">房型身分證</text>
+      <text class="svglabel" x="592" y="146" style="font-size:20px">d4319d6dc784</text>
+      <text class="svgsmall" x="592" y="178">同樣的結構 → 同一個號碼</text>
+      <text class="svgsmall" x="30" y="284">不參與計算：房間名字、門牌號、顏色、座標、裡面寫的字。</text>
+    </svg>
+    <figcaption>圖 2：房型身分證只看「型別 + 子房間 + 順序」，其餘一律不參與。</figcaption>
+  </figure>
+
+  <div class="quote">改名、搬家、換油漆，房型不變；多隔一道牆，房型就變。</div>
+</section>
+
+<section id="h2">
+  <h2><span class="num">02</span>房型身分證怎麼印</h2>
+  <p>算法是<strong>由下往上</strong>：先印小房間的身分證，再把它們的號碼依序串起來，印出父房間的。</p>
+  <pre><code>hash(房間) = md5( 型別 + "|" + 子房間 0 的 hash + 子房間 1 的 hash + … )</code></pre>
+  <p>所以一張身分證，其實是<strong>整棵子樹的形狀被壓縮成 32 個字元</strong>。這也是為什麼比對兩間房不必逐間走：比號碼就好。</p>
+
+  <table>
+    <tr><th>做法</th><th>成本</th></tr>
+    <tr><td>逐間走：比 163,601 個節點</td><td>不可行（人與模型都做不到）</td></tr>
+    <tr><td>比身分證：比 2,779 個號碼</td><td>一次字串比對</td></tr>
+  </table>
+</section>
+
+<section id="h3">
+  <h2><span class="num">03</span>同一張身分證的房間</h2>
+  <p>大廈裡有 <code>d4319d6dc784</code> 這張身分證的房間，總共 <strong>10 間</strong>。它們散落在不同樓層、不同門牌，但房型完全一樣。</p>
+
+  <figure>
+    <svg viewBox="0 0 880 320" role="img" aria-label="三層樓中散落四個同房型的房間，連到同一張身分證">
+      <text class="svgsmall" x="30" y="36">同一棟大廈、不同樓層</text>
+      <!-- floors -->
+      <rect class="fillbox" x="30" y="54" width="520" height="58" rx="6"/>
+      <rect class="fillbox" x="30" y="122" width="520" height="58" rx="6"/>
+      <rect class="fillbox" x="30" y="190" width="520" height="58" rx="6"/>
+      <g>
+        <rect class="room" x="46" y="66" width="70" height="34" rx="4"/>
+        <rect class="accentroom" x="126" y="66" width="70" height="34" rx="4"/>
+        <rect class="room" x="206" y="66" width="70" height="34" rx="4"/>
+        <rect class="room" x="286" y="66" width="70" height="34" rx="4"/>
+        <rect class="accentroom" x="366" y="66" width="70" height="34" rx="4"/>
+      </g>
+      <g>
+        <rect class="room" x="46" y="134" width="70" height="34" rx="4"/>
+        <rect class="room" x="126" y="134" width="70" height="34" rx="4"/>
+        <rect class="accentroom" x="206" y="134" width="70" height="34" rx="4"/>
+        <rect class="room" x="286" y="134" width="70" height="34" rx="4"/>
+        <rect class="room" x="366" y="134" width="70" height="34" rx="4"/>
+      </g>
+      <g>
+        <rect class="accentroom" x="46" y="202" width="70" height="34" rx="4"/>
+        <rect class="room" x="126" y="202" width="70" height="34" rx="4"/>
+        <rect class="room" x="206" y="202" width="70" height="34" rx="4"/>
+        <rect class="room" x="286" y="202" width="70" height="34" rx="4"/>
+        <rect class="room" x="366" y="202" width="70" height="34" rx="4"/>
+      </g>
+      <!-- link to card -->
+      <path d="M440 220 C520 220 560 170 620 160" stroke="#4c7dff" stroke-dasharray="4 3" fill="none"/>
+      <rect class="accentbox" x="620" y="120" width="230" height="80" rx="10"/>
+      <text class="svgsmall" x="636" y="146">房型身分證</text>
+      <text class="svglabel" x="636" y="176" style="font-size:16px">d4319d6dc784</text>
+      <text class="svgsmall" x="30" y="286">10 間房、10 個不同門牌，同一張身分證——這就是「家族」。</text>
+    </svg>
+    <figcaption>圖 3：家族不是分群，是「同一張身分證」的房間集合。</figcaption>
+  </figure>
+
+  <h3>但招牌不一樣</h3>
+  <p>這 10 間房的房型相同，門口的招牌卻不同：</p>
+  <ul>
+    <li>「We can't complete your request because your account is frozen…」</li>
+    <li>「Amount exceeds your daily withdraw limit…」</li>
+    <li>「Sorry, your payment is declined because the order amount…」</li>
+  </ul>
+  <p>同一個房型、不同狀態。所以「去重」不能只看身分證，要看<strong>身分證 + 招牌</strong>：</p>
+  <table>
+    <tr><th>比對方式</th><th>結果</th></tr>
+    <tr><td>只比房型</td><td>512 張 → 291 組（會把不同狀態併成一組）</td></tr>
+    <tr><td>房型 + 招牌</td><td>512 張 → 291 個不同畫面（不同文案算不同狀態）</td></tr>
+  </table>
+  <div class="note">這就是為什麼「291 個畫面」大於「68 種結構」：同房型可以有很多狀態，但結構只有那些。</div>
+</section>
+
+<section id="h4">
+  <h2><span class="num">04</span>找關係＝比身分證</h2>
+  <p>圖譜裡的「關係」不是靠搜尋建的，是靠同一個號碼出現：</p>
+  <table>
+    <tr><th>問題</th><th>在大廈裡怎麼找</th></tr>
+    <tr><td>這兩頁是不是同一種？</td><td>比兩張身分證</td></tr>
+    <tr><td>這個按鈕在幾頁出現？</td><td>數這個房型出現幾次</td></tr>
+    <tr><td>這頁有幾個複本？</td><td>同一個號碼的房間數</td></tr>
+    <tr><td>從哪一層開始不同？</td><td>從頂樓往下比，第一個不同的房號</td></tr>
+  </table>
+  <p>最容易重複的房型：</p>
+  <table>
+    <tr><th>房型</th><th>數量</th><th>是什麼</th></tr>
+    <tr><td>50ec6b1a2125</td><td>24,809</td><td>文字房</td></tr>
+    <tr><td>2a1a20086b98</td><td>19,202</td><td>Home indicator 向量</td></tr>
+    <tr><td>9ada3f4d487e</td><td>14,967</td><td>勾選框</td></tr>
+    <tr><td>010ea30588b7</td><td>12,872</td><td>icon 容器</td></tr>
+  </table>
+</section>
+
+<section id="h5">
+  <h2><span class="num">05</span>代價</h2>
+  <table>
+    <tr><th>代價</th><th>意思</th></tr>
+    <tr><td>顏色、字體、圓角不影響房型</td><td>同房型不同風格，要靠 style profile 另一條路</td></tr>
+    <tr><td>多一道隔間就變新號碼</td><td>結構微調會開新家族；這是「精確」的代價</td></tr>
+    <tr><td>名字完全被忽略</td><td>抗改名，但報表要另外顯示名稱</td></tr>
+  </table>
+  <p>所以查詢是分層的：<strong>精確（身分證）→ 近構（型別分佈 cosine ≥ 0.9）→ 樣式（色票／字階／圓角）</strong>。身分證只負責第一層，但它是最快、最確定的一層。</p>
+</section>
+
+<footer>
+  Rea-FigmaDesign · 房型身分證（hash）<br>
+  延伸：<a href="graph-concept.html">圖譜是什麼</a> · <a href="case-popup.html">一次真實的查詢</a> · <a href="constraints.html">工具約束</a>
+</footer>
+</main>
+</div>
+</body>
+</html>
