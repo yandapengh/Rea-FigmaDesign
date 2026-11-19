@@ -34,12 +34,12 @@ export interface RunningIngestServer {
   close(): Promise<void>;
 }
 
-interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number }
+interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number; pageId?: string }
 interface AckError { status: 'ERROR'; receivedType: string | null; error: string; batchId?: number }
 interface BatchRecord { batch_id: number; file_key: string; started_at: string; finished_at: string | null; requested: Array<{ page_id: string; page_name: string; page_index: number }>; pages: Record<string, string> }
 interface SocketState {
   fileKey: string | null;
-  page: { fileKey: string; pageId: string; pageName: string } | null;
+  page: { fileKey: string; pageId: string; pageName: string; pageIndex: number } | null;
   db: AstGraphDB | null;
   folder: string | null;
   batch: BatchRecord | null;
@@ -48,6 +48,7 @@ interface SocketState {
 function describeError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function asString(value: unknown): string { return typeof value === 'string' ? value : ''; }
+function finiteNumber(value: unknown, fallback: number): number { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
 function nowIso(): string { return new Date().toISOString(); }
 
 function safeFolder(fileKey: string, fileName: string): string {
@@ -140,6 +141,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       let count = 0;
       let committed: number | undefined;
       let pages: unknown[] | undefined;
+      let pageId: string | undefined;
 
       switch (receivedType) {
         case 'SYNC_START': {
@@ -171,7 +173,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (!asString(page.page_id)) throw new Error('PAGE_START payload.page_id is required');
           const fileKey = asString(page.file_key) || state.fileKey || '';
           state.db.beginPage(fileKey, page);
-          state.page = { fileKey, pageId: page.page_id, pageName: asString(page.page_name) };
+          state.page = { fileKey, pageId: page.page_id, pageName: asString(page.page_name), pageIndex: finiteNumber(page.page_index, 0) };
           if (state.batch) state.batch.pages[page.page_id] = 'SYNCING';
           saveBatch(state);
           count = 1;
@@ -183,6 +185,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (!asString(page.page_id)) throw new Error('PAGE_SKIP payload.page_id is required');
           state.db.skipPage(state.fileKey ?? '', page);
           if (state.batch) state.batch.pages[page.page_id] = 'SKIPPED';
+          pageId = page.page_id;
           saveBatch(state);
           updateManifest(state, page, 'SKIPPED', 0);
           count = 1;
@@ -202,10 +205,11 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (asString(done.page_id) && asString(done.page_id) !== state.page.pageId) throw new Error('PAGE_COMPLETE page_id mismatch');
           const expected = typeof done.total_nodes === 'number' ? done.total_nodes : undefined;
           committed = state.db.completePage(state.page.fileKey, state.page.pageId, expected);
+          pageId = state.page.pageId;
           state.db.checkpoint();
           if (state.batch) state.batch.pages[state.page.pageId] = 'DONE';
           saveBatch(state);
-          updateManifest(state, { page_id: state.page.pageId, page_name: state.page.pageName, page_index: -1 }, 'DONE', committed);
+          updateManifest(state, { page_id: state.page.pageId, page_name: state.page.pageName, page_index: state.page.pageIndex }, 'DONE', committed);
           state.page = null;
           count = committed;
           break;
@@ -262,6 +266,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       const ack: AckOk = { status: 'OK', receivedType: receivedType as WsMessage['type'], count };
       if (committed !== undefined) ack.committed = committed;
       if (pages !== undefined) ack.pages = pages;
+      if (pageId !== undefined) ack.pageId = pageId;
       if (batchId !== undefined) ack.batchId = batchId;
       sendJson(socket, ack);
       if (!quiet) {

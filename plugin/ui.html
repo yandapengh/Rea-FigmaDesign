@@ -53,7 +53,7 @@ function connect(){ws=new WebSocket(WS);ws.onopen=function(){$id('conn').textCon
 var outbox=[];
 function pump(){if(!ws||ws.readyState!==1)return;while(outbox.length&&ws.bufferedAmount<4*1024*1024){var m=outbox.shift();ws.send(JSON.stringify(m))}if(outbox.length)setTimeout(pump,25)}
 function sendRelay(message,batchId){outbox.push({type:message.type,payload:message.payload,batch_id:batchId});pump()}
-function onAck(m){if(m.batchId){post({type:'ACK',batchId:m.batchId,status:m.status,error:m.error||''});return}if(m.receivedType==='PAGE_STATUS'&&m.pages){for(var i=0;i<m.pages.length;i++){status[m.pages[i].page_id]=m.pages[i]}render()}}
+function onAck(m){if(m.receivedType==='PAGE_COMPLETE'&&m.pageId&&m.status==='OK'){status[m.pageId]=status[m.pageId]||{};status[m.pageId].status='DONE';status[m.pageId].node_count=m.committed||0;render()}if(m.receivedType==='PAGE_SKIP'&&m.pageId){status[m.pageId]={status:'SKIPPED',node_count:0};render()}if(m.batchId){post({type:'ACK',batchId:m.batchId,status:m.status,error:m.error||''});return}if(m.receivedType==='PAGE_STATUS'&&m.pages){for(var i=0;i<m.pages.length;i++){status[m.pages[i].page_id]=m.pages[i]}render()}}
 function askStatus(){if(!fileKey)return;outbox.push({type:'PAGE_STATUS',payload:{file_key:fileKey}});pump()}
 window.onmessage=function(e){var m=e.data&&e.data.pluginMessage;if(!m)return;
  if(m.type==='PAGE_META'){fileKey=m.payload.file.file_key;fileName=m.payload.file.file_name;pages=m.payload.pages;$id('fname').textContent=fileName;$id('fcount').textContent=pages.length+' 頁';askStatus();defaults();render();return}
