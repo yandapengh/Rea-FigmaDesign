@@ -2,14 +2,11 @@
 /**
  * AstGraphDB — local SQLite sink for the dehydrated Figma AST.
  *
- * Design notes:
- *  - WAL + NORMAL synchronous keeps 500-row chunk commits fast without risking
- *    corruption of a partially written graph.
- *  - Every chunk is committed inside a better-sqlite3 transaction using
- *    prepared INSERT OR REPLACE statements (no per-row SQL parsing).
- *  - Incoming rows are normalized field-by-field because a JSON round trip
- *    through postMessage/WebSocket drops `undefined` keys; a missing key must
- *    become NULL (or a safe default), never a thrown bind error mid-chunk.
+ * Durable per-page model (stage 1):
+ *  - every page is staged in nodes_staging, then swapped into nodes inside one transaction
+ *  - pages carry status (SYNCING / DONE / INCOMPLETE) and node_count
+ *  - every row is keyed by (file_key, id) so split Figma files can share one sink
+ *  - SYNC_START never deletes data; only RESET_DATABASE(confirm) does
  */
 
 import { mkdirSync } from 'node:fs';
@@ -20,30 +17,36 @@ import type {
   FileMetaPayload,
   NodeRow,
   PageCensusRow,
+  PageStartPayload,
+  PageStatusRow,
   VariableRow,
 } from '../shared/protocol';
 
-const SCHEMA_SQL = `
+const SCHEMA_TABLES = `
 CREATE TABLE IF NOT EXISTS file_meta (
   file_key TEXT PRIMARY KEY,
   file_name TEXT NOT NULL,
   extracted_at TEXT NOT NULL,
   page_count INTEGER NOT NULL,
-  total_nodes INTEGER DEFAULT 0
+  total_nodes INTEGER DEFAULT 0,
+  updated_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS variables (
-  id TEXT PRIMARY KEY,
+  file_key TEXT NOT NULL,
+  id TEXT NOT NULL,
   name TEXT NOT NULL,
   collection_id TEXT NOT NULL,
   collection_name TEXT NOT NULL,
   resolved_type TEXT NOT NULL,
   values_by_mode_json TEXT NOT NULL,
-  scopes_json TEXT NOT NULL
+  scopes_json TEXT NOT NULL,
+  PRIMARY KEY (file_key, id)
 );
 
 CREATE TABLE IF NOT EXISTS components (
-  id TEXT PRIMARY KEY,
+  file_key TEXT NOT NULL,
+  id TEXT NOT NULL,
   key TEXT NOT NULL,
   name TEXT NOT NULL,
   component_set_id TEXT,
@@ -51,20 +54,27 @@ CREATE TABLE IF NOT EXISTS components (
   variant_properties_json TEXT,
   description TEXT,
   page_id TEXT NOT NULL,
-  page_name TEXT NOT NULL
+  page_name TEXT NOT NULL,
+  PRIMARY KEY (file_key, id)
 );
 
 CREATE TABLE IF NOT EXISTS pages (
-  page_id TEXT PRIMARY KEY,
+  file_key TEXT NOT NULL,
+  page_id TEXT NOT NULL,
   page_name TEXT NOT NULL,
   page_index INTEGER NOT NULL,
-  child_count INTEGER NOT NULL,
-  is_empty INTEGER NOT NULL,
-  census_at TEXT NOT NULL
+  child_count INTEGER NOT NULL DEFAULT 0,
+  is_empty INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'INCOMPLETE',
+  node_count INTEGER NOT NULL DEFAULT 0,
+  synced_at TEXT,
+  census_at TEXT,
+  PRIMARY KEY (file_key, page_id)
 );
 
 CREATE TABLE IF NOT EXISTS nodes (
-  id TEXT PRIMARY KEY,
+  file_key TEXT NOT NULL,
+  id TEXT NOT NULL,
   parent_id TEXT,
   page_id TEXT NOT NULL,
   page_name TEXT NOT NULL,
@@ -85,50 +95,86 @@ CREATE TABLE IF NOT EXISTS nodes (
   bound_variables_json TEXT NOT NULL,
   text_content TEXT,
   text_style_json TEXT,
-  reactions_json TEXT
+  reactions_json TEXT,
+  PRIMARY KEY (file_key, id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
-CREATE INDEX IF NOT EXISTS idx_nodes_page ON nodes(page_id);
-CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
-CREATE INDEX IF NOT EXISTS idx_nodes_main_comp ON nodes(main_component_id);
-CREATE INDEX IF NOT EXISTS idx_variables_name ON variables(name);
-CREATE INDEX IF NOT EXISTS idx_pages_content ON pages(is_empty);
+CREATE TABLE IF NOT EXISTS nodes_staging (
+  file_key TEXT NOT NULL,
+  page_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  parent_id TEXT,
+  page_name TEXT NOT NULL,
+  child_index INTEGER NOT NULL,
+  depth INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  visible INTEGER NOT NULL,
+  main_component_id TEXT,
+  is_icon_container INTEGER NOT NULL DEFAULT 0,
+  layout_mode TEXT NOT NULL,
+  layout_props_json TEXT NOT NULL,
+  bbox_x REAL,
+  bbox_y REAL,
+  bbox_w REAL,
+  bbox_h REAL,
+  style_json TEXT NOT NULL,
+  bound_variables_json TEXT NOT NULL,
+  text_content TEXT,
+  text_style_json TEXT,
+  reactions_json TEXT,
+  PRIMARY KEY (file_key, page_id, id)
+);
 `;
 
-const INSERT_VARIABLE_SQL = `
-INSERT OR REPLACE INTO variables
-  (id, name, collection_id, collection_name, resolved_type, values_by_mode_json, scopes_json)
-VALUES
-  (@id, @name, @collection_id, @collection_name, @resolved_type, @values_by_mode_json, @scopes_json)
+const INDEX_SQL = `
+CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(file_key, parent_id);
+CREATE INDEX IF NOT EXISTS idx_nodes_page ON nodes(file_key, page_id);
+CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(file_key, type);
+CREATE INDEX IF NOT EXISTS idx_nodes_main_comp ON nodes(file_key, main_component_id);
+CREATE INDEX IF NOT EXISTS idx_variables_name ON variables(file_key, name);
+CREATE INDEX IF NOT EXISTS idx_pages_content ON pages(file_key, is_empty);
+CREATE INDEX IF NOT EXISTS idx_staging_page ON nodes_staging(file_key, page_id);
 `;
 
-const INSERT_COMPONENT_SQL = `
-INSERT OR REPLACE INTO components
-  (id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_id, page_name)
-VALUES
-  (@id, @key, @name, @component_set_id, @component_set_name, @variant_properties_json, @description, @page_id, @page_name)
-`;
+const NODE_COLUMNS =
+  'id, parent_id, page_id, page_name, child_index, depth, type, name, visible, ' +
+  'main_component_id, is_icon_container, layout_mode, layout_props_json, ' +
+  'bbox_x, bbox_y, bbox_w, bbox_h, style_json, bound_variables_json, ' +
+  'text_content, text_style_json, reactions_json';
 
-const INSERT_PAGE_SQL = `
-INSERT OR REPLACE INTO pages
-  (page_id, page_name, page_index, child_count, is_empty, census_at)
-VALUES
-  (@page_id, @page_name, @page_index, @child_count, @is_empty, @census_at)
-`;
+const INSERT_NODE_SQL =
+  'INSERT OR REPLACE INTO nodes (file_key, ' + NODE_COLUMNS + ') VALUES (' +
+  '@file_key, @id, @parent_id, @page_id, @page_name, @child_index, @depth, @type, @name, @visible, ' +
+  '@main_component_id, @is_icon_container, @layout_mode, @layout_props_json, ' +
+  '@bbox_x, @bbox_y, @bbox_w, @bbox_h, @style_json, @bound_variables_json, ' +
+  '@text_content, @text_style_json, @reactions_json)';
 
-const INSERT_NODE_SQL = `
-INSERT OR REPLACE INTO nodes
-  (id, parent_id, page_id, page_name, child_index, depth, type, name, visible,
-   main_component_id, is_icon_container, layout_mode, layout_props_json,
-   bbox_x, bbox_y, bbox_w, bbox_h, style_json, bound_variables_json,
-   text_content, text_style_json, reactions_json)
-VALUES
-  (@id, @parent_id, @page_id, @page_name, @child_index, @depth, @type, @name, @visible,
-   @main_component_id, @is_icon_container, @layout_mode, @layout_props_json,
-   @bbox_x, @bbox_y, @bbox_w, @bbox_h, @style_json, @bound_variables_json,
-   @text_content, @text_style_json, @reactions_json)
-`;
+const STAGING_COLUMNS =
+  'id, parent_id, page_name, child_index, depth, type, name, visible, ' +
+  'main_component_id, is_icon_container, layout_mode, layout_props_json, ' +
+  'bbox_x, bbox_y, bbox_w, bbox_h, style_json, bound_variables_json, ' +
+  'text_content, text_style_json, reactions_json';
+
+const INSERT_STAGING_SQL =
+  'INSERT OR REPLACE INTO nodes_staging (file_key, page_id, ' + STAGING_COLUMNS + ') VALUES (' +
+  '@file_key, @page_id, @id, @parent_id, @page_name, @child_index, @depth, @type, @name, @visible, ' +
+  '@main_component_id, @is_icon_container, @layout_mode, @layout_props_json, ' +
+  '@bbox_x, @bbox_y, @bbox_w, @bbox_h, @style_json, @bound_variables_json, ' +
+  '@text_content, @text_style_json, @reactions_json)';
+
+const INSERT_VARIABLE_SQL =
+  'INSERT OR REPLACE INTO variables (file_key, id, name, collection_id, collection_name, resolved_type, values_by_mode_json, scopes_json) ' +
+  'VALUES (@file_key, @id, @name, @collection_id, @collection_name, @resolved_type, @values_by_mode_json, @scopes_json)';
+
+const INSERT_COMPONENT_SQL =
+  'INSERT OR REPLACE INTO components (file_key, id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_id, page_name) ' +
+  'VALUES (@file_key, @id, @key, @name, @component_set_id, @component_set_name, @variant_properties_json, @description, @page_id, @page_name)';
+
+const UPSERT_FILE_SQL =
+  'INSERT INTO file_meta (file_key, file_name, extracted_at, page_count, total_nodes, updated_at) ' +
+  'VALUES (@file_key, @file_name, @extracted_at, @page_count, 0, @updated_at) ' +
+  'ON CONFLICT(file_key) DO UPDATE SET file_name = excluded.file_name, extracted_at = excluded.extracted_at, page_count = excluded.page_count, updated_at = excluded.updated_at';
 
 export interface FileMetaRow {
   file_key: string;
@@ -164,8 +210,9 @@ function nullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function toVariableBindings(row: VariableRow): Bindings {
+function toVariableBindings(fileKey: string, row: VariableRow): Bindings {
   return {
+    file_key: fileKey,
     id: text(row.id),
     name: text(row.name),
     collection_id: text(row.collection_id),
@@ -176,8 +223,9 @@ function toVariableBindings(row: VariableRow): Bindings {
   };
 }
 
-function toComponentBindings(row: ComponentRow): Bindings {
+function toComponentBindings(fileKey: string, row: ComponentRow): Bindings {
   return {
+    file_key: fileKey,
     id: text(row.id),
     key: text(row.key),
     name: text(row.name),
@@ -190,8 +238,9 @@ function toComponentBindings(row: ComponentRow): Bindings {
   };
 }
 
-function toNodeBindings(row: NodeRow): Bindings {
+function toNodeBindings(fileKey: string, row: NodeRow): Bindings {
   return {
+    file_key: fileKey,
     id: text(row.id),
     parent_id: nullableText(row.parent_id),
     page_id: text(row.page_id),
@@ -217,6 +266,14 @@ function toNodeBindings(row: NodeRow): Bindings {
   };
 }
 
+function tableColumns(db: Database.Database, table: string): string[] {
+  try {
+    return (db.prepare('PRAGMA table_info(' + table + ')').all() as Array<{ name: string }>).map((c) => c.name);
+  } catch {
+    return [];
+  }
+}
+
 export class AstGraphDB {
   private readonly db: Database.Database;
   private readonly dbPath: string;
@@ -224,147 +281,251 @@ export class AstGraphDB {
   private readonly insertVariableStmt: Database.Statement;
   private readonly insertComponentStmt: Database.Statement;
   private readonly insertNodeStmt: Database.Statement;
-
-  private readonly insertVariablesTxn: (rows: VariableRow[]) => void;
-  private readonly insertComponentsTxn: (rows: ComponentRow[]) => void;
-  private readonly insertNodesTxn: (rows: NodeRow[]) => void;
-  private readonly replacePageCensusTxn: (rows: PageCensusRow[]) => void;
-  private readonly resetTxn: (meta: FileMetaPayload) => void;
+  private readonly insertStagingStmt: Database.Statement;
 
   constructor(dbPath = './data/rea-figma.sqlite') {
-    if (dbPath !== ':memory:') {
-      mkdirSync(dirname(dbPath), { recursive: true });
-    }
+    if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
     this.dbPath = dbPath;
     this.db = new Database(dbPath);
-
-    // Durability/speed trade-off for a rebuildable local cache.
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('synchronous = NORMAL');
-    this.db.exec(SCHEMA_SQL);
+    this.migrateIfNeeded();
+    this.db.exec(SCHEMA_TABLES);
+    this.db.exec(INDEX_SQL);
+    this.db.pragma('user_version = 2');
 
     this.insertVariableStmt = this.db.prepare(INSERT_VARIABLE_SQL);
     this.insertComponentStmt = this.db.prepare(INSERT_COMPONENT_SQL);
     this.insertNodeStmt = this.db.prepare(INSERT_NODE_SQL);
-    const insertPageStmt = this.db.prepare(INSERT_PAGE_SQL);
+    this.insertStagingStmt = this.db.prepare(INSERT_STAGING_SQL);
+  }
 
-    this.insertVariablesTxn = this.db.transaction((rows: VariableRow[]) => {
-      for (let i = 0; i < rows.length; i += 1) {
-        this.insertVariableStmt.run(toVariableBindings(rows[i]));
+  /** v1 (single-file, id-only primary keys) -> v2 (file_key composite keys). */
+  private migrateIfNeeded(): void {
+    const cols = tableColumns(this.db, 'nodes');
+    if (cols.length === 0 || cols.indexOf('file_key') !== -1) return;
+
+    const legacyMeta = this.db.prepare('SELECT file_key, file_name, extracted_at, page_count, total_nodes FROM file_meta LIMIT 1').get() as
+      | { file_key: string; file_name: string; extracted_at: string; page_count: number; total_nodes: number }
+      | undefined;
+    const fileKey = legacyMeta?.file_key || 'legacy';
+
+    this.db.transaction(() => {
+      for (const idx of ['idx_nodes_parent', 'idx_nodes_page', 'idx_nodes_type', 'idx_nodes_main_comp', 'idx_variables_name', 'idx_pages_content']) {
+        this.db.exec('DROP INDEX IF EXISTS ' + idx);
       }
-    });
-
-    this.insertComponentsTxn = this.db.transaction((rows: ComponentRow[]) => {
-      for (let i = 0; i < rows.length; i += 1) {
-        this.insertComponentStmt.run(toComponentBindings(rows[i]));
+      this.db.exec('ALTER TABLE nodes RENAME TO nodes_v1');
+      this.db.exec('ALTER TABLE pages RENAME TO pages_v1');
+      this.db.exec('ALTER TABLE components RENAME TO components_v1');
+      this.db.exec('ALTER TABLE variables RENAME TO variables_v1');
+      this.db.exec('ALTER TABLE file_meta RENAME TO file_meta_v1');
+      this.db.exec(SCHEMA_TABLES);
+      this.db.prepare('INSERT OR REPLACE INTO nodes (file_key, ' + NODE_COLUMNS + ') SELECT ?, ' + NODE_COLUMNS + ' FROM nodes_v1').run(fileKey);
+      this.db
+        .prepare(
+          'INSERT OR REPLACE INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
+            'SELECT ?, page_id, page_name, page_index, child_count, is_empty, ?, (SELECT COUNT(*) FROM nodes_v1 n WHERE n.page_id = pages_v1.page_id), census_at, census_at FROM pages_v1',
+        )
+        .run(fileKey, 'DONE');
+      this.db
+        .prepare(
+          'INSERT OR REPLACE INTO components (file_key, id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_id, page_name) ' +
+            'SELECT ?, id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_id, page_name FROM components_v1',
+        )
+        .run(fileKey);
+      this.db
+        .prepare(
+          'INSERT OR REPLACE INTO variables (file_key, id, name, collection_id, collection_name, resolved_type, values_by_mode_json, scopes_json) ' +
+            'SELECT ?, id, name, collection_id, collection_name, resolved_type, values_by_mode_json, scopes_json FROM variables_v1',
+        )
+        .run(fileKey);
+      this.db
+        .prepare(
+          'INSERT OR REPLACE INTO file_meta (file_key, file_name, extracted_at, page_count, total_nodes, updated_at) ' +
+            'SELECT file_key, file_name, extracted_at, page_count, total_nodes, extracted_at FROM file_meta_v1',
+        )
+        .run();
+      for (const t of ['nodes_v1', 'pages_v1', 'components_v1', 'variables_v1', 'file_meta_v1']) {
+        this.db.exec('DROP TABLE ' + t);
       }
-    });
+    })();
+  }
 
-    this.insertNodesTxn = this.db.transaction((rows: NodeRow[]) => {
-      for (let i = 0; i < rows.length; i += 1) {
-        this.insertNodeStmt.run(toNodeBindings(rows[i]));
+  upsertFileMeta(meta: FileMetaPayload): void {
+    this.db.prepare(UPSERT_FILE_SQL).run({
+      file_key: text(meta.file_key) || 'unknown',
+      file_name: text(meta.file_name) || 'Untitled',
+      extracted_at: text(meta.extracted_at) || new Date().toISOString(),
+      page_count: finiteNumber(meta.page_count, 0),
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  beginPage(fileKey: string, page: PageStartPayload): void {
+    const now = new Date().toISOString();
+    this.db.transaction(() => {
+      this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db
+        .prepare(
+          'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
+            'VALUES (@file_key, @page_id, @page_name, @page_index, @child_count, @is_empty, @status, 0, NULL, @census_at) ' +
+            'ON CONFLICT(file_key, page_id) DO UPDATE SET page_name = excluded.page_name, page_index = excluded.page_index, status = excluded.status',
+        )
+        .run({
+          file_key: fileKey,
+          page_id: page.page_id,
+          page_name: text(page.page_name),
+          page_index: finiteNumber(page.page_index, 0),
+          child_count: finiteNumber(page.child_count, 0),
+          is_empty: page.is_empty === 1 ? 1 : 0,
+          status: 'SYNCING',
+          census_at: now,
+        });
+    })();
+  }
+
+  stageNodes(fileKey: string, pageId: string, rows: NodeRow[]): number {
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const txn = this.db.transaction((list: NodeRow[]) => {
+      for (const row of list) this.insertStagingStmt.run(toNodeBindings(fileKey, row));
+    });
+    txn(rows);
+    return rows.length;
+  }
+
+  completePage(fileKey: string, pageId: string, expected?: number): number {
+    return this.db.transaction(() => {
+      const staged = (this.db.prepare('SELECT COUNT(*) AS c FROM nodes_staging WHERE file_key = ? AND page_id = ?').get(fileKey, pageId) as { c: number }).c;
+      if (typeof expected === 'number' && expected !== staged) {
+        throw new Error('staged count mismatch: expected ' + expected + ', got ' + staged);
       }
-    });
+      this.db.prepare('DELETE FROM nodes WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+      this.db
+        .prepare('INSERT OR REPLACE INTO nodes (file_key, ' + NODE_COLUMNS + ') SELECT file_key, ' + NODE_COLUMNS + ' FROM nodes_staging WHERE file_key = ? AND page_id = ?')
+        .run(fileKey, pageId);
+      this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+      const now = new Date().toISOString();
+      this.db.prepare('UPDATE pages SET status = ?, node_count = ?, synced_at = ? WHERE file_key = ? AND page_id = ?').run('DONE', staged, now, fileKey, pageId);
+      this.db.prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?').run(fileKey, now, fileKey);
+      return staged;
+    })();
+  }
 
-    this.replacePageCensusTxn = this.db.transaction((rows: PageCensusRow[]) => {
-      this.db.prepare('DELETE FROM pages').run();
-      const censusAt = new Date().toISOString();
-      for (let i = 0; i < rows.length; i += 1) {
-        const row = rows[i];
-        insertPageStmt.run({
+  abortPage(fileKey: string, pageId: string): void {
+    this.db.transaction(() => {
+      this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+      this.db.prepare('UPDATE pages SET status = ? WHERE file_key = ? AND page_id = ? AND status = ?').run('INCOMPLETE', fileKey, pageId, 'SYNCING');
+    })();
+  }
+
+  listPages(fileKey?: string): PageStatusRow[] {
+    const sql =
+      'SELECT file_key, page_id, page_name, page_index, status, node_count, synced_at, child_count, is_empty, census_at FROM pages' +
+      (fileKey ? ' WHERE file_key = ?' : '') +
+      ' ORDER BY file_key, page_index';
+    return (fileKey ? this.db.prepare(sql).all(fileKey) : this.db.prepare(sql).all()) as PageStatusRow[];
+  }
+
+  replacePageCensus(fileKey: string, rows: PageCensusRow[]): number {
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const now = new Date().toISOString();
+    const txn = this.db.transaction((list: PageCensusRow[]) => {
+      const stmt = this.db.prepare(
+        'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
+          'VALUES (@file_key, @page_id, @page_name, @page_index, @child_count, @is_empty, @status, 0, NULL, @census_at) ' +
+          'ON CONFLICT(file_key, page_id) DO UPDATE SET page_name = excluded.page_name, page_index = excluded.page_index, child_count = excluded.child_count, is_empty = excluded.is_empty, census_at = excluded.census_at',
+      );
+      for (const row of list) {
+        stmt.run({
+          file_key: fileKey,
           page_id: text(row.page_id),
           page_name: text(row.page_name),
           page_index: finiteNumber(row.page_index, 0),
           child_count: finiteNumber(row.child_count, 0),
           is_empty: row.is_empty === 1 ? 1 : 0,
-          census_at: censusAt,
+          status: 'INCOMPLETE',
+          census_at: now,
         });
       }
     });
+    txn(rows);
+    return rows.length;
+  }
 
-    this.resetTxn = this.db.transaction((meta: FileMetaPayload) => {
-      this.db.prepare('DELETE FROM variables').run();
-      this.db.prepare('DELETE FROM components').run();
-      this.db.prepare('DELETE FROM nodes').run();
-      this.db.prepare('DELETE FROM file_meta').run();
-      this.db
-        .prepare(
-          `INSERT OR REPLACE INTO file_meta
-             (file_key, file_name, extracted_at, page_count, total_nodes)
-           VALUES (?, ?, ?, ?, 0)`,
-        )
-        .run(
-          text(meta.file_key) || 'unknown',
-          text(meta.file_name) || 'Untitled',
-          text(meta.extracted_at) || new Date().toISOString(),
-          finiteNumber(meta.page_count, 0),
-        );
+  insertVariablesBatch(fileKey: string, rows: VariableRow[]): number {
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const txn = this.db.transaction((list: VariableRow[]) => {
+      for (const row of list) this.insertVariableStmt.run(toVariableBindings(fileKey, row));
     });
-  }
-
-  /** Clears the previous graph and pins the new file metadata atomically. */
-  resetAndInitFile(meta: FileMetaPayload): void {
-    this.resetTxn(meta);
-  }
-
-  insertVariablesBatch(rows: VariableRow[]): number {
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
-    this.insertVariablesTxn(rows);
+    txn(rows);
     return rows.length;
   }
 
-  insertComponentsBatch(rows: ComponentRow[]): number {
+  insertComponentsBatch(fileKey: string, rows: ComponentRow[]): number {
     if (!Array.isArray(rows) || rows.length === 0) return 0;
-    this.insertComponentsTxn(rows);
+    const txn = this.db.transaction((list: ComponentRow[]) => {
+      for (const row of list) this.insertComponentStmt.run(toComponentBindings(fileKey, row));
+    });
+    txn(rows);
     return rows.length;
   }
 
-  insertNodesBatch(rows: NodeRow[]): number {
+  /** Legacy path: the old plugin sends no PAGE_START. */
+  insertNodesBatch(fileKey: string, rows: NodeRow[]): number {
     if (!Array.isArray(rows) || rows.length === 0) return 0;
-    this.insertNodesTxn(rows);
+    const txn = this.db.transaction((list: NodeRow[]) => {
+      for (const row of list) this.insertNodeStmt.run(toNodeBindings(fileKey, row));
+    });
+    txn(rows);
     return rows.length;
   }
 
-  /** Replaces the page census only; nodes/file_meta are untouched. */
-  replacePageCensus(rows: PageCensusRow[]): number {
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
-    this.replacePageCensusTxn(rows);
-    return rows.length;
-  }
-
-  /** Stamps the final node count onto the file_meta row. Returns rows updated. */
-  finalizeSync(totalNodes: number): number {
+  finalizeSync(fileKey: string, totalNodes: number): number {
     const info = this.db
-      .prepare('UPDATE file_meta SET total_nodes = ?')
-      .run(finiteNumber(totalNodes, 0));
+      .prepare('UPDATE file_meta SET total_nodes = ?, updated_at = ? WHERE file_key = ?')
+      .run(finiteNumber(totalNodes, 0), new Date().toISOString(), fileKey);
     return info.changes;
   }
 
-  getStats(): AstGraphStats {
-    const file = this.db
-      .prepare(
-        `SELECT file_key, file_name, extracted_at, page_count, total_nodes
-           FROM file_meta LIMIT 1`,
-      )
-      .get() as FileMetaRow | undefined;
+  resetAll(): void {
+    this.db.transaction(() => {
+      this.db.exec('DELETE FROM nodes');
+      this.db.exec('DELETE FROM nodes_staging');
+      this.db.exec('DELETE FROM pages');
+      this.db.exec('DELETE FROM components');
+      this.db.exec('DELETE FROM variables');
+      this.db.exec('DELETE FROM file_meta');
+    })();
+  }
 
+  checkpoint(): void {
+    this.db.pragma('wal_checkpoint(TRUNCATE)');
+  }
+
+  getStats(fileKey?: string): AstGraphStats {
+    const file = (fileKey
+      ? this.db.prepare('SELECT file_key, file_name, extracted_at, page_count, total_nodes FROM file_meta WHERE file_key = ? LIMIT 1').get(fileKey)
+      : this.db.prepare('SELECT file_key, file_name, extracted_at, page_count, total_nodes FROM file_meta ORDER BY extracted_at DESC LIMIT 1').get()) as FileMetaRow | undefined;
     const count = (table: 'variables' | 'components' | 'nodes'): number => {
-      const row = this.db
-        .prepare(`SELECT COUNT(*) AS c FROM ${table}`)
-        .get() as { c: number };
+      const sql = 'SELECT COUNT(*) AS c FROM ' + table + (fileKey ? ' WHERE file_key = ?' : '');
+      const row = (fileKey ? this.db.prepare(sql).get(fileKey) : this.db.prepare(sql).get()) as { c: number };
       return row.c;
     };
-
-    return {
-      db_path: this.dbPath,
-      file: file ?? null,
-      variables: count('variables'),
-      components: count('components'),
-      nodes: count('nodes'),
-    };
+    return { db_path: this.dbPath, file: file ?? null, variables: count('variables'), components: count('components'), nodes: count('nodes') };
   }
 
   close(): void {
-    if (this.db.open) this.db.close();
+    this.db.close();
+  }
+
+  static resolveFileKey(dbPath: string): string | null {
+    try {
+      const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+      const row = db.prepare('SELECT file_key FROM file_meta ORDER BY extracted_at DESC LIMIT 1').get() as { file_key: string } | undefined;
+      db.close();
+      return row?.file_key ?? null;
+    } catch {
+      return null;
+    }
   }
 }

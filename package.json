@@ -14,6 +14,7 @@
     "test:pipeline": "tsx server/verify-mock.ts",
     "test:parity": "tsx server/verify-parity.ts",
     "test:mcp": "tsx server/verify-mcp.ts",
+    "test:pages": "tsx server/verify-pages.ts && tsx server/verify-pages-ws.ts && tsx server/verify-migrate.ts",
     "audit:db": "tsx server/audit-db.ts",
     "query": "tsx server/query.ts",
     "doctor": "tsx server/doctor.ts",

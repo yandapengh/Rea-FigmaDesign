@@ -68,9 +68,47 @@ export interface PageCensusRow {
   is_empty: number; // 1 or 0
 }
 
+export interface PageStartPayload {
+  file_key: string;
+  page_id: string;
+  page_name: string;
+  page_index: number;
+  child_count?: number;
+  is_empty?: number;
+}
+
+export interface PageCompletePayload {
+  file_key: string;
+  page_id: string;
+  total_nodes?: number;
+}
+
+export type PageSyncStatus = 'SYNCING' | 'DONE' | 'INCOMPLETE';
+
+export interface PageStatusRow {
+  file_key: string;
+  page_id: string;
+  page_name: string;
+  page_index: number;
+  status: PageSyncStatus;
+  node_count: number;
+  synced_at: string | null;
+  child_count: number;
+  is_empty: number;
+  census_at: string | null;
+}
+
+export interface ResetDatabasePayload {
+  confirm: true;
+}
+
 export type WsMessage =
   | { type: 'PAGE_CENSUS'; payload: PageCensusRow[] }
   | { type: 'SYNC_START'; payload: FileMetaPayload }
+  | { type: 'PAGE_START'; payload: PageStartPayload }
+  | { type: 'PAGE_COMPLETE'; payload: PageCompletePayload }
+  | { type: 'PAGE_STATUS'; payload: { file_key?: string } }
+  | { type: 'RESET_DATABASE'; payload: ResetDatabasePayload }
   | { type: 'CHUNK_VARIABLES'; payload: VariableRow[] }
   | { type: 'CHUNK_COMPONENTS'; payload: ComponentRow[] }
   | { type: 'CHUNK_NODES'; payload: NodeRow[] }

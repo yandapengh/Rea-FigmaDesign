@@ -10,14 +10,13 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import Database = require('better-sqlite3');
 import { Graph } from './core/graph';
 import { buildSheetCard, diffScreens, findSimilar } from './core/analyze';
 import { loadLabels } from './core/semantics';
 
 const ROOT = resolve(__dirname, '..');
 const DB = resolve(ROOT, 'data/rea-figma.sqlite');
-const ID = '33:27783';
-const OTHER = '1:22374';
 
 let failures = 0;
 
@@ -57,7 +56,16 @@ function main(): void {
     console.log('        (run the Figma extraction first; see README quick start)');
     return;
   }
-  console.log('parity  db=' + DB);
+  const probe = new Database(DB, { readonly: true, fileMustExist: true });
+  const picked = probe.prepare('SELECT id FROM nodes ORDER BY page_id, id LIMIT 2').all() as Array<{ id: string }>;
+  probe.close();
+  if (picked.length < 2) {
+    console.log('parity  skipped: need at least 2 nodes in ' + DB);
+    return;
+  }
+  const ID = picked[0].id;
+  const OTHER = picked[1].id;
+  console.log('parity  db=' + DB + ' ids=' + ID + ',' + OTHER);
   const g = new Graph(DB);
   const labels = (() => {
     try {
