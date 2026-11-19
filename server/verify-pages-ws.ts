@@ -71,6 +71,7 @@ async function main(): Promise<void> {
   const status = await call({ type: 'PAGE_STATUS', payload: {} });
   const pages = (status.pages as Array<{ status: string; node_count: number }>) ?? [];
   check('ws: PAGE_STATUS reports DONE', pages.length === 1 && pages[0].status === 'DONE' && pages[0].node_count === 2);
+  check('ws: PAGE_STATUS exposes the latest batch', Boolean(status.latestBatch));
   const refused = await call({ type: 'RESET_DATABASE', payload: {} });
   check('ws: RESET_DATABASE without confirm is refused', refused.status === 'ERROR');
   const reset = await call({ type: 'RESET_DATABASE', payload: { confirm: true } });

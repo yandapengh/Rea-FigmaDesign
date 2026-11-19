@@ -37,6 +37,7 @@
 </style></head><body>
 <div class="head"><div class="logo"></div><span>Rea-FigmaDesign</span><span class="dot" id="conn">連線中…</span></div>
 <div class="file"><span id="fname">等待 Figma…</span><span id="fcount"></span></div>
+<div class="file" id="lastrow" style="display:none"><span id="last"></span></div>
 <div class="sum"><span>已完成 <b id="s-done">0</b></span><span>未導出 <b id="s-todo">0</b></span><span>中斷 <b id="s-warn">0</b></span><span>空頁 <b id="s-skip">0</b></span></div>
 <div class="hint" id="hint">正在讀取頁面清單…</div>
 <div class="actions"><button id="all">全選</button><button id="todo">僅選未導出</button><button id="none">清除選擇</button></div>
@@ -53,7 +54,7 @@ function connect(){ws=new WebSocket(WS);ws.onopen=function(){$id('conn').textCon
 var outbox=[];
 function pump(){if(!ws||ws.readyState!==1)return;while(outbox.length&&ws.bufferedAmount<4*1024*1024){var m=outbox.shift();ws.send(JSON.stringify(m))}if(outbox.length)setTimeout(pump,25)}
 function sendRelay(message,batchId){outbox.push({type:message.type,payload:message.payload,batch_id:batchId});pump()}
-function onAck(m){if(m.batchId){post({type:'ACK',batchId:m.batchId,status:m.status,error:m.error||''})}try{if(m.receivedType==='PAGE_COMPLETE'&&m.pageId&&m.status==='OK'){status[m.pageId]=status[m.pageId]||{};status[m.pageId].status='DONE';status[m.pageId].node_count=m.committed||0;render()}if(m.receivedType==='PAGE_SKIP'&&m.pageId){status[m.pageId]={status:'SKIPPED',node_count:0};render()}}catch(e){console.error(e)}if(m.batchId)returnif(m.receivedType==='PAGE_STATUS'&&m.pages){for(var i=0;i<m.pages.length;i++){status[m.pages[i].page_id]=m.pages[i]}render()}}
+function onAck(m){if(m.batchId){post({type:'ACK',batchId:m.batchId,status:m.status,error:m.error||''})}try{if(m.receivedType==='PAGE_COMPLETE'&&m.pageId&&m.status==='OK'){status[m.pageId]=status[m.pageId]||{};status[m.pageId].status='DONE';status[m.pageId].node_count=m.committed||0;render()}if(m.receivedType==='PAGE_SKIP'&&m.pageId){status[m.pageId]={status:'SKIPPED',node_count:0};render()}}catch(e){console.error(e)}if(m.batchId)returnif(m.receivedType==='PAGE_STATUS'&&m.pages){for(var i=0;i<m.pages.length;i++){status[m.pages[i].page_id]=m.pages[i]}if(m.latestBatch){var b=m.latestBatch;var el=document.getElementById('lastrow');el.style.display='';document.getElementById('last').textContent='上次匯出：第 '+b.batch_id+' 批 · '+b.pages_done+'/'+b.pages_total+' 頁 · '+b.status}render()}}
 function askStatus(){if(!fileKey)return;outbox.push({type:'PAGE_STATUS',payload:{file_key:fileKey}});pump()}
 window.onmessage=function(e){var m=e.data&&e.data.pluginMessage;if(!m)return;
  if(m.type==='PAGE_META'){fileKey=m.payload.file.file_key;fileName=m.payload.file.file_name;pages=m.payload.pages;$id('fname').textContent=fileName;$id('fcount').textContent=pages.length+' 頁';askStatus();defaults();render();return}

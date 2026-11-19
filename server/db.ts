@@ -100,6 +100,27 @@ CREATE TABLE IF NOT EXISTS nodes (
   PRIMARY KEY (file_key, id)
 );
 
+CREATE TABLE IF NOT EXISTS batches (
+  batch_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  file_key TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  status TEXT NOT NULL DEFAULT 'RUNNING',
+  pages_total INTEGER NOT NULL DEFAULT 0,
+  pages_done INTEGER NOT NULL DEFAULT 0,
+  pages_skipped INTEGER NOT NULL DEFAULT 0,
+  pages_failed INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS batch_pages (
+  batch_id INTEGER NOT NULL,
+  page_id TEXT NOT NULL,
+  page_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  node_count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (batch_id, page_id)
+);
+
 CREATE TABLE IF NOT EXISTS nodes_staging (
   file_key TEXT NOT NULL,
   page_id TEXT NOT NULL,
@@ -410,6 +431,38 @@ export class AstGraphDB {
       this.db.prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?').run(fileKey, now, fileKey);
       return staged;
     })();
+  }
+
+  beginBatch(fileKey: string, pages: Array<{ page_id: string; page_name: string }>): number {
+    return this.db.transaction(() => {
+      const info = this.db
+        .prepare('INSERT INTO batches (file_key, started_at, status, pages_total) VALUES (?, ?, ?, ?)')
+        .run(fileKey, new Date().toISOString(), 'RUNNING', pages.length);
+      const id = Number(info.lastInsertRowid);
+      const stmt = this.db.prepare('INSERT INTO batch_pages (batch_id, page_id, page_name, status) VALUES (?, ?, ?, ?)');
+      for (const page of pages) stmt.run(id, page.page_id, page.page_name, 'PENDING');
+      return id;
+    })();
+  }
+
+  setBatchPage(batchId: number, pageId: string, pageName: string, status: string, nodeCount: number): void {
+    this.db
+      .prepare('INSERT INTO batch_pages (batch_id, page_id, page_name, status, node_count) VALUES (?, ?, ?, ?, ?) ON CONFLICT(batch_id, page_id) DO UPDATE SET status = excluded.status, node_count = excluded.node_count')
+      .run(batchId, pageId, pageName, status, nodeCount);
+  }
+
+  finishBatch(batchId: number, status: string): void {
+    this.db.transaction(() => {
+      this.db.prepare("UPDATE batches SET finished_at = ?, status = ?, pages_done = (SELECT COUNT(*) FROM batch_pages WHERE batch_id = ? AND status = 'DONE'), pages_skipped = (SELECT COUNT(*) FROM batch_pages WHERE batch_id = ? AND status = 'SKIPPED'), pages_failed = (SELECT COUNT(*) FROM batch_pages WHERE batch_id = ? AND status IN ('INCOMPLETE','FAILED')) WHERE batch_id = ?").run(new Date().toISOString(), status, batchId, batchId, batchId, batchId);
+    })();
+  }
+
+  latestBatch(fileKey: string): Record<string, unknown> | null {
+    return (this.db.prepare('SELECT * FROM batches WHERE file_key = ? ORDER BY batch_id DESC LIMIT 1').get(fileKey) as Record<string, unknown> | undefined) ?? null;
+  }
+
+  listBatches(fileKey: string, limit: number): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM batches WHERE file_key = ? ORDER BY batch_id DESC LIMIT ?').all(fileKey, limit) as Array<Record<string, unknown>>;
   }
 
   skipPage(fileKey: string, page: PageSkipPayload): void {

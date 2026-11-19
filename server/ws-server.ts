@@ -34,7 +34,7 @@ export interface RunningIngestServer {
   close(): Promise<void>;
 }
 
-interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number; pageId?: string }
+interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number; pageId?: string; latestBatch?: unknown }
 interface AckError { status: 'ERROR'; receivedType: string | null; error: string; batchId?: number }
 interface BatchRecord { batch_id: number; file_key: string; started_at: string; finished_at: string | null; requested: Array<{ page_id: string; page_name: string; page_index: number }>; pages: Record<string, string> }
 interface SocketState {
@@ -43,6 +43,7 @@ interface SocketState {
   db: AstGraphDB | null;
   folder: string | null;
   batch: BatchRecord | null;
+  batchId: number | null;
 }
 
 function describeError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
@@ -134,7 +135,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     const payload = parsed.payload;
     const batchId = typeof parsed.batch_id === 'number' ? parsed.batch_id : undefined;
     let state = states.get(socket);
-    if (!state) { state = { fileKey: null, page: null, db: null, folder: null, batch: null }; states.set(socket, state); }
+    if (!state) { state = { fileKey: null, page: null, db: null, folder: null, batch: null, batchId: null }; states.set(socket, state); }
     const stage = state.page ? 'page=' + state.page.pageName + ' (' + state.page.pageId + ')' : 'file=' + (state.fileKey ?? 'none');
 
     try {
@@ -153,7 +154,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           state.db = dbFor(state.fileKey, asString(meta.file_name), state);
           state.db.upsertFileMeta(meta);
           const requested = Array.isArray(meta.pages) ? meta.pages : [];
-          beginBatch(state, requested);
+          state.batchId = state.db.beginBatch(state.fileKey, requested.map((p) => ({ page_id: String(p.page_id), page_name: String(p.page_name) })));
           if (state.folder) {
             const manifestPath = join(state.folder, 'manifest.json');
             let manifest: Record<string, unknown> = { file_key: meta.file_key, file_name: meta.file_name, created_at: nowIso(), updated_at: nowIso(), pages: [] };
@@ -174,8 +175,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const fileKey = asString(page.file_key) || state.fileKey || '';
           state.db.beginPage(fileKey, page);
           state.page = { fileKey, pageId: page.page_id, pageName: asString(page.page_name), pageIndex: finiteNumber(page.page_index, 0) };
-          if (state.batch) state.batch.pages[page.page_id] = 'SYNCING';
-          saveBatch(state);
+          if (state.batchId !== null) state.db.setBatchPage(state.batchId, page.page_id, page.page_name, 'SYNCING', 0);
           count = 1;
           break;
         }
@@ -207,8 +207,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           committed = state.db.completePage(state.page.fileKey, state.page.pageId, expected);
           pageId = state.page.pageId;
           state.db.checkpoint();
-          if (state.batch) state.batch.pages[state.page.pageId] = 'DONE';
-          saveBatch(state);
+          if (state.batchId !== null) state.db.setBatchPage(state.batchId, state.page.pageId, state.page.pageName, 'DONE', committed);
           updateManifest(state, { page_id: state.page.pageId, page_name: state.page.pageName, page_index: state.page.pageIndex }, 'DONE', committed);
           state.page = null;
           count = committed;
@@ -254,7 +253,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const totalNodes = payload.total_nodes;
           if (typeof totalNodes !== 'number' || !Number.isFinite(totalNodes)) throw new Error('SYNC_COMPLETE total_nodes must be finite');
           state.db.finalizeSync(state.fileKey ?? '', totalNodes);
-          if (state.batch) { state.batch.finished_at = nowIso(); saveBatch(state); }
+          if (state.batchId !== null) state.db.finishBatch(state.batchId, 'DONE');
           count = 1;
           break;
         }
@@ -266,6 +265,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       const ack: AckOk = { status: 'OK', receivedType: receivedType as WsMessage['type'], count };
       if (committed !== undefined) ack.committed = committed;
       if (pages !== undefined) ack.pages = pages;
+      if (pages !== undefined && state.db && state.fileKey) ack.latestBatch = state.db.latestBatch(state.fileKey);
       if (pageId !== undefined) ack.pageId = pageId;
       if (batchId !== undefined) ack.batchId = batchId;
       sendJson(socket, ack);
@@ -286,7 +286,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
   wss.on('connection', (socket, request) => {
     const remote = request.socket.remoteAddress ?? 'unknown';
     if (!quiet) console.log('[ws] client connected (' + remote + ')');
-    states.set(socket, { fileKey: null, page: null, db: null, folder: null, batch: null });
+    states.set(socket, { fileKey: null, page: null, db: null, folder: null, batch: null, batchId: null });
     alive.set(socket, true);
     socket.on('pong', () => alive.set(socket, true));
     socket.on('message', (data, isBinary) => {
@@ -298,7 +298,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       const state = states.get(socket);
       if (state?.page && state.db) {
         state.db.abortPage(state.page.fileKey, state.page.pageId);
-        if (state.batch) { state.batch.pages[state.page.pageId] = 'INCOMPLETE'; saveBatch(state); }
+        if (state.batchId !== null) { state.db.setBatchPage(state.batchId, state.page.pageId, state.page.pageName, 'INCOMPLETE', 0); state.db.finishBatch(state.batchId, 'PARTIAL'); }
         if (!quiet) console.log('[ws] page aborted on disconnect: ' + state.page.pageName);
       }
       states.delete(socket);
