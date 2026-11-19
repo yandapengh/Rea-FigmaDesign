@@ -88,7 +88,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
   function dbFor(fileKey: string, fileName: string, state: SocketState): AstGraphDB {
     if (fixedDb) { state.folder = null; return fixedDb; }
     let folder = join(dataRoot, safeFolder(fileKey, fileName));
-    if (!existsSync(join(folder, 'graph.sqlite'))) {
+    {
       try {
         for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
           if (!entry.isDirectory()) continue;
