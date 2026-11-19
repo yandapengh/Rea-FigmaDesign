@@ -214,7 +214,12 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           break;
         }
         case 'PAGE_STATUS': {
-          if (!state.db) throw new Error('PAGE_STATUS requires SYNC_START');
+          const wantedKey = isRecord(payload) && typeof payload.file_key === 'string' ? payload.file_key : state.fileKey;
+          if (!state.db) {
+            if (!wantedKey) throw new Error('PAGE_STATUS requires file_key');
+            state.fileKey = wantedKey;
+            state.db = dbFor(wantedKey, '', state);
+          }
           const wanted = isRecord(payload) && typeof payload.file_key === 'string' ? payload.file_key : state.fileKey ?? undefined;
           pages = state.db.listPages(wanted);
           count = pages.length;
