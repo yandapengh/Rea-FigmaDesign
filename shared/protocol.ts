@@ -11,6 +11,7 @@ export interface FileMetaPayload {
   file_name: string;
   extracted_at: string;
   page_count: number;
+  pages?: Array<{ page_id: string; page_name: string; page_index: number }>;
 }
 
 export interface VariableRow {
@@ -77,6 +78,13 @@ export interface PageStartPayload {
   is_empty?: number;
 }
 
+export interface PageSkipPayload {
+  file_key?: string;
+  page_id: string;
+  page_name: string;
+  page_index: number;
+}
+
 export interface PageCompletePayload {
   file_key: string;
   page_id: string;
@@ -106,6 +114,7 @@ export type WsMessage =
   | { type: 'PAGE_CENSUS'; payload: PageCensusRow[] }
   | { type: 'SYNC_START'; payload: FileMetaPayload }
   | { type: 'PAGE_START'; payload: PageStartPayload }
+  | { type: 'PAGE_SKIP'; payload: PageSkipPayload }
   | { type: 'PAGE_COMPLETE'; payload: PageCompletePayload }
   | { type: 'PAGE_STATUS'; payload: { file_key?: string } }
   | { type: 'RESET_DATABASE'; payload: ResetDatabasePayload }
@@ -113,3 +122,5 @@ export type WsMessage =
   | { type: 'CHUNK_COMPONENTS'; payload: ComponentRow[] }
   | { type: 'CHUNK_NODES'; payload: NodeRow[] }
   | { type: 'SYNC_COMPLETE'; payload: { total_nodes: number; duration_ms: number } };
+
+export type WsEnvelopeMessage = WsMessage & { batch_id?: number };

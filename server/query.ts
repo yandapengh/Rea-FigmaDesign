@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { AstGraphDB } from './db';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve, sep } from 'node:path';
 import {
@@ -37,7 +38,7 @@ import Database = require('better-sqlite3');
 // Resolve everything from the checkout, not the caller's cwd, so the CLI works from any directory.
 const ROOT = resolve(__dirname, '..');
 const SCRATCH = resolve(ROOT, '.scratch');
-const DEFAULT_DB = resolve(ROOT, 'data/rea-figma.sqlite');
+const DEFAULT_DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 const OPT = {
   db: DEFAULT_DB,
   json: false,

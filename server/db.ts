@@ -9,14 +9,15 @@
  *  - SYNC_START never deletes data; only RESET_DATABASE(confirm) does
  */
 
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import Database = require('better-sqlite3');
 import type {
   ComponentRow,
   FileMetaPayload,
   NodeRow,
   PageCensusRow,
+  PageSkipPayload,
   PageStartPayload,
   PageStatusRow,
   VariableRow,
@@ -411,6 +412,17 @@ export class AstGraphDB {
     })();
   }
 
+  skipPage(fileKey: string, page: PageSkipPayload): void {
+    const now = new Date().toISOString();
+    this.db
+      .prepare(
+        'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
+          'VALUES (@file_key, @page_id, @page_name, @page_index, 0, 1, @status, 0, NULL, @census_at) ' +
+          'ON CONFLICT(file_key, page_id) DO UPDATE SET page_name = excluded.page_name, page_index = excluded.page_index, status = excluded.status',
+      )
+      .run({ file_key: fileKey, page_id: page.page_id, page_name: page.page_name, page_index: page.page_index, status: 'SKIPPED', census_at: now });
+  }
+
   abortPage(fileKey: string, pageId: string): void {
     this.db.transaction(() => {
       this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
@@ -516,6 +528,21 @@ export class AstGraphDB {
 
   close(): void {
     this.db.close();
+  }
+
+  static resolveLatestGraphDb(root: string): string | null {
+    const dataRoot = join(root, 'data');
+    if (!existsSync(dataRoot)) return null;
+    let best: string | null = null;
+    let bestTime = 0;
+    for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = join(dataRoot, entry.name, 'graph.sqlite');
+      if (!existsSync(candidate)) continue;
+      const time = statSync(candidate).mtimeMs;
+      if (time > bestTime) { bestTime = time; best = candidate; }
+    }
+    return best;
   }
 
   static resolveFileKey(dbPath: string): string | null {

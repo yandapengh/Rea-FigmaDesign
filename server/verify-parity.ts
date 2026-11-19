@@ -12,11 +12,12 @@ import { resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import Database = require('better-sqlite3');
 import { Graph } from './core/graph';
+import { AstGraphDB } from './db';
 import { buildSheetCard, diffScreens, findSimilar } from './core/analyze';
 import { loadLabels } from './core/semantics';
 
 const ROOT = resolve(__dirname, '..');
-const DB = resolve(ROOT, 'data/rea-figma.sqlite');
+const DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 
 let failures = 0;
 

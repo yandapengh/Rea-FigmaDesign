@@ -12,12 +12,13 @@ import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } 
 import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Graph, archetypeOf, headlineOf, profileOf, slotsOf } from './core/graph';
+import { AstGraphDB } from './db';
 import { buildSheetCard, diffScreens, findSimilar } from './core/analyze';
 import { deriveFamilyAxes, groupStats, classifyWith, decideLabel, loadLabels, type LabelEntry, type ScreenLabel } from './core/semantics';
 
 const ROOT = resolve(__dirname, '..');
 const SAMPLES = resolve(ROOT, 'data/samples');
-const LIVE_DB = resolve(ROOT, 'data/rea-figma.sqlite');
+const LIVE_DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 const LABELS = resolve(ROOT, 'labels');
 const SCRATCH = resolve(ROOT, '.scratch');
 

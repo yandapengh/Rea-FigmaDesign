@@ -1,28 +1,21 @@
 /// <reference lib="es2022" />
 /**
- * Local WebSocket ingestion server.
- *
- * Stage 1 contract:
- *  - SYNC_START only upserts file_meta; it never deletes data.
- *  - PAGE_START opens a page; CHUNK_NODES lands in nodes_staging and is ACKed.
- *  - PAGE_COMPLETE swaps the page into nodes in one transaction (no ghosts).
- *  - RESET_DATABASE(confirm:true) is the only destructive path.
+ * Local ingestion server (stage 2, design A):
+ *  - one folder per Figma file: data/<safeKey>/graph.sqlite + manifest.json + batches/
+ *  - SYNC_START only upserts metadata; PAGE_START stages; PAGE_COMPLETE swaps atomically
+ *  - empty pages arrive as PAGE_SKIP and are recorded as SKIPPED
+ *  - RESET_DATABASE(confirm:true) is the only destructive path
  */
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { AstGraphDB } from './db';
 import type {
-  ComponentRow,
-  FileMetaPayload,
-  NodeRow,
-  PageCensusRow,
-  PageCompletePayload,
-  PageStartPayload,
-  VariableRow,
-  WsMessage,
+  ComponentRow, FileMetaPayload, NodeRow, PageCensusRow, PageCompletePayload, PageSkipPayload,
+  PageStartPayload, PageStatusRow, VariableRow, WsMessage,
 } from '../shared/protocol';
 
 const DEFAULT_HOST = '127.0.0.1';
@@ -31,63 +24,50 @@ const MAX_PAYLOAD_BYTES = 64 * 1024 * 1024;
 const WS_OPEN = 1;
 const HEARTBEAT_MS = 30000;
 
-export interface IngestServerOptions {
-  host?: string;
-  port?: number;
-  dbPath?: string;
-  quiet?: boolean;
-}
+export interface IngestServerOptions { host?: string; port?: number; dbPath?: string; quiet?: boolean }
 
 export interface RunningIngestServer {
   wss: WebSocketServer;
-  db: AstGraphDB;
+  db: AstGraphDB | null;
   host: string;
   port: number;
   close(): Promise<void>;
 }
 
-interface AckOk {
-  status: 'OK';
-  receivedType: WsMessage['type'];
-  count: number;
-  committed?: number;
-  pages?: unknown[];
-}
-
-interface AckError {
-  status: 'ERROR';
-  receivedType: string | null;
-  error: string;
-}
-
+interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number }
+interface AckError { status: 'ERROR'; receivedType: string | null; error: string; batchId?: number }
+interface BatchRecord { batch_id: number; file_key: string; started_at: string; finished_at: string | null; requested: Array<{ page_id: string; page_name: string; page_index: number }>; pages: Record<string, string> }
 interface SocketState {
   fileKey: string | null;
   page: { fileKey: string; pageId: string; pageName: string } | null;
+  db: AstGraphDB | null;
+  folder: string | null;
+  batch: BatchRecord | null;
 }
 
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+function describeError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
+function asString(value: unknown): string { return typeof value === 'string' ? value : ''; }
+function nowIso(): string { return new Date().toISOString(); }
+
+function safeFolder(fileKey: string, fileName: string): string {
+  if (/^[A-Za-z0-9_-]{1,64}$/.test(fileKey)) return fileKey;
+  return 'file-' + createHash('sha1').update(fileKey + '|' + fileName).digest('hex').slice(0, 10);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+function atomicJson(path: string, value: unknown): void {
+  const tmp = path + '.tmp';
+  writeFileSync(tmp, JSON.stringify(value, null, 2));
+  renameSync(tmp, path);
 }
 
 function sendJson(socket: WebSocket, value: unknown): void {
   if (socket.readyState !== WS_OPEN) return;
-  try {
-    socket.send(JSON.stringify(value));
-  } catch (error) {
-    console.error('[ws] failed to send ACK: ' + describeError(error));
-  }
+  try { socket.send(JSON.stringify(value)); } catch (error) { console.error('[ws] ack send failed: ' + describeError(error)); }
 }
-
-function sendError(socket: WebSocket, receivedType: string | null, error: string): void {
+function sendError(socket: WebSocket, receivedType: string | null, error: string, batchId?: number): void {
   const ack: AckError = { status: 'ERROR', receivedType, error };
+  if (typeof batchId === 'number') ack.batchId = batchId;
   sendJson(socket, ack);
 }
 
@@ -95,34 +75,65 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
   const host = options.host ?? DEFAULT_HOST;
   const port = options.port ?? DEFAULT_PORT;
   const root = resolve(__dirname, '..');
+  const dataRoot = join(root, 'data');
   const configured = options.dbPath ?? process.env.REA_DB_PATH;
-  const dbPath = configured ? resolve(root, configured) : resolve(root, 'data/rea-figma.sqlite');
-  const isNewDb = !existsSync(dbPath);
+  const fixedDb = configured ? new AstGraphDB(resolve(root, configured)) : null;
   const quiet = options.quiet ?? false;
-
-  const db = new AstGraphDB(dbPath);
+  const openDbs = new Map<string, AstGraphDB>();
   const states = new Map<WebSocket, SocketState>();
   const alive = new Map<WebSocket, boolean>();
 
-  const wss = new WebSocketServer({ host, port, maxPayload: MAX_PAYLOAD_BYTES, perMessageDeflate: false });
+  function dbFor(fileKey: string, fileName: string, state: SocketState): AstGraphDB {
+    if (fixedDb) { state.folder = null; return fixedDb; }
+    const folder = join(dataRoot, safeFolder(fileKey, fileName));
+    state.folder = folder;
+    const existing = openDbs.get(folder);
+    if (existing) return existing;
+    mkdirSync(join(folder, 'batches'), { recursive: true });
+    const db = new AstGraphDB(join(folder, 'graph.sqlite'));
+    openDbs.set(folder, db);
+    return db;
+  }
+
+  function updateManifest(state: SocketState, page: { page_id: string; page_name: string; page_index: number }, status: string, nodeCount?: number): void {
+    if (!state.folder) return;
+    const path = join(state.folder, 'manifest.json');
+    let manifest: Record<string, unknown> = { file_key: state.fileKey, updated_at: nowIso(), pages: [] };
+    try { manifest = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>; } catch { /* first write */ }
+    const pages = Array.isArray(manifest.pages) ? (manifest.pages as Array<Record<string, unknown>>) : [];
+    const next = pages.filter((p) => p.page_id !== page.page_id);
+    next.push({ page_id: page.page_id, page_name: page.page_name, page_index: page.page_index, status, node_count: nodeCount ?? 0, updated_at: nowIso() });
+    next.sort((a, b) => Number(a.page_index) - Number(b.page_index));
+    manifest.pages = next;
+    manifest.updated_at = nowIso();
+    atomicJson(path, manifest);
+  }
+
+  function beginBatch(state: SocketState, requested: Array<{ page_id: string; page_name: string; page_index: number }>): void {
+    if (!state.folder) return;
+    const dir = join(state.folder, 'batches');
+    mkdirSync(dir, { recursive: true });
+    const next = readdirSync(dir).filter((f) => f.endsWith('.json')).length + 1;
+    const record: BatchRecord = { batch_id: next, file_key: state.fileKey ?? '', started_at: nowIso(), finished_at: null, requested, pages: {} };
+    state.batch = record;
+    atomicJson(join(dir, String(next).padStart(3, '0') + '_batch.json'), record);
+  }
+
+  function saveBatch(state: SocketState): void {
+    if (!state.folder || !state.batch) return;
+    atomicJson(join(state.folder, 'batches', String(state.batch.batch_id).padStart(3, '0') + '_batch.json'), state.batch);
+  }
 
   function handleRawMessage(socket: WebSocket, raw: string): void {
     let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      sendError(socket, null, 'INVALID_JSON');
-      return;
-    }
-    if (!isRecord(parsed) || typeof parsed.type !== 'string') {
-      sendError(socket, null, 'INVALID_ENVELOPE');
-      return;
-    }
+    try { parsed = JSON.parse(raw); } catch { sendError(socket, null, 'INVALID_JSON'); return; }
+    if (!isRecord(parsed) || typeof parsed.type !== 'string') { sendError(socket, null, 'INVALID_ENVELOPE'); return; }
 
     const receivedType = parsed.type;
     const payload = parsed.payload;
-    const state = states.get(socket) ?? { fileKey: null, page: null };
-    states.set(socket, state);
+    const batchId = typeof parsed.batch_id === 'number' ? parsed.batch_id : undefined;
+    let state = states.get(socket);
+    if (!state) { state = { fileKey: null, page: null, db: null, folder: null, batch: null }; states.set(socket, state); }
     const stage = state.page ? 'page=' + state.page.pageName + ' (' + state.page.pageId + ')' : 'file=' + (state.fileKey ?? 'none');
 
     try {
@@ -135,202 +146,190 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (!isRecord(payload)) throw new Error('SYNC_START payload must be an object');
           const meta = payload as unknown as FileMetaPayload;
           if (!asString(meta.file_key)) throw new Error('SYNC_START payload.file_key is required');
-          db.upsertFileMeta(meta);
           state.fileKey = asString(meta.file_key);
           state.page = null;
+          state.db = dbFor(state.fileKey, asString(meta.file_name), state);
+          state.db.upsertFileMeta(meta);
+          const requested = Array.isArray(meta.pages) ? meta.pages : [];
+          beginBatch(state, requested);
+          if (state.folder) {
+            const manifestPath = join(state.folder, 'manifest.json');
+            let manifest: Record<string, unknown> = { file_key: meta.file_key, file_name: meta.file_name, created_at: nowIso(), updated_at: nowIso(), pages: [] };
+            try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>; } catch { /* first write */ }
+            manifest.file_key = meta.file_key;
+            manifest.file_name = meta.file_name;
+            manifest.updated_at = nowIso();
+            atomicJson(manifestPath, manifest);
+          }
           count = 1;
           break;
         }
         case 'PAGE_START': {
+          if (!state.db) throw new Error('PAGE_START requires SYNC_START');
           if (!isRecord(payload)) throw new Error('PAGE_START payload must be an object');
           const page = payload as unknown as PageStartPayload;
           if (!asString(page.page_id)) throw new Error('PAGE_START payload.page_id is required');
           const fileKey = asString(page.file_key) || state.fileKey || '';
-          if (!fileKey) throw new Error('PAGE_START requires file_key (or a prior SYNC_START)');
-          db.beginPage(fileKey, page);
-          state.fileKey = fileKey;
+          state.db.beginPage(fileKey, page);
           state.page = { fileKey, pageId: page.page_id, pageName: asString(page.page_name) };
+          if (state.batch) state.batch.pages[page.page_id] = 'SYNCING';
+          saveBatch(state);
+          count = 1;
+          break;
+        }
+        case 'PAGE_SKIP': {
+          if (!state.db) throw new Error('PAGE_SKIP requires SYNC_START');
+          const page = payload as unknown as PageSkipPayload;
+          if (!asString(page.page_id)) throw new Error('PAGE_SKIP payload.page_id is required');
+          state.db.skipPage(state.fileKey ?? '', page);
+          if (state.batch) state.batch.pages[page.page_id] = 'SKIPPED';
+          saveBatch(state);
+          updateManifest(state, page, 'SKIPPED', 0);
           count = 1;
           break;
         }
         case 'CHUNK_NODES': {
+          if (!state.db) throw new Error('CHUNK_NODES requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('CHUNK_NODES payload must be an array');
-          if (state.page) {
-            count = db.stageNodes(state.page.fileKey, state.page.pageId, payload as NodeRow[]);
-          } else {
-            if (!state.fileKey) throw new Error('CHUNK_NODES requires PAGE_START or SYNC_START');
-            count = db.insertNodesBatch(state.fileKey, payload as NodeRow[]);
-          }
+          if (state.page) count = state.db.stageNodes(state.page.fileKey, state.page.pageId, payload as NodeRow[]);
+          else count = state.db.insertNodesBatch(state.fileKey ?? '', payload as NodeRow[]);
           break;
         }
         case 'PAGE_COMPLETE': {
-          if (!isRecord(payload)) throw new Error('PAGE_COMPLETE payload must be an object');
-          const done = payload as unknown as PageCompletePayload;
+          if (!state.db) throw new Error('PAGE_COMPLETE requires SYNC_START');
           if (!state.page) throw new Error('PAGE_COMPLETE without an open PAGE_START');
-          if (asString(done.page_id) && asString(done.page_id) !== state.page.pageId) {
-            throw new Error('PAGE_COMPLETE page_id mismatch: ' + done.page_id + ' vs ' + state.page.pageId);
-          }
+          const done = payload as unknown as PageCompletePayload;
+          if (asString(done.page_id) && asString(done.page_id) !== state.page.pageId) throw new Error('PAGE_COMPLETE page_id mismatch');
           const expected = typeof done.total_nodes === 'number' ? done.total_nodes : undefined;
-          committed = db.completePage(state.page.fileKey, state.page.pageId, expected);
-          db.checkpoint();
+          committed = state.db.completePage(state.page.fileKey, state.page.pageId, expected);
+          state.db.checkpoint();
+          if (state.batch) state.batch.pages[state.page.pageId] = 'DONE';
+          saveBatch(state);
+          updateManifest(state, { page_id: state.page.pageId, page_name: state.page.pageName, page_index: -1 }, 'DONE', committed);
           state.page = null;
           count = committed;
           break;
         }
         case 'PAGE_STATUS': {
+          if (!state.db) throw new Error('PAGE_STATUS requires SYNC_START');
           const wanted = isRecord(payload) && typeof payload.file_key === 'string' ? payload.file_key : state.fileKey ?? undefined;
-          pages = db.listPages(wanted);
+          pages = state.db.listPages(wanted);
           count = pages.length;
           break;
         }
         case 'PAGE_CENSUS': {
+          if (!state.db) throw new Error('PAGE_CENSUS requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('PAGE_CENSUS payload must be an array');
-          if (!state.fileKey) throw new Error('PAGE_CENSUS requires SYNC_START');
-          count = db.replacePageCensus(state.fileKey, payload as PageCensusRow[]);
+          count = state.db.replacePageCensus(state.fileKey ?? '', payload as PageCensusRow[]);
           break;
         }
         case 'RESET_DATABASE': {
           if (!isRecord(payload) || payload.confirm !== true) throw new Error('RESET_DATABASE requires confirm:true');
-          db.resetAll();
+          if (fixedDb) fixedDb.resetAll();
+          for (const db of openDbs.values()) db.resetAll();
+          state.db?.resetAll();
           state.page = null;
           count = 1;
           break;
         }
         case 'CHUNK_VARIABLES': {
+          if (!state.db) throw new Error('CHUNK_VARIABLES requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('CHUNK_VARIABLES payload must be an array');
-          if (!state.fileKey) throw new Error('CHUNK_VARIABLES requires SYNC_START');
-          count = db.insertVariablesBatch(state.fileKey, payload as VariableRow[]);
+          count = state.db.insertVariablesBatch(state.fileKey ?? '', payload as VariableRow[]);
           break;
         }
         case 'CHUNK_COMPONENTS': {
+          if (!state.db) throw new Error('CHUNK_COMPONENTS requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('CHUNK_COMPONENTS payload must be an array');
-          if (!state.fileKey) throw new Error('CHUNK_COMPONENTS requires SYNC_START');
-          count = db.insertComponentsBatch(state.fileKey, payload as ComponentRow[]);
+          count = state.db.insertComponentsBatch(state.fileKey ?? '', payload as ComponentRow[]);
           break;
         }
         case 'SYNC_COMPLETE': {
+          if (!state.db) throw new Error('SYNC_COMPLETE requires SYNC_START');
           if (!isRecord(payload)) throw new Error('SYNC_COMPLETE payload must be an object');
-          if (!state.fileKey) throw new Error('SYNC_COMPLETE requires SYNC_START');
           const totalNodes = payload.total_nodes;
-          if (typeof totalNodes !== 'number' || !Number.isFinite(totalNodes)) {
-            throw new Error('SYNC_COMPLETE payload.total_nodes must be a finite number');
-          }
-          db.finalizeSync(state.fileKey, totalNodes);
+          if (typeof totalNodes !== 'number' || !Number.isFinite(totalNodes)) throw new Error('SYNC_COMPLETE total_nodes must be finite');
+          state.db.finalizeSync(state.fileKey ?? '', totalNodes);
+          if (state.batch) { state.batch.finished_at = nowIso(); saveBatch(state); }
           count = 1;
           break;
         }
         default:
-          sendError(socket, receivedType, 'UNKNOWN_MESSAGE_TYPE: ' + receivedType);
+          sendError(socket, receivedType, 'UNKNOWN_MESSAGE_TYPE: ' + receivedType, batchId);
           return;
       }
 
       const ack: AckOk = { status: 'OK', receivedType: receivedType as WsMessage['type'], count };
       if (committed !== undefined) ack.committed = committed;
       if (pages !== undefined) ack.pages = pages;
+      if (batchId !== undefined) ack.batchId = batchId;
       sendJson(socket, ack);
-
       if (!quiet) {
         if (receivedType === 'SYNC_COMPLETE') {
-          const stats = db.getStats(state.fileKey ?? undefined);
-          console.log('[ws] SYNC_COMPLETE — nodes=' + stats.nodes + ' variables=' + stats.variables + ' components=' + stats.components + ' file="' + (stats.file ? stats.file.file_name : 'n/a') + '"');
-        } else {
-          console.log('[ws] ' + receivedType + ' +' + count + ' [' + stage + ']');
-        }
+          const stats = state.db ? state.db.getStats(state.fileKey ?? undefined) : null;
+          console.log('[ws] SYNC_COMPLETE — nodes=' + (stats ? stats.nodes : 0) + ' file="' + (stats && stats.file ? stats.file.file_name : 'n/a') + '"');
+        } else console.log('[ws] ' + receivedType + ' +' + count + ' [' + stage + ']');
       }
     } catch (error) {
-      sendError(socket, receivedType, describeError(error));
+      sendError(socket, receivedType, describeError(error), batchId);
       if (!quiet) console.error('[ws] ' + receivedType + ' failed [' + stage + ']: ' + describeError(error));
     }
   }
 
+  const wss = new WebSocketServer({ host, port, maxPayload: MAX_PAYLOAD_BYTES, perMessageDeflate: false });
+
   wss.on('connection', (socket, request) => {
     const remote = request.socket.remoteAddress ?? 'unknown';
     if (!quiet) console.log('[ws] client connected (' + remote + ')');
-    states.set(socket, { fileKey: null, page: null });
+    states.set(socket, { fileKey: null, page: null, db: null, folder: null, batch: null });
     alive.set(socket, true);
-
-    socket.on('pong', () => {
-      alive.set(socket, true);
-    });
-
+    socket.on('pong', () => alive.set(socket, true));
     socket.on('message', (data, isBinary) => {
-      if (isBinary) {
-        sendError(socket, null, 'BINARY_FRAMES_NOT_SUPPORTED');
-        return;
-      }
+      if (isBinary) { sendError(socket, null, 'BINARY_FRAMES_NOT_SUPPORTED'); return; }
       handleRawMessage(socket, data.toString());
     });
-
-    socket.on('error', (error) => {
-      if (!quiet) console.error('[ws] socket error: ' + describeError(error));
-    });
-
+    socket.on('error', (error) => { if (!quiet) console.error('[ws] socket error: ' + describeError(error)); });
     socket.on('close', (code, reason) => {
       const state = states.get(socket);
-      if (state?.page) {
-        currentDb().abortPage(state.page.fileKey, state.page.pageId);
-        if (!quiet) console.log('[ws] page aborted on disconnect: ' + state.page.pageName + ' (' + state.page.pageId + ')');
+      if (state?.page && state.db) {
+        state.db.abortPage(state.page.fileKey, state.page.pageId);
+        if (state.batch) { state.batch.pages[state.page.pageId] = 'INCOMPLETE'; saveBatch(state); }
+        if (!quiet) console.log('[ws] page aborted on disconnect: ' + state.page.pageName);
       }
       states.delete(socket);
       alive.delete(socket);
-      if (!quiet) {
-        const suffix = reason.length > 0 ? ' (' + reason.toString() + ')' : '';
-        console.log('[ws] client disconnected code=' + code + suffix);
-      }
+      if (!quiet) console.log('[ws] client disconnected code=' + code + (reason.length ? ' (' + reason.toString() + ')' : ''));
     });
   });
 
-  function currentDb(): AstGraphDB {
-    return db;
-  }
-
-  wss.on('error', (error) => {
-    if (!quiet) console.error('[ws] server error: ' + describeError(error));
-  });
+  wss.on('error', (error) => { if (!quiet) console.error('[ws] server error: ' + describeError(error)); });
 
   const heartbeat = setInterval(() => {
     for (const socket of wss.clients) {
-      if (alive.get(socket) === false) {
-        socket.terminate();
-        continue;
-      }
+      if (alive.get(socket) === false) { socket.terminate(); continue; }
       alive.set(socket, false);
-      try {
-        socket.ping();
-      } catch {
-        socket.terminate();
-      }
+      try { socket.ping(); } catch { socket.terminate(); }
     }
   }, HEARTBEAT_MS);
 
   try {
     await new Promise<void>((resolveReady, rejectReady) => {
-      const onListening = (): void => {
-        wss.off('error', onStartupError);
-        resolveReady();
-      };
-      const onStartupError = (error: Error): void => {
-        wss.off('listening', onListening);
-        rejectReady(error);
-      };
+      const onListening = (): void => { wss.off('error', onStartupError); resolveReady(); };
+      const onStartupError = (error: Error): void => { wss.off('listening', onListening); rejectReady(error); };
       wss.once('listening', onListening);
       wss.once('error', onStartupError);
     });
   } catch (error) {
     clearInterval(heartbeat);
-    db.close();
-    try {
-      wss.close();
-    } catch {
-      // never bound
-    }
+    fixedDb?.close();
+    for (const db of openDbs.values()) db.close();
+    try { wss.close(); } catch { /* never bound */ }
     throw error;
   }
 
   if (!quiet) {
     console.log('[ws] listening on ws://' + host + ':' + port);
-    console.log('[ws] sqlite sink: ' + dbPath + ' (WAL, staged pages)');
-    console.log('[ws] ' + (isNewDb ? 'new database will be created' : 'appending to existing database'));
+    console.log('[ws] sqlite sink: ' + (fixedDb ? 'fixed' : join(dataRoot, '<file-key>/graph.sqlite')));
   }
 
   let closed = false;
@@ -339,13 +338,12 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     closed = true;
     clearInterval(heartbeat);
     wss.clients.forEach((client) => client.terminate());
-    await new Promise<void>((resolveClosed) => {
-      wss.close(() => resolveClosed());
-    });
-    db.close();
+    await new Promise<void>((resolveClosed) => { wss.close(() => resolveClosed()); });
+    fixedDb?.close();
+    for (const db of openDbs.values()) db.close();
   };
 
-  return { wss, db, host, port, close };
+  return { wss, db: fixedDb, host, port, close };
 }
 
 function isDirectInvocation(): boolean {
@@ -360,19 +358,10 @@ if (isDirectInvocation()) {
         if (shuttingDown) return;
         shuttingDown = true;
         console.log('[ws] ' + signal + ' received, flushing WAL and shutting down');
-        running
-          .close()
-          .then(() => process.exit(0))
-          .catch((error) => {
-            console.error('[ws] shutdown failed: ' + describeError(error));
-            process.exit(1);
-          });
+        running.close().then(() => process.exit(0)).catch((error) => { console.error('[ws] shutdown failed: ' + describeError(error)); process.exit(1); });
       };
       process.on('SIGINT', () => shutdown('SIGINT'));
       process.on('SIGTERM', () => shutdown('SIGTERM'));
     })
-    .catch((error) => {
-      console.error('[ws] failed to start: ' + describeError(error));
-      process.exitCode = 1;
-    });
+    .catch((error) => { console.error('[ws] failed to start: ' + describeError(error)); process.exitCode = 1; });
 }
