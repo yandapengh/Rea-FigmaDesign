@@ -87,7 +87,18 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
 
   function dbFor(fileKey: string, fileName: string, state: SocketState): AstGraphDB {
     if (fixedDb) { state.folder = null; return fixedDb; }
-    const folder = join(dataRoot, safeFolder(fileKey, fileName));
+    let folder = join(dataRoot, safeFolder(fileKey, fileName));
+    if (!existsSync(join(folder, 'graph.sqlite'))) {
+      try {
+        for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
+          if (!entry.isDirectory()) continue;
+          const manifestPath = join(dataRoot, entry.name, 'manifest.json');
+          if (!existsSync(manifestPath)) continue;
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { file_key?: string };
+          if (manifest.file_key === fileKey) { folder = join(dataRoot, entry.name); break; }
+        }
+      } catch { /* fall back to the hashed folder */ }
+    }
     state.folder = folder;
     const existing = openDbs.get(folder);
     if (existing) return existing;
