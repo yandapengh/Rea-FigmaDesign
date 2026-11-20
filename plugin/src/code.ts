@@ -145,6 +145,44 @@ async function exportPage(page: PageNode, index: number, total: number, fileKey:
   progressMsg('done');
 }
 
+function isScreenNode(node: Record<string, unknown>): boolean {
+  const type = node.type;
+  if (type !== 'FRAME' && type !== 'COMPONENT' && type !== 'INSTANCE') return false;
+  const w = typeof node.width === 'number' ? node.width : 0;
+  const h = typeof node.height === 'number' ? node.height : 0;
+  return Math.abs(w - 390) <= 4 && Math.abs(h - 844) <= 6;
+}
+
+/** Fast scan: only top-level screens; reads node.opacity, no node export. */
+async function scanHidden(pageIds: string[]): Promise<void> {
+  if (running) return;
+  running = true;
+  try {
+    const selected = figma.root.children.filter((p) => pageIds.indexOf(p.id) !== -1);
+    let total = 0;
+    for (let index = 0; index < selected.length; index += 1) {
+      const page = selected[index];
+      figma.ui.postMessage({ type: 'HIDDEN_PROGRESS', payload: { index: index + 1, total: selected.length, page: page.name } });
+      await page.loadAsync();
+      const rows: Array<{ id: string; opacity: number }> = [];
+      for (const child of page.children) {
+        const node = child as unknown as Record<string, unknown>;
+        const opacity = typeof node.opacity === 'number' ? node.opacity : 1;
+        if (isScreenNode(node) && opacity <= 0.35) rows.push({ id: String(node.id), opacity: Math.round(opacity * 1000) / 1000 });
+      }
+      if (rows.length > 0) await send({ type: 'HIDDEN_SCREENS', payload: { file_key: fileMeta().file_key, rows } });
+      total += rows.length;
+    }
+    figma.ui.postMessage({ type: 'HIDDEN_DONE', payload: { count: total } });
+    figma.notify('Rea-FigmaDesign：隱藏稿掃描完成，共 ' + total + ' 個', { timeout: 5000 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    figma.ui.postMessage({ type: 'HIDDEN_ERROR', payload: { message } });
+  } finally {
+    running = false;
+  }
+}
+
 async function run(pageIds: string[]): Promise<void> {
   if (running) return;
   running = true;
@@ -191,6 +229,11 @@ figma.ui.onmessage = (message: unknown): void => {
   }
   if (msg.type === 'REQUEST_META' || msg.action === 'REQUEST_META') {
     sendMeta();
+    return;
+  }
+  if (msg.action === 'SCAN_HIDDEN') {
+    const hiddenIds = Array.isArray(msg.pageIds) ? (msg.pageIds as string[]) : [];
+    void scanHidden(hiddenIds);
     return;
   }
   if (msg.action === 'START_EXTRACTION') {

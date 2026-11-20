@@ -106,6 +106,16 @@ export interface PageStatusRow {
   census_at: string | null;
 }
 
+export interface HiddenScreenRow {
+  id: string;
+  opacity: number;
+}
+
+export interface HiddenScreenPayload {
+  file_key: string;
+  rows: HiddenScreenRow[];
+}
+
 export interface ResetDatabasePayload {
   confirm: true;
 }
@@ -118,6 +128,7 @@ export type WsMessage =
   | { type: 'PAGE_COMPLETE'; payload: PageCompletePayload }
   | { type: 'PAGE_STATUS'; payload: { file_key?: string } }
   | { type: 'RESET_DATABASE'; payload: ResetDatabasePayload }
+  | { type: 'HIDDEN_SCREENS'; payload: HiddenScreenPayload }
   | { type: 'CHUNK_VARIABLES'; payload: VariableRow[] }
   | { type: 'CHUNK_COMPONENTS'; payload: ComponentRow[] }
   | { type: 'CHUNK_NODES'; payload: NodeRow[] }
