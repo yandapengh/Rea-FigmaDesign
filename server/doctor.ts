@@ -72,7 +72,20 @@ function inspectDb(path: string, label: string): { nodes: number; ok: boolean } 
 
 function checkData(): void {
   section('data');
-  const live = resolve(ROOT, 'data/rea-figma.sqlite');
+  const live = (() => {
+    const dataRoot = resolve(ROOT, 'data');
+    if (!existsSync(dataRoot)) return resolve(dataRoot, 'rea-figma.sqlite');
+    let best = '';
+    let bestTime = 0;
+    for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = resolve(dataRoot, entry.name, 'graph.sqlite');
+      if (!existsSync(candidate)) continue;
+      const t = statSync(candidate).mtimeMs;
+      if (t > bestTime) { bestTime = t; best = candidate; }
+    }
+    return best || resolve(dataRoot, 'rea-figma.sqlite');
+  })();
   if (!existsSync(live)) {
     warn('no live db yet (fresh checkout)', 'run the Figma extraction: npm run start:server, then the plugin');
   } else {
