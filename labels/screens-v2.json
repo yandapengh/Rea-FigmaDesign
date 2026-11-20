@@ -1,14 +1,14 @@
 {
   "version": 2,
   "sample": "2026-11-20-baipai-full",
-  "note": "human labels + rule AI (generation majority + page prior)",
+  "note": "human labels preserved; generation from colour+structure",
   "counts": {
-    "頁面類": 348,
+    "頁面類": 350,
     "彈窗類": 86,
-    "廢棄": 101,
+    "廢棄": 99,
     "系統UI": 4,
-    "老UI": 1916,
-    "新UI": 126
+    "老UI": 1706,
+    "新UI": 336
   },
   "screens": [
     {
@@ -16,91 +16,91 @@
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15157:234239",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15172:234175",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15115:234290",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15152:234156",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15111:234351",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "6881:96296",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "8633:69529",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "8633:69526",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "128:13948",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "346:88859",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "769:90697",
       "label": "用戶二維碼",
       "major": "頁面類",
       "minor": "用戶二維碼",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "769:90695",
       "label": "用戶二維碼",
       "major": "頁面類",
       "minor": "用戶二維碼",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661775",
@@ -114,343 +114,343 @@
       "label": "系統FaceID彈窗",
       "major": "彈窗類",
       "minor": "系統FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661894",
       "label": "系統FaceID彈窗",
       "major": "彈窗類",
       "minor": "系統FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661413",
       "label": "系統彈窗",
       "major": "彈窗類",
       "minor": "系統彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661502",
       "label": "系統FaceID彈窗",
       "major": "彈窗類",
       "minor": "系統FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661506",
       "label": "系統FaceID彈窗",
       "major": "彈窗類",
       "minor": "系統FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661480",
       "label": "系統FaceID彈窗",
       "major": "彈窗類",
       "minor": "系統FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661199",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661200",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661363",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661190",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661398",
       "label": "日期選擇器彈窗",
       "major": "彈窗類",
       "minor": "日期選擇器彈窗",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661375",
       "label": "上傳avatar彈窗",
       "major": "彈窗類",
       "minor": "上傳avatar彈窗",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661385",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661365",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661531",
       "label": "指紋確認彈窗",
       "major": "彈窗類",
       "minor": "指紋確認彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661473",
       "label": "指紋確認彈窗",
       "major": "彈窗類",
       "minor": "指紋確認彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661472",
       "label": "指紋確認彈窗",
       "major": "彈窗類",
       "minor": "指紋確認彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661864",
       "label": "指紋確認彈窗",
       "major": "彈窗類",
       "minor": "指紋確認彈窗",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661826",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661814",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661818",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "796:81808",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661139",
       "label": "KYC 升級",
       "major": "頁面類",
       "minor": "KYC 升級",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661138",
       "label": "KYC 升級",
       "major": "頁面類",
       "minor": "KYC 升級",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661364",
       "label": "KYC 升級",
       "major": "頁面類",
       "minor": "KYC 升級",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:661185",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661205",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661208",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661195",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661191",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661192",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661690",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661353",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661939",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661836",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:661840",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:482709",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:482710",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:482641",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:482642",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:482643",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16016:13225",
       "label": "活動詳情頁",
       "major": "頁面類",
       "minor": "活動詳情頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16016:13447",
       "label": "活動詳情頁",
       "major": "頁面類",
       "minor": "活動詳情頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16697:110140",
       "label": "活動詳情頁",
       "major": "頁面類",
       "minor": "活動詳情頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16065:106152",
       "label": "列表頁",
       "major": "頁面類",
       "minor": "列表頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16065:106151",
       "label": "列表頁",
       "major": "頁面類",
       "minor": "列表頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16605:387051",
       "label": "空頁面",
       "major": "頁面類",
       "minor": "空頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "17868:259166",
       "label": "活動詳情頁",
       "major": "頁面類",
       "minor": "活動詳情頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16065:111667",
       "label": "活動詳情頁",
       "major": "頁面類",
       "minor": "活動詳情頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12042:217251",
@@ -527,49 +527,49 @@
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12687:294579",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:804371",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9420:292161",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:806082",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:804549",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9420:292165",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:859671",
@@ -604,91 +604,91 @@
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:859865",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:859863",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:859862",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9349:155252",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:804669",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:804083",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:804119",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:804224",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:804670",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9349:154128",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9420:292162",
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9420:292163",
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:859806",
@@ -723,49 +723,49 @@
       "label": "修改手機號彈窗",
       "major": "彈窗類",
       "minor": "修改手機號彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634071",
       "label": "修改手機號彈窗",
       "major": "彈窗類",
       "minor": "修改手機號彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634060",
       "label": "修改手機號彈窗",
       "major": "彈窗類",
       "minor": "修改手機號彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634027",
       "label": "OTP彈窗",
       "major": "彈窗類",
       "minor": "OTP彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634030",
       "label": "OTP彈窗",
       "major": "彈窗類",
       "minor": "OTP彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634127",
       "label": "修改手機號的彈窗",
       "major": "頁面類",
       "minor": "修改手機號的彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634123",
       "label": "修改手機號的彈窗",
       "major": "頁面類",
       "minor": "修改手機號的彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:634208",
@@ -786,189 +786,189 @@
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148826",
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148829",
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148823",
       "label": "Send Money",
       "major": "頁面類",
       "minor": "Send Money",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148835",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148836",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "10047:124374",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10047:119134",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "17109:431154",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "18219:726684",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13675:31741",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11901:142133",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18414:124739",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "18424:450065",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:463328",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:463329",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:463336",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9228:69527",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9228:69525",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9228:69528",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:673082",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:673081",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13797:524467",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13797:541747",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13797:524551",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13454:240918",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13454:248140",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11679:300429",
@@ -1003,217 +1003,217 @@
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13947:346446",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:727919",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13111:100879",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:732717",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:103900",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12466:496256",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12466:496987",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13197:119543",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12466:496615",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12466:493819",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12466:494305",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12436:236443",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13197:119214",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:690804",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:690805",
       "label": "Welcome page歡迎頁面",
       "major": "頁面類",
       "minor": "Welcome page歡迎頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:690806",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12555:106782",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12517:277832",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12555:120988",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132842",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133633",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133403",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22109:246918",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22089:215962",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22270:60441",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "14913:257687",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "14913:257686",
       "label": "OTP驗證",
       "major": "頁面類",
       "minor": "OTP驗證",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:707200",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "5599:170574",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:707247",
       "label": "交易詳情",
       "major": "頁面類",
       "minor": "交易詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:415106",
@@ -1297,126 +1297,126 @@
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420507",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420991",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420898",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420775",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420742",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:420984",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:671482",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:671422",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:671420",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:671421",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613825",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613783",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613784",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613785",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613786",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613787",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:613789",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:843071",
@@ -1472,49 +1472,49 @@
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11718:232332",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11718:232294",
       "label": "Toast",
       "major": "彈窗類",
       "minor": "Toast",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:770094",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:770825",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:770827",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:770826",
       "label": "選擇好友",
       "major": "頁面類",
       "minor": "選擇好友",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713506",
@@ -1577,217 +1577,217 @@
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148645",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148579",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148636",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463228",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463236",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463379",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463214",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:463215",
       "label": "付款輸入頁面",
       "major": "頁面類",
       "minor": "付款輸入頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:463367",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463375",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11927:164969",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11927:164996",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:649521",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6552:151219",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:121449",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:110332",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11964:460986",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13191:96742",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13191:96753",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13947:341303",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13947:341300",
       "label": "首頁",
       "major": "頁面類",
       "minor": "首頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13016:170353",
       "label": "系統UI",
       "major": "系統UI",
       "minor": "",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13035:69269",
       "label": "系統UI",
       "major": "系統UI",
       "minor": "",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21682:152489",
       "label": "Certificate 詳情",
       "major": "頁面類",
       "minor": "Certificate 詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "21682:152490",
       "label": "Certificate 詳情",
       "major": "頁面類",
       "minor": "Certificate 詳情",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:420588",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:420575",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:420589",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "16064:141665",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16098:146701",
       "label": "設置PIN",
       "major": "頁面類",
       "minor": "設置PIN",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:843036",
@@ -1822,125 +1822,125 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713837",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713850",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713821",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713841",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5818:113795",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5279:85507",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5787:87788",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5899:88693",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "14265:116459",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13230:246881",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21603:42640",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "14012:72187",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13588:475753",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "17109:431852",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "15251:313015",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "21600:40347",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18249:729054",
-      "label": "廢棄頁面",
-      "major": "廢棄",
-      "minor": "廢棄頁面",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
       "generation": ""
     },
     {
@@ -1948,293 +1948,293 @@
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5862:120505",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5862:120506",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5279:85244",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "7880:56490",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11862:89008",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11862:89577",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11862:89987",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18414:56733",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13230:254580",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "15251:313204",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16743:436656",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "16795:437463",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13230:220360",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13613:476647",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18459:451129",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13384:418723",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13230:188332",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5279:7008",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13230:220443",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11858:86122",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "17109:431419",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5697:154759",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "7140:204677",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13543:461096",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5218:96475",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21624:47596",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18443:451070",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13512:457040",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13422:453253",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18414:56762",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "14265:117096",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "14312:221853",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18443:450203",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16743:436291",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13359:366540",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21636:52876",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18202:726333",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11862:89246",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13359:366777",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "17093:409264",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13422:452643",
-      "label": "廢棄頁面",
-      "major": "廢棄",
-      "minor": "廢棄頁面",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
       "generation": ""
     },
     {
@@ -2242,7 +2242,7 @@
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11679:302958",
@@ -2396,49 +2396,49 @@
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13112:214838",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13112:214885",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13112:215608",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:735498",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:735508",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "18720:239325",
       "label": "消息通知類",
       "major": "頁面類",
       "minor": "消息通知類",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11679:301920",
@@ -2466,70 +2466,70 @@
       "label": "支付結果頁",
       "major": "頁面類",
       "minor": "支付結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13112:210991",
       "label": "支付結果頁",
       "major": "頁面類",
       "minor": "支付結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13112:211205",
       "label": "支付結果頁",
       "major": "頁面類",
       "minor": "支付結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "18720:233031",
       "label": "支付結果頁",
       "major": "頁面類",
       "minor": "支付結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:112518",
       "label": "Tap結果頁",
       "major": "頁面類",
       "minor": "Tap結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:121470",
       "label": "Tap結果頁",
       "major": "頁面類",
       "minor": "Tap結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:731283",
       "label": "Tap結果頁",
       "major": "頁面類",
       "minor": "Tap結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:731673",
       "label": "Tap結果頁",
       "major": "頁面類",
       "minor": "Tap結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:730362",
       "label": "Tap結果頁",
       "major": "頁面類",
       "minor": "Tap結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13112:211212",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:413309",
@@ -2606,63 +2606,63 @@
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10043:255559",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10047:123694",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10006:165192",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9912:125497",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "10006:165682",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10006:254798",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10043:255278",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "10006:254476",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:462824",
@@ -2718,49 +2718,49 @@
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13532:193008",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:732178",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13532:194201",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:103986",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "15726:219544",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:110358",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:843010",
@@ -2816,84 +2816,84 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:727185",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13101:102304",
       "label": "Tap&Pay 陣地頁",
       "major": "頁面類",
       "minor": "Tap&Pay 陣地頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:727125",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:730307",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:726785",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13797:552340",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "18740:271663",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "20850:164478",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13797:552327",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13828:559898",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13797:552342",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11679:307760",
@@ -2942,84 +2942,84 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133295",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133225",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "783:86128",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133136",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:133227",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421009",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421015",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421021",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421027",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421033",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:421039",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11679:305748",
@@ -3061,84 +3061,84 @@
       "label": "個人中心",
       "major": "頁面類",
       "minor": "個人中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:694516",
       "label": "個人中心",
       "major": "頁面類",
       "minor": "個人中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:694706",
       "label": "個人中心",
       "major": "頁面類",
       "minor": "個人中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:695086",
       "label": "個人中心",
       "major": "頁面類",
       "minor": "個人中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:695730",
       "label": "個人中心",
       "major": "頁面類",
       "minor": "個人中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420678",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420679",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420726",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420630",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420727",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713555",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11990:462984",
       "label": "交易結果頁",
       "major": "頁面類",
       "minor": "交易結果頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:713504",
@@ -3166,56 +3166,56 @@
       "label": "卡管理頁",
       "major": "頁面類",
       "minor": "卡管理頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:380436",
       "label": "卡管理頁",
       "major": "頁面類",
       "minor": "卡管理頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:380443",
       "label": "卡管理頁",
       "major": "頁面類",
       "minor": "卡管理頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:380444",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:380434",
       "label": "卡管理頁",
       "major": "頁面類",
       "minor": "卡管理頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148763",
       "label": "系統短信頁",
       "major": "頁面類",
       "minor": "系統短信頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148799",
       "label": "系統短信頁",
       "major": "頁面類",
       "minor": "系統短信頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148812",
       "label": "系統短信頁",
       "major": "頁面類",
       "minor": "系統短信頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:148806",
@@ -3229,84 +3229,84 @@
       "label": "支付方式偏好選擇",
       "major": "頁面類",
       "minor": "支付方式偏好選擇",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:390535",
       "label": "支付方式偏好選擇",
       "major": "頁面類",
       "minor": "支付方式偏好選擇",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:390534",
       "label": "支付方式偏好選擇",
       "major": "頁面類",
       "minor": "支付方式偏好選擇",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:390533",
       "label": "支付方式偏好選擇",
       "major": "頁面類",
       "minor": "支付方式偏好選擇",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:673639",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:673664",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:673638",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:673665",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:729809",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:729304",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:729403",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:728528",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12089:429136",
@@ -3348,112 +3348,112 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132957",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132954",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132959",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133515",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133513",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133516",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133517",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13354:363731",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13354:362151",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12517:279804",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13114:73996",
       "label": "KYC",
       "major": "頁面類",
       "minor": "KYC",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:696111",
       "label": "系統彈窗",
       "major": "彈窗類",
       "minor": "系統彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:693862",
       "label": "系統彈窗",
       "major": "彈窗類",
       "minor": "系統彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:694072",
       "label": "系統彈窗",
       "major": "彈窗類",
       "minor": "系統彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:694303",
       "label": "FaceID彈窗",
       "major": "彈窗類",
       "minor": "FaceID彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:419761",
@@ -3544,105 +3544,105 @@
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5279:7075",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "7783:93141",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6976:100514",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9119:142587",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6976:103911",
       "label": "收銀台",
       "major": "頁面類",
       "minor": "收銀台",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9827:120022",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9827:120529",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "9799:119364",
       "label": "AI Chat頁面",
       "major": "頁面類",
       "minor": "AI Chat頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11634:359425",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11505:332282",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11634:359426",
       "label": "交易歷史記錄",
       "major": "頁面類",
       "minor": "交易歷史記錄",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "21847:40205",
       "label": "Rewards",
       "major": "頁面類",
       "minor": "Rewards",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21847:48527",
       "label": "Rewards",
       "major": "頁面類",
       "minor": "Rewards",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21847:48318",
       "label": "Rewards",
       "major": "頁面類",
       "minor": "Rewards",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13797:527795",
@@ -3670,28 +3670,28 @@
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11728:729168",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:728618",
       "label": "NFC 設置頁",
       "major": "頁面類",
       "minor": "NFC 設置頁",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12089:429403",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12089:429002",
@@ -3705,7 +3705,7 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12089:429127",
@@ -3733,105 +3733,105 @@
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13197:119260",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12275:149339",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13191:101035",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13191:100850",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13191:100898",
       "label": "掃碼收款/支付",
       "major": "頁面類",
       "minor": "掃碼收款/支付",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133539",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133540",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133384",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133463",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133464",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133465",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22008:131247",
       "label": "Rewards 列表",
       "major": "頁面類",
       "minor": "Rewards 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22008:130874",
       "label": "Rewards 列表",
       "major": "頁面類",
       "minor": "Rewards 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22270:57268",
       "label": "Rewards 列表",
       "major": "頁面類",
       "minor": "Rewards 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:420225",
@@ -3915,112 +3915,112 @@
       "label": "Event 詳情頁",
       "major": "頁面類",
       "minor": "Event 詳情頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:148950",
       "label": "Event 詳情頁",
       "major": "頁面類",
       "minor": "Event 詳情頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "21701:217219",
       "label": "T&C彈窗",
       "major": "彈窗類",
       "minor": "T&C彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5787:111839",
       "label": "T&C彈窗",
       "major": "彈窗類",
       "minor": "T&C彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16714:251694",
       "label": "系統UI - 攝像機拍照",
       "major": "系統UI",
       "minor": "攝像機拍照",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "18089:720396",
       "label": "系統UI - 攝像機拍照",
       "major": "系統UI",
       "minor": "攝像機拍照",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11634:380253",
       "label": "Coupon 列表",
       "major": "頁面類",
       "minor": "Coupon 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13227:155538",
       "label": "Coupon 列表",
       "major": "頁面類",
       "minor": "Coupon 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:705002",
       "label": "T&C彈窗",
       "major": "彈窗類",
       "minor": "T&C彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:705005",
       "label": "T&C彈窗",
       "major": "彈窗類",
       "minor": "T&C彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21790:238724",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21790:239493",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21847:40446",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21847:41000",
       "label": "通用彈窗",
       "major": "彈窗類",
       "minor": "通用彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:647542",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6774:140116",
       "label": "幫助中心",
       "major": "頁面類",
       "minor": "幫助中心",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11679:300028",
@@ -4055,14 +4055,14 @@
       "label": "Event 詳情頁",
       "major": "頁面類",
       "minor": "Event 詳情頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "21140:242278",
       "label": "Event 詳情頁",
       "major": "頁面類",
       "minor": "Event 詳情頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11679:308636",
@@ -4083,196 +4083,196 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:734708",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12436:159941",
       "label": "KYC彈窗",
       "major": "彈窗類",
       "minor": "KYC彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13947:341302",
       "label": "KYC彈窗",
       "major": "彈窗類",
       "minor": "KYC彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132936",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:132843",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133426",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133425",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133536",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "790:70941",
       "label": "下拉抽屜彈窗",
       "major": "彈窗類",
       "minor": "下拉抽屜彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133548",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133541",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133546",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133545",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133590",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133609",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133595",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133612",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12540:69087",
       "label": "KYC結果頁",
       "major": "頁面類",
       "minor": "KYC結果頁",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:633941",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12517:281396",
       "label": "KYC彈窗",
       "major": "彈窗類",
       "minor": "KYC彈窗",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12088:427400",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22127:258603",
       "label": "註冊頁面",
       "major": "頁面類",
       "minor": "註冊頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "22127:258601",
       "label": "註冊頁面",
       "major": "頁面類",
       "minor": "註冊頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "22127:260916",
       "label": "註冊頁面",
       "major": "頁面類",
       "minor": "註冊頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "22127:258602",
       "label": "註冊頁面",
       "major": "頁面類",
       "minor": "註冊頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21814:26594",
       "label": "Voucher 列表",
       "major": "頁面類",
       "minor": "Voucher 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21245:1394996",
       "label": "Voucher 列表",
       "major": "頁面類",
       "minor": "Voucher 列表",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:419837",
@@ -4353,17 +4353,17 @@
     },
     {
       "id": "21624:48767",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13422:419185",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7551:101410",
@@ -4640,38 +4640,38 @@
     },
     {
       "id": "11709:649431",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649436",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649446",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649462",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649538",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6552:150598",
@@ -4717,31 +4717,31 @@
     },
     {
       "id": "13516:108487",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13462:258829",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253097",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13462:258425",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13886:197971",
@@ -5014,7 +5014,7 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133638",
@@ -5144,31 +5144,31 @@
     },
     {
       "id": "11676:420993",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:420994",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:421046",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:421050",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "10213:180108",
@@ -5319,17 +5319,17 @@
     },
     {
       "id": "11728:772449",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:772514",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:843053",
@@ -5392,84 +5392,84 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:133537",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133538",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:133547",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12517:290044",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12468:220909",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "12555:84487",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9104:123711",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "9427:84405",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "5639:151668",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "5218:96401",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "6288:139457",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:908945",
@@ -5483,21 +5483,21 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11634:384811",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "21314:1398746",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "16065:119698",
@@ -5525,70 +5525,70 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "514:88712",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:673087",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11676:149058",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "11709:634113",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11676:463581",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "new"
     },
     {
       "id": "13389:235498",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "12089:429402",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11709:671484",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:770693",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:843792",
@@ -5602,28 +5602,28 @@
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13112:210999",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "13112:211007",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "16225:197600",
       "label": "廢棄頁面",
       "major": "廢棄",
       "minor": "廢棄頁面",
-      "generation": ""
+      "generation": "old"
     },
     {
       "id": "11728:843169",
@@ -5795,10 +5795,10 @@
     },
     {
       "id": "128:14189",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "1417:79756",
@@ -5858,17 +5858,17 @@
     },
     {
       "id": "923:77107",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "961:71076",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "965:77574",
@@ -5879,10 +5879,10 @@
     },
     {
       "id": "3667:110653",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "1296:86121",
@@ -5963,52 +5963,52 @@
     },
     {
       "id": "7195:152809",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "591:110642",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7195:150960",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7195:151211",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7195:153507",
-      "label": "新UI",
-      "major": "新UI",
-      "minor": "",
-      "generation": "new"
-    },
-    {
-      "id": "7198:154196",
-      "label": "新UI",
-      "major": "新UI",
-      "minor": "",
-      "generation": "new"
-    },
-    {
-      "id": "7195:153018",
       "label": "老UI",
       "major": "老UI",
       "minor": "",
       "generation": "old"
+    },
+    {
+      "id": "7198:154196",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "7195:153018",
+      "label": "新UI",
+      "major": "新UI",
+      "minor": "",
+      "generation": "new"
     },
     {
       "id": "7198:173036",
@@ -6040,31 +6040,31 @@
     },
     {
       "id": "7504:169272",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "5520:104211",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "5520:104531",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "5520:104221",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13016:170088",
@@ -6138,17 +6138,17 @@
     },
     {
       "id": "20832:378881",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:661140",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:661188",
@@ -6292,10 +6292,10 @@
     },
     {
       "id": "11709:661401",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:661402",
@@ -6446,10 +6446,10 @@
     },
     {
       "id": "11709:661926",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:661940",
@@ -6460,10 +6460,10 @@
     },
     {
       "id": "11709:661941",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:661942",
@@ -6670,10 +6670,10 @@
     },
     {
       "id": "11676:133657",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "769:90056",
@@ -6719,10 +6719,10 @@
     },
     {
       "id": "11676:133816",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12459:220455",
@@ -6740,31 +6740,31 @@
     },
     {
       "id": "12517:276922",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13015:169037",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12555:88890",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12555:124221",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13015:169038",
@@ -6803,10 +6803,10 @@
     },
     {
       "id": "13114:70941",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13114:76443",
@@ -6817,17 +6817,17 @@
     },
     {
       "id": "13354:361769",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12517:280186",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "10353:407425",
@@ -6838,10 +6838,10 @@
     },
     {
       "id": "7318:191298",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "769:87016",
@@ -6866,10 +6866,10 @@
     },
     {
       "id": "12555:84780",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12555:98796",
@@ -6929,17 +6929,17 @@
     },
     {
       "id": "11676:485140",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:485141",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:485146",
@@ -6950,17 +6950,17 @@
     },
     {
       "id": "9427:187253",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "20631:213254",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "5787:88005",
@@ -7027,10 +7027,10 @@
     },
     {
       "id": "5735:157945",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "6688:17720",
@@ -7293,10 +7293,10 @@
     },
     {
       "id": "10525:191672",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9827:123332",
@@ -7454,10 +7454,10 @@
     },
     {
       "id": "13781:106888",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "18414:56728",
@@ -7496,10 +7496,10 @@
     },
     {
       "id": "18414:56734",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "18414:56748",
@@ -7573,17 +7573,17 @@
     },
     {
       "id": "18414:56813",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "18414:56822",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "21701:217000",
@@ -7629,10 +7629,10 @@
     },
     {
       "id": "14265:117149",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "14312:220557",
@@ -7692,10 +7692,10 @@
     },
     {
       "id": "18148:723982",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "18190:725749",
@@ -7713,10 +7713,10 @@
     },
     {
       "id": "21603:42919",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "21624:47854",
@@ -7762,10 +7762,10 @@
     },
     {
       "id": "18848:65314",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "20034:152911",
@@ -7853,10 +7853,10 @@
     },
     {
       "id": "21847:47991",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "21859:53389",
@@ -7958,10 +7958,10 @@
     },
     {
       "id": "22286:86196",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "22127:261829",
@@ -7993,10 +7993,10 @@
     },
     {
       "id": "22209:277795",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "22221:278263",
@@ -8007,10 +8007,10 @@
     },
     {
       "id": "22254:56235",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "21554:1399786",
@@ -8077,10 +8077,10 @@
     },
     {
       "id": "16632:404993",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16632:406970",
@@ -8105,10 +8105,10 @@
     },
     {
       "id": "16714:293442",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16743:434692",
@@ -8217,10 +8217,10 @@
     },
     {
       "id": "11634:379449",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11634:380252",
@@ -8301,10 +8301,10 @@
     },
     {
       "id": "13224:154631",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15043:112891",
@@ -8350,24 +8350,24 @@
     },
     {
       "id": "16358:162156",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "14913:257654",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "14913:257670",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:413797",
@@ -8630,17 +8630,17 @@
     },
     {
       "id": "11676:420563",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:420743",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:420805",
@@ -8665,10 +8665,10 @@
     },
     {
       "id": "11676:420868",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:420928",
@@ -8693,10 +8693,10 @@
     },
     {
       "id": "11676:420983",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:420985",
@@ -8791,10 +8791,10 @@
     },
     {
       "id": "9012:147758",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9012:149307",
@@ -8812,45 +8812,45 @@
     },
     {
       "id": "9019:150072",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9218:76756",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9218:73819",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "8850:291564",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9119:245504",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "8857:300659",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "8874:106078",
@@ -8896,24 +8896,24 @@
     },
     {
       "id": "9022:182422",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9022:184047",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9022:181625",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9261:134029",
@@ -8924,10 +8924,10 @@
     },
     {
       "id": "9325:173685",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "8873:301550",
@@ -9596,10 +9596,10 @@
     },
     {
       "id": "12715:295123",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12687:294888",
@@ -10030,10 +10030,10 @@
     },
     {
       "id": "11709:673640",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:673652",
@@ -10044,10 +10044,10 @@
     },
     {
       "id": "553:86549",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "606:81633",
@@ -10058,24 +10058,24 @@
     },
     {
       "id": "616:93988",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "606:80981",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "597:82832",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "616:96168",
@@ -10121,10 +10121,10 @@
     },
     {
       "id": "11728:804548",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:804554",
@@ -10177,10 +10177,10 @@
     },
     {
       "id": "11728:805269",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:805459",
@@ -10191,17 +10191,17 @@
     },
     {
       "id": "11728:805464",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:805529",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:805594",
@@ -10212,17 +10212,17 @@
     },
     {
       "id": "11728:806113",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:806118",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:806297",
@@ -10513,10 +10513,10 @@
     },
     {
       "id": "11676:148825",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:148831",
@@ -10653,24 +10653,24 @@
     },
     {
       "id": "13828:564341",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:564342",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:564343",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:564344",
@@ -10688,10 +10688,10 @@
     },
     {
       "id": "11709:634024",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:634038",
@@ -10702,24 +10702,24 @@
     },
     {
       "id": "11709:634086",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:634087",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:634090",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:634092",
@@ -10877,17 +10877,17 @@
     },
     {
       "id": "11676:390549",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:390550",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9152:136896",
@@ -10905,10 +10905,10 @@
     },
     {
       "id": "9152:136894",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:705006",
@@ -10975,52 +10975,52 @@
     },
     {
       "id": "11709:649441",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649451",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13462:256774",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649467",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649472",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649480",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649485",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:649486",
@@ -11094,10 +11094,10 @@
     },
     {
       "id": "13797:556412",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13797:556413",
@@ -11437,10 +11437,10 @@
     },
     {
       "id": "11676:463237",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:463260",
@@ -11486,24 +11486,24 @@
     },
     {
       "id": "11676:463338",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:463348",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:463349",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:463371",
@@ -11542,10 +11542,10 @@
     },
     {
       "id": "13828:562353",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:562354",
@@ -11563,10 +11563,10 @@
     },
     {
       "id": "11676:463576",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:463580",
@@ -11577,10 +11577,10 @@
     },
     {
       "id": "11676:463582",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9228:69526",
@@ -11654,10 +11654,10 @@
     },
     {
       "id": "11676:618386",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:618391",
@@ -11738,17 +11738,17 @@
     },
     {
       "id": "6197:191472",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7316:78956",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "6212:192774",
@@ -11759,17 +11759,17 @@
     },
     {
       "id": "6626:57905",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "6626:58532",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:618511",
@@ -11850,10 +11850,10 @@
     },
     {
       "id": "12125:499864",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12125:500113",
@@ -11934,24 +11934,24 @@
     },
     {
       "id": "13828:567152",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:569149",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:252673",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15323:96394",
@@ -12004,10 +12004,10 @@
     },
     {
       "id": "13797:557265",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13797:557266",
@@ -12067,59 +12067,59 @@
     },
     {
       "id": "13454:253043",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253048",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253058",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13516:108401",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253074",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253079",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253084",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253092",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13454:253098",
@@ -12130,17 +12130,17 @@
     },
     {
       "id": "13454:253063",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13516:107915",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:598075",
@@ -12151,17 +12151,17 @@
     },
     {
       "id": "11676:598076",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:598077",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:598089",
@@ -12186,24 +12186,24 @@
     },
     {
       "id": "5392:134167",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "7198:181053",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:607469",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:607480",
@@ -12235,31 +12235,31 @@
     },
     {
       "id": "11676:607508",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:607510",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:607512",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:609962",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:688896",
@@ -12291,17 +12291,17 @@
     },
     {
       "id": "16936:213244",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16936:213245",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16936:231384",
@@ -12599,24 +12599,24 @@
     },
     {
       "id": "16936:256851",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16936:256852",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16936:256853",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16936:256854",
@@ -12655,10 +12655,10 @@
     },
     {
       "id": "16936:264444",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:707137",
@@ -12690,24 +12690,24 @@
     },
     {
       "id": "11728:707233",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:707238",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:707239",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:707240",
@@ -12753,10 +12753,10 @@
     },
     {
       "id": "5561:157158",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "5561:157220",
@@ -12774,24 +12774,24 @@
     },
     {
       "id": "15857:106542",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15857:106541",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15857:106540",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12089:428995",
@@ -13908,10 +13908,10 @@
     },
     {
       "id": "15310:86794",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "12466:494307",
@@ -13971,10 +13971,10 @@
     },
     {
       "id": "13797:558118",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13797:558119",
@@ -14419,10 +14419,10 @@
     },
     {
       "id": "11676:617804",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15821:820732",
@@ -14475,10 +14475,10 @@
     },
     {
       "id": "11676:613877",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:613880",
@@ -14510,38 +14510,38 @@
     },
     {
       "id": "16064:139209",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16064:139211",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16064:139213",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16064:139215",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16064:139221",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "18579:118710",
@@ -14790,10 +14790,10 @@
     },
     {
       "id": "11709:671463",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11709:671470",
@@ -14825,10 +14825,10 @@
     },
     {
       "id": "11728:771117",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:771652",
@@ -14846,10 +14846,10 @@
     },
     {
       "id": "11728:772254",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:772444",
@@ -15476,10 +15476,10 @@
     },
     {
       "id": "11728:713543",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713556",
@@ -15511,45 +15511,45 @@
     },
     {
       "id": "11728:713795",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713798",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713800",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713803",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713804",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:713814",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:560713",
@@ -15574,10 +15574,10 @@
     },
     {
       "id": "13828:560716",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13828:560717",
@@ -15630,10 +15630,10 @@
     },
     {
       "id": "11728:714007",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "16984:667851",
@@ -15644,24 +15644,24 @@
     },
     {
       "id": "11676:380425",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380426",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380439",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380441",
@@ -15672,45 +15672,45 @@
     },
     {
       "id": "11676:380450",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380455",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380466",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11676:380490",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9022:260214",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9022:260430",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9165:158841",
@@ -15728,17 +15728,17 @@
     },
     {
       "id": "9165:157870",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9050:120610",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "9165:157719",
@@ -15749,10 +15749,10 @@
     },
     {
       "id": "11728:817680",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "3496:77455",
@@ -16435,24 +16435,24 @@
     },
     {
       "id": "14088:396411",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "14161:89194",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "14088:396478",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "13972:347827",
@@ -16470,10 +16470,10 @@
     },
     {
       "id": "13797:552341",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11679:302772",
@@ -16946,10 +16946,10 @@
     },
     {
       "id": "11728:728438",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:728698",
@@ -16981,10 +16981,10 @@
     },
     {
       "id": "11728:728991",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:729096",
@@ -17002,10 +17002,10 @@
     },
     {
       "id": "11728:729494",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11728:729911",
@@ -17324,10 +17324,10 @@
     },
     {
       "id": "11964:441716",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11964:441958",
@@ -17352,10 +17352,10 @@
     },
     {
       "id": "11964:442276",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11964:442787",
@@ -17373,10 +17373,10 @@
     },
     {
       "id": "11964:443100",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11964:443199",
@@ -17387,17 +17387,17 @@
     },
     {
       "id": "11964:443395",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11964:443605",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "11964:443876",
@@ -17681,10 +17681,10 @@
     },
     {
       "id": "15917:138497",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "15917:140589",
@@ -18066,10 +18066,10 @@
     },
     {
       "id": "20850:169397",
-      "label": "老UI",
-      "major": "老UI",
+      "label": "新UI",
+      "major": "新UI",
       "minor": "",
-      "generation": "old"
+      "generation": "new"
     },
     {
       "id": "20850:169403",
