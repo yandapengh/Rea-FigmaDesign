@@ -55,6 +55,27 @@ npm run sync            # 特徵表 → 預測 → 複審看板 → parity → �
 - manifest 只白名單 `http://localhost:8765` / `ws://localhost:8765`（Figma 不接受 IP 字面值），server 本身只綁 `127.0.0.1`。
 - 若 Figma 拒絕 manifest 的 `id`，用 **New Plugin** 生成新 ID 貼回 `plugin/manifest.json` 再建置。
 
+
+## 給 agent 的安裝式 Skill（DSH）
+
+專案自帶一個可被 DSH 自動載入的 skill：
+
+~~~text
+.dsh/skills/rea-figma-design/SKILL.md
+~~~
+
+frontmatter：
+
+~~~yaml
+name: rea-figma-design
+description: Query and audit a Rea-FigmaDesign Figma AST graph — screens, families, styles, taxonomy labels, per-category page/ID reports, generation labels and health checks.
+~~~
+
+- 在 repo 內開 DSH：自動被 project root（<projectRoot>/.dsh/skills）發現，無需安裝。
+- 要跨專案使用：npm run skill:install（複製到 ~/.dsh/skills）。
+
+完整 agent 手冊：docs/SKILL.md。
+
 ## 三個入口，一個核心
 
 | 入口 | 給誰 | 特性 |
