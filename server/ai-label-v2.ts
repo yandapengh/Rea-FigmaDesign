@@ -286,7 +286,7 @@ report.push('2. 「通用彈窗」子類要不要正式變成兩層 taxonomy（�
 report.push('3. 還有 修改手機號彈窗、Welcome 歡迎頁、Toast 這類命名要不要統一成固定寫法？');
 writeFileSync('/Users/hyd/Downloads/rea-figma-label-patterns.md', report.join('\n') + '\n');
 import { writeFileSync as wf } from 'node:fs';
-wf('/tmp/ai-v5.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
+wf('/tmp/ai-v6.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
 console.log('truth=' + truth.length + ' hits=' + hits.length + ' ids=' + hits.reduce((a, h) => a + h.c.rows.length, 0));
 console.log('sources exact=' + (sourceCount.get('exact') ?? 0) + ' keyword=' + (sourceCount.get('keyword') ?? 0));
 console.log('written ' + outFile);
