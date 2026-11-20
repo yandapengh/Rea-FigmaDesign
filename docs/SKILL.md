@@ -1,168 +1,150 @@
 # SKILL — Rea-FigmaDesign 圖譜操作
 
-> 這份文件只寫**判斷**與**契約**，不寫步驟細節。步驟已固化在 `npm run sync`。
-> 如果你是 agent：先讀〈鐵律〉，跑 `npm run doctor`，再照〈流程契約〉執行。
+> 給 agent 的工具說明書。只寫「用哪個工具、契約、證據」，不寫實作細節。
+> 流程有變時，先改這份，再改程式。
 
-## 何時用
+## 1. 何時使用
 
-- 在 Figma AST 圖譜上做結構／風格／分類查詢
-- 把設計師的分類回饋寫回 labels
-- 判斷「這批頁面是不是同一類、哪個是例外」
+- 在 Figma AST 圖譜上查結構、風格、分類、家族、差異
+- 回答「某分類出現在哪些頁面、幾個、ID 是什麼」
+- 做資料健康檢查、世代（老UI/新UI）統計、標註覆蓋率
+- 把設計師的分類回饋整理成可驗證的清單
 
-## 鐵律
+不適用：需要即時讀 Figma 檔案本身（要先由插件匯出到 SQLite）。
 
-1. **路徑由 CLI 解析**，不要自己拼絕對路徑，也不要要求使用者先 `cd`。
-2. **產物只能進 `.scratch/`**；其他地方一律算錯。
-3. **`labels/` 是來源**，只有 `apply`（或人工確認後的編輯）可以改，改完要 commit。
-4. **不要用圖層名稱當識別依據**；身份是結構 hash。
-5. **不確定就回報**；`unknown` 是合法結果。
-6. **adapter 不得重算核心**；改動後必須跑 `npm run test:parity`。
-7. **斜線命令不吃參數。** 命令是固定動作（開板、檢查），只接受零參數。分類名稱這類模糊輸入由 agent 解析後「回填 CLI 參數」，不要讓使用者在命令後面打分類名——DSH 的命令輸入只有非結構化文字，沒有補全、沒有拼字檢查，打錯只會靜默失敗。
+## 2. 環境與資料
 
-> 三層分工：**命令**（固定動作、零 token）→ **agent**（自然語言 → 精確分類）→ **CLI**（exact match，錯了回 `did you mean`，絕不猜）。
+- 圖譜在 data/<file-key>/graph.sqlite；不要假設固定檔名 data/rea-figma.sqlite
+- 路徑解析一律交給 CLI（會挑最新的 data/*/graph.sqlite）
+- 只有匯入資料時需要啟動 server：npm run start:server（port 8765）
+- 查詢、報表、健康檢查都是唯讀，不需要 server
+- 標註來源：labels/screens-v2.json（新版）；labels/screens.json 是舊格式、目前為空
 
-## 工具選擇（MCP）
+## 3. 工具表面
 
-問什麼問題，用什麼工具。不要在能用列舉工具時先猜一個 ID。
+### 3.1 CLI（npm scripts）
 
-| 問題 | 工具 |
-|---|---|
-| 這份檔案有哪些畫面？各類型有幾個？ | `list_screens`（可帶 `archetype`） |
-| 這一頁長什麼樣？ | `screen_sheet` |
-| 這一頁有幾個複本？ | `screen_family` |
-| 這兩個版本差在哪？ | `diff_screens` |
-| 有没有長得像的頁面？ | `find_similar` |
-| 待分類的清單？ | `review_queue` |
-
-規則：
-
-1. 「有多少」一律先 `list_screens`，不要自己遍歷資料庫。
-2. 沒有 labels 時，語意分類回 `unknown`，不要用版面原型的答案代替。
-3. 回答時附上具體 node id，讓使用者能貼回 Figma 驗證。
-
-## 開工前
-
-```bash
-npm run doctor
-```
-
-非 0 退出 → 停止，貼 FAIL 行與 fix 提示，不要繞過。
-
-## 流程契約
-
-| # | 指令 | 通過條件 | 不通過就 |
+| 指令 | 用途 | 讀寫 | 產物 |
 |---|---|---|---|
-| 1 | `npm run doctor` | 末行 `RESULT: OK`、exit 0 | 停止，貼 FAIL 行與 fix |
-| 2 | `npm run sync` | 末行 `RESULT: OK — CLI output is byte-identical to core`、exit 0 | 停止，貼最後 10 行 |
-| 3 | 設計師在 `.scratch/review.html` 操作 | 產出回饋 Markdown（格式見下） | 等待，不要代為判斷 |
-| 4 | `npm run query -- apply --md <file> --dry-run` | `unknown=0` 且 `updated+added` = 你動過的列數 | 停止，貼 unknown 清單 |
+| npm run doctor | 開工前環境檢查 | 唯讀 | 終端機 |
+| npm run health | 全量一致性檢查（頁數、節點、staging、狀態） | 唯讀；--fix 可修計數 | 終端機 |
+| npm run tier1 | Tier 1 回歸（screen 規則、Merkle、archetype） | 唯讀 | 終端機 |
+| npm run sample | 跨頁抽 10 個畫面供人工抽檢 | 唯讀 | 終端機 |
+| npm run hidden | 列出透明度 ≤35% 的隱藏畫面 | 唯讀 | 終端機 |
+| npm run report:category -- <分類> | 分類 × Figma 頁面 × node ID | 唯讀 | ~/Downloads/rea-figma-category-<分類>.md |
+| npm run audit:db -- <db> | 深層資料品質統計 | 唯讀 | 終端機 |
+| npm run query -- <cmd> | 舊版查詢層（sheet/family/diff/category…） | 依命令 | 終端機/.scratch |
+| npm run mcp | 啟動 MCP server（stdio） | 唯讀查詢/標註寫入 | MCP |
+| npm run start:server | 啟動插件匯入用 WebSocket server | 寫入 DB | data/… |
 
-**「動過」的定義**：分類與現有標註不同、或備註非空。同一 ID 出現多列只算一列（最後一列為準）。
-| 5 | `npm run query -- apply --md <file>` | 印出 `written ...` | 停止 |
-| 6 | `npm run sync` | 同第 2 步 | 停止 |
+### 3.2 MCP 工具（11 個）
 
-**第 2、6 步的 parity 是硬門**：證明 CLI 與 core 逐位元相同。紅了代表 baseline 分岔，不許繞過、不許重跑、直接回報。
-
-## 回饋 Markdown 格式
-
-`apply` 以**欄名**解析，不依賴欄位順序。最少需要 `ID` 與 `正確分類` 兩欄：
-
-```markdown
-| ID | 正確分類 | 備註 |
-|---|---|---|
-| 1:102789 | 支付結果頁 | Withdraw 流程的成功頁 |
-| 1:114768 | 抽屜彈窗 | 底部拉起，不是通用彈窗 |
-```
-
-- `ID`：Figma 節點 ID，格式必須是 `數字:數字`
-- `正確分類`：取自 `labels/screens.json` 的 taxonomy（見下）
-- `備註`：可省略；空白或 `-` 代表沒有
-- 也可以直接貼 review 板「複製 Markdown」的六欄版本，多餘欄位會被忽略
-- 同一 ID 出現多列時，**以最後一列為準**，且只計一次
-- 分類同時存在於 page 與 dialog 兩組 taxonomy 時，`apply` 會拒絕（先改名）
-
-**沒有設計師在場時**：不要自己發明回饋。可以從 `.scratch/predictions.jsonl`（或 `.scratch/review-queue.md`）取 ID 做 **dry-run 演練**，但：
-
-- 只能用 `--dry-run`，**不得實際寫入**
-- 必須在回報中標明「演練，未取得設計師確認」
-- 不得把演練結果描述成「設計師已確認」
-
-## added 與 unknown 的差別
-
-| 情況 | apply 行為 | 你要做什麼 |
-|---|---|---|
-| ID 在樣本內、但還沒標註 | `added`：新增一列 | 正常，繼續 |
-| ID 在樣本內、已有標註 | `updated`：修改分類／備註 | 正常，繼續 |
-| ID 不在樣本內 | `unknown`：不寫入 | **停止**，確認是否打錯或跨檔 |
-
-看到 `unknown > 0` 就不准往下寫入。
-
-## 分類規則
-
-1. 分類必須來自 `labels/screens.json` 的 `taxonomy`（`page` / `dialog` 兩組）。
-2. 沒有合適分類時，用 `其他`，並在備註寫原因；**不要自創分類**。
-3. 要新增分類，先問使用者，再改 taxonomy。
-
-## 抽查規則
-
-使用者問「把某分類的頁面找出來」時：
-
-1. 先跑 `npm run query -- category <名稱>`。
-2. 該分類 **≤ 40 張**：直接全量列出。
-3. **> 40 張**：預設給 **10 個抽查**，並在回覆中明寫 `total=N shown=10`。
-4. 使用者說要全量，才加 `--all`。
-
-不得靜默截斷：任何抽樣都必須同時顯示總數與實際顯示數。抽樣是為了讓設計師用有限時間判斷，不是為了省 token 而藏資料。
-
-## 來源完整性
-
-ID 與名稱必須一一對應 SQLite 樣本，不得自行生成或改名。
-
-- `npm run query -- verify-source` 會檢查 labels／predictions／review-queue 的每個 ID 是否存在、名稱是否與 DB 一致
-- `npm run sync` 最後一步已包含這個檢查；失敗即整條流程失敗
-- 抽查時若某個 ID 在 DB 找不到，直接報錯，不要用鄰近資料補
-
-## 停止條件
-
-除了流程表的失敗條件，遇到這些也要停：
-
-- `unknown > 0`
-- `updated + added` 與你動過的列數不符
-- review 佇列中 confidence < 0.4 的比例超過 20%（代表標註不足，先補標註，不要批次套用）
-- parity 紅字
-- `labels/` 有未提交變更：能 commit 就先 commit；**若被指示不得修改／commit，則停止並回報**，不要在有未提交變更的狀態下繼續
-
-## 偏離處理
-
-如果因為指示或環境必須跳過某一步（例如不寫入、不開瀏覽器）：
-
-1. 在回報中明寫「偏離：跳過第 N 步」
-2. **仍然要確保 parity 跑過**：第 6 步的 `sync` 已內含 parity；只有在你跳過 `sync` 時，才需要單獨跑 `npm run test:parity`
-3. 不得把偏離後的狀態描述成「流程完成」
-
-## 證據要求
-
-每個動作回覆時要附：
-
-- `doctor` 的 `RESULT` 行與 exit code
-- `sync` 最後 5 行
-- `apply` 的 `updated=` / `added=` / `unknown=` 計數行
-
-需要機讀時再加 `--json`；人類可讀的預設輸出已經包含上述計數。不要用「已完成」代替輸出。
-
-## 失敗處理
-
-| 症狀 | 處理 |
+| 工具 | 回答什麼 |
 |---|---|
-| `--out must stay inside .scratch/` | 改路徑，不要放寬限制 |
-| node not found | ID 來自舊樣本，確認樣本或重跑抽取 |
-| `predictions not found` | 先跑 `sync` |
-| `labels/*.json invalid` | 從 git 還原，不要手改結構 |
-| `quick_check` 失敗 | 樣本損壞，重新凍結 |
-| 不確定指令參數 | `npm run query -- <command> --help` |
+| list_screens | 檔案有哪些畫面、各 archetype 數量 |
+| screen_sheet | 單一畫面的結構/風格/文案特徵卡 |
+| screen_family | 同一結構家族的所有成員 |
+| screen_variants | 家族內的變體軸與差異 |
+| diff_screens | 兩個畫面的結構/風格差異 |
+| find_similar | 長得像的畫面（分層召回） |
+| style_profile | 頁面或節點的風格指紋 |
+| review_queue | 待分類佇列 |
+| apply_labels | 寫入分類/備註（需 confirm 或 dryRun） |
+| list_samples | 列出可用樣本 |
+| server_info | MCP 連線與版本 |
 
-## 不要做
+規則：能列舉就不要猜 ID；「有多少」先 list_screens，不要自己掃 DB。
 
-- 不要為了讓流程跑通而修改 `server/db.ts` 的 schema
-- 不要把分類寫進程式碼（那是 labels 的責任）
-- 不要在沒有 `doctor` 與 parity 通過的情況下宣稱完成
+### 3.3 DSH 斜線命令（零 token）
+
+| 命令 | 動作 |
+|---|---|
+| /rea-figma-review | 重生成 .scratch/review.html 並開啟 |
+| /rea-figma-doctor | 跑 doctor 並回報結果 |
+
+命令不吃參數；分類名稱由 agent 解析後呼叫 CLI。
+
+## 4. 核心契約
+
+1. 不得編造 ID、名稱、數量；每個數字都要能從 SQLite 重現。
+2. ID 必須一一對應 DB；找不到就報錯，不要用鄰近資料補。
+3. 回答分類問題要附 node ID，讓設計師能貼回 Figma 驗證。
+4. 不確定就回 unknown；unknown 是合法答案，不是失敗。
+5. 分類只來自主檔 taxonomy（major + minor 一層），不要自創。
+6. 任何抽樣都要同時顯示 total 與 shown；不得靜默截斷。
+7. 唯讀工具不得寫 DB；要寫入必須明確標示並取得確認。
+
+## 5. 標註 v2（labels/screens-v2.json）
+
+~~~json
+{
+  "version": 2,
+  "screens": [
+    { "id": "11676:420992", "label": "收銀台", "major": "頁面類", "minor": "收銀台", "generation": "" }
+  ]
+}
+~~~
+
+六個 major：老UI、新UI、系統UI、彈窗類、頁面類、廢棄。
+minor 只有一層；generation 只放 old/new（世代軸，與 major 分開）。
+頁面類目前 30 個 minor；完整清單見 labels/screens-v2.json。
+
+## 6. 常用流程
+
+### 6.1 查某分類的頁面與 IDs
+
+~~~bash
+npm run report:category -- 收銀台
+~~~
+
+輸出固定格式：總數、出現頁面數、每個頁面的 ID 陣列（一行一個，可直接複製到 Figma）。
+回報時要包含：分類、total、頁面數，以及至少前 3 個 ID 當證據。
+
+### 6.2 查畫面特徵
+
+用 MCP：先 list_screens 縮小範圍，再 screen_sheet / screen_family / diff_screens。
+不要一次把所有畫面 dump 給使用者。
+
+### 6.3 健康檢查與驗收
+
+~~~bash
+npm run health
+npm run tier1
+npm run sample
+~~~
+
+驗收回報格式：RESULT 行 + 關鍵計數（頁數/節點/staging/狀態）。
+
+## 7. 證據與回報
+
+- 指令輸出：附 RESULT 行與 exit code
+- 分類查詢：total、頁面數、IDs
+- 健康檢查：失敗項目與修復建議
+- 不得用「已完成」代替輸出
+
+## 8. 停止條件
+
+- health FAIL（staging > 0、SYNCING > 0、頁面/節點不一致）
+- ID 在 DB 找不到
+- MCP 工具回 unknown 比例異常
+- 需要寫入 labels 但沒有明確確認
+
+## 9. 已知限制（下週要補）
+
+1. labels/screens-v2.json 尚未接進 query/MCP；舊 labels/screens.json 仍是空檔。
+2. 舊 query 層（apply/review/propagate）仍依賴舊 taxonomy page/dialog，不要在新流程使用。
+3. 分類文件尚未同步到 docs/QUERY.md；以 labels/screens-v2.json 為準。
+4. 老UI/新UI 的 minor 多數為空，屬預期（世代與功能分開）。
+
+## 10. 快速範例
+
+使用者：「收銀台出現在哪些頁？各幾個？」
+
+1. npm run report:category -- 收銀台
+2. 回報：28 個畫面 / 5 頁；8月 Cashier 15、(持续) AI Assistant 7、…；附 ID。
+
+使用者：「這份資料健康嗎？」
+
+1. npm run health
+2. 回報 RESULT 與失敗原因。
+

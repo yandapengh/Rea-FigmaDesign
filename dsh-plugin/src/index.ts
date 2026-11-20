@@ -52,7 +52,7 @@ export function apply(ctx: { commands: { register: (def: Record<string, unknown>
     handler: async () => {
       const missing = requireRoot();
       if (missing) return { kind: 'error', text: missing };
-      const res = await exec(nodeBin, [tsxCli, join(root, 'server/review-all.ts')], root);
+      const res = await exec(nodeBin, [tsxCli, join(root, 'server/review-board.ts')], root);
       if (res.code !== 0) {
         return { kind: 'error', text: 'review failed (exit ' + res.code + '):\n' + tail(res.err || res.out, 12) };
       }
