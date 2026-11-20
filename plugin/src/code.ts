@@ -1,8 +1,8 @@
 /// <reference lib="es2022" />
 /** Figma sandbox entry (stage 2): page-by-page, ACK-gated, no page kept for extraction. */
 
-import type { ComponentRow, FileMetaPayload, NodeRow, WsEnvelopeMessage } from '../../shared/protocol';
-import { dehydrateComponent, dehydrateNode, getNodeChildren } from './serializer';
+import type { ComponentRow, FileMetaPayload, NodeRow, VariableRow, WsEnvelopeMessage } from '../../shared/protocol';
+import { dehydrateComponent, dehydrateNode, dehydrateVariableValue, getNodeChildren } from './serializer';
 
 const BATCH_SIZE = 250;
 const MAX_BATCH_BYTES = 1024 * 1024;
@@ -52,6 +52,26 @@ function sendMeta(): void {
 
 function progressMsg(stage: string, extra = ''): void {
   figma.ui.postMessage({ type: 'PAGE_PROGRESS', payload: { index: progress.index, total: progress.total, page: progress.page, stage, committed: progress.committed, extra } });
+}
+
+/** Local variables are small; ACK-gated like every other batch. */
+async function extractVariables(): Promise<number> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const names = new Map<string, string>();
+  for (const c of collections) names.set(c.id, c.name);
+  const variables = await figma.variables.getLocalVariablesAsync();
+  for (let start = 0; start < variables.length; start += BATCH_SIZE) {
+    const end = Math.min(start + BATCH_SIZE, variables.length);
+    const chunk: VariableRow[] = [];
+    for (let i = start; i < end; i += 1) {
+      const v = variables[i];
+      const valuesByMode: Record<string, unknown> = {};
+      for (const modeId of Object.keys(v.valuesByMode)) valuesByMode[modeId] = dehydrateVariableValue(v.valuesByMode[modeId]);
+      chunk.push({ id: v.id, name: v.name, collection_id: v.variableCollectionId, collection_name: names.get(v.variableCollectionId) ?? '', resolved_type: v.resolvedType, values_by_mode_json: JSON.stringify(valuesByMode), scopes_json: JSON.stringify(v.scopes ?? []) });
+    }
+    await send({ type: 'CHUNK_VARIABLES', payload: chunk });
+  }
+  return variables.length;
 }
 
 /** Iterative traversal: one page in memory at a time, flush by count or ~1MB. */
@@ -135,6 +155,7 @@ async function run(pageIds: string[]): Promise<void> {
     const meta = fileMeta();
     meta.pages = selected.map((p, i) => ({ page_id: p.id, page_name: p.name, page_index: figma.root.children.indexOf(p) }));
     await send({ type: 'SYNC_START', payload: meta });
+    try { await extractVariables(); } catch (error) { figma.ui.postMessage({ type: 'RUN_WARN', payload: { message: 'variables: ' + (error instanceof Error ? error.message : String(error)) } }); }
     for (let i = 0; i < selected.length; i += 1) {
       try {
         await exportPage(selected[i], i + 1, selected.length, meta.file_key);

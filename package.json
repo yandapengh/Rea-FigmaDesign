@@ -20,7 +20,10 @@
     "doctor": "tsx server/doctor.ts",
     "mcp": "tsx server/mcp.ts",
     "sync": "tsx server/query.ts sheets --unique && tsx server/query.ts propagate && tsx server/query.ts review && npm run -s test:parity && tsx server/query.ts verify-source",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "health": "tsx server/health-check.ts",
+    "sample": "tsx server/sample-screens.ts",
+    "tier1": "tsx server/tier1-check.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

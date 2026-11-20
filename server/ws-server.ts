@@ -184,8 +184,9 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const page = payload as unknown as PageStartPayload;
           if (!asString(page.page_id)) throw new Error('PAGE_START payload.page_id is required');
           const fileKey = asString(page.file_key) || state.fileKey || '';
-          state.db.beginPage(fileKey, page);
-          state.page = { fileKey, pageId: page.page_id, pageName: asString(page.page_name), pageIndex: finiteNumber(page.page_index, 0) };
+          const canonical = state.db.resolvePageId(fileKey, page);
+          state.db.beginPage(fileKey, { ...page, page_id: canonical });
+          state.page = { fileKey, pageId: canonical, pageName: asString(page.page_name), pageIndex: finiteNumber(page.page_index, 0) };
           if (state.batchId !== null) state.db.setBatchPage(state.batchId, page.page_id, page.page_name, 'SYNCING', 0);
           count = 1;
           break;
@@ -194,7 +195,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (!state.db) throw new Error('PAGE_SKIP requires SYNC_START');
           const page = payload as unknown as PageSkipPayload;
           if (!asString(page.page_id)) throw new Error('PAGE_SKIP payload.page_id is required');
-          state.db.skipPage(state.fileKey ?? '', page);
+          state.db.skipPage(state.fileKey ?? '', { ...page, page_id: state.db.resolvePageId(state.fileKey ?? '', page) });
           if (state.batch) state.batch.pages[page.page_id] = 'SKIPPED';
           pageId = page.page_id;
           saveBatch(state);

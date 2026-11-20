@@ -409,7 +409,11 @@ export class AstGraphDB {
   stageNodes(fileKey: string, pageId: string, rows: NodeRow[]): number {
     if (!Array.isArray(rows) || rows.length === 0) return 0;
     const txn = this.db.transaction((list: NodeRow[]) => {
-      for (const row of list) this.insertStagingStmt.run(toNodeBindings(fileKey, row));
+      for (const row of list) {
+        const bind = toNodeBindings(fileKey, row);
+        bind.page_id = pageId;
+        this.insertStagingStmt.run(bind);
+      }
     });
     txn(rows);
     return rows.length;
@@ -463,6 +467,17 @@ export class AstGraphDB {
 
   listBatches(fileKey: string, limit: number): Array<Record<string, unknown>> {
     return this.db.prepare('SELECT * FROM batches WHERE file_key = ? ORDER BY batch_id DESC LIMIT ?').all(fileKey, limit) as Array<Record<string, unknown>>;
+  }
+
+  /** Local files have file_key 0:0 and page ids can change; match by name/index. */
+  resolvePageId(fileKey: string, page: { page_id: string; page_name: string; page_index: number }): string {
+    const direct = this.db.prepare('SELECT page_id FROM pages WHERE file_key = ? AND page_id = ?').get(fileKey, page.page_id) as { page_id: string } | undefined;
+    if (direct) return direct.page_id;
+    const sameName = this.db.prepare('SELECT page_id FROM pages WHERE file_key = ? AND page_name = ?').all(fileKey, page.page_name) as Array<{ page_id: string }>;
+    if (sameName.length === 1) return sameName[0].page_id;
+    const sameSlot = this.db.prepare('SELECT page_id FROM pages WHERE file_key = ? AND page_index = ? AND page_name = ?').get(fileKey, page.page_index, page.page_name) as { page_id: string } | undefined;
+    if (sameSlot) return sameSlot.page_id;
+    return page.page_id;
   }
 
   skipPage(fileKey: string, page: PageSkipPayload): void {

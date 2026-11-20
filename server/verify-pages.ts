@@ -114,6 +114,15 @@ async function main(): Promise<void> {
   check('scenario 3: file A nodes intact', countNodes(db, 'fileA', 'pA') === 3 && countNodes(db, 'fileA', 'pB') === 3);
   check('scenario 3: file B page is DONE', pageRow(db, 'fileB', 'pC').status === 'DONE' && countNodes(db, 'fileB', 'pC') === 2);
 
+  // --- scenario 4: the same page comes back with a new Figma page id
+  const canonical = db.resolvePageId('fileA', { page_id: 'pA-NEW', page_name: 'Page A', page_index: 0 });
+  check('scenario 4: new page id resolves to the existing page', canonical === 'pA', canonical);
+  db.beginPage('fileA', { file_key: 'fileA', page_id: canonical, page_name: 'Page A', page_index: 0 });
+  db.stageNodes('fileA', canonical, [node('a1', 'pA-NEW', 'Page A', 0), node('a7', 'pA-NEW', 'Page A', 1)]);
+  db.completePage('fileA', canonical, 2);
+  check('scenario 4: no duplicate page row', db.listPages('fileA').filter((p) => p.page_name === 'Page A').length === 1);
+  check('scenario 4: page A replaced in place', countNodes(db, 'fileA', 'pA') === 2 && countNodes(db, 'fileA', 'pA-NEW') === 0);
+
   db.close();
   for (const suffix of ['', '-wal', '-shm']) {
     const p = DB_PATH + suffix;
