@@ -24,7 +24,8 @@
     "health": "tsx server/health-check.ts",
     "sample": "tsx server/sample-screens.ts",
     "tier1": "tsx server/tier1-check.ts",
-    "hidden": "tsx server/hidden.ts"
+    "hidden": "tsx server/hidden.ts",
+    "report:category": "tsx server/category-report.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

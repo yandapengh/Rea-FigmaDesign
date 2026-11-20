@@ -1,43 +1,59 @@
+/// <reference lib="es2022" />
+/** Category report: which Figma pages contain a category, with copyable node IDs. */
+
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import Database = require('better-sqlite3');
+
+const ROOT = resolve(__dirname, '..');
+const category = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? '';
+if (!category) { console.error('usage: tsx server/category-report.ts <分類>'); process.exit(1); }
+let dbPath = '';
 {
-  "name": "rea-figma-design",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Rea-FigmaDesign: dual-thread Figma AST probe streaming into a local SQLite graph.",
-  "license": "MIT",
-  "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "build:plugin": "esbuild plugin/src/code.ts --bundle --outfile=plugin/dist/code.js --target=es2020",
-    "build:dsh-plugin": "esbuild dsh-plugin/src/index.ts --bundle --format=esm --platform=node --target=node20 --outfile=dsh-plugin/dist/index.js",
-    "start:server": "tsx server/ws-server.ts",
-    "test:pipeline": "tsx server/verify-mock.ts",
-    "test:parity": "tsx server/verify-parity.ts",
-    "test:mcp": "tsx server/verify-mcp.ts",
-    "test:pages": "tsx server/verify-pages.ts && tsx server/verify-pages-ws.ts && tsx server/verify-migrate.ts",
-    "audit:db": "tsx server/audit-db.ts",
-    "query": "tsx server/query.ts",
-    "doctor": "tsx server/doctor.ts",
-    "mcp": "tsx server/mcp.ts",
-    "sync": "tsx server/query.ts sheets --unique && tsx server/query.ts propagate && tsx server/query.ts review && npm run -s test:parity && tsx server/query.ts verify-source",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "health": "tsx server/health-check.ts",
-    "sample": "tsx server/sample-screens.ts",
-    "tier1": "tsx server/tier1-check.ts",
-    "hidden": "tsx server/hidden.ts",
-    "report:category": "tsx server/category-report.ts"
-  },
-  "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "ws": "^8.22.2"
-  },
-  "devDependencies": {
-    "@figma/plugin-typings": "^1.142.0",
-    "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^26.6.6",
-    "@types/ws": "^8.18.2",
-    "esbuild": "^0.28.2",
-    "tsx": "^4.23.15",
-    "typescript": "^5.9.3"
+  let best = ''; let bestTime = 0;
+  for (const d of readdirSync(join(ROOT, 'data'), { withFileTypes: true })) {
+    if (!d.isDirectory()) continue;
+    const p = join(ROOT, 'data', d.name, 'graph.sqlite');
+    if (!existsSync(p)) continue;
+    const t = statSync(p).mtimeMs;
+    if (t > bestTime) { bestTime = t; best = p; }
   }
+  dbPath = best;
 }
+const labels = (JSON.parse(readFileSync(join(ROOT, 'labels/screens-v2.json'), 'utf8')) as { screens: Array<{ id: string; label: string; major: string; minor: string }> }).screens;
+const wanted = labels.filter((r) => r.label === category || r.minor === category);
+if (wanted.length === 0) { console.error('no screens for category: ' + category); process.exit(1); }
+const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+const page = new Map<string, string>();
+const ids = wanted.map((r) => r.id);
+for (let i = 0; i < ids.length; i += 500) {
+  const part = ids.slice(i, i + 500);
+  const rows = db.prepare('SELECT id, page_name FROM nodes WHERE id IN (' + part.map(() => '?').join(',') + ')').all(...part) as Array<{ id: string; page_name: string }>;
+  for (const r of rows) page.set(r.id, r.page_name);
+}
+db.close();
+const groups = new Map<string, string[]>();
+for (const r of wanted) {
+  const pg = (page.get(r.id) ?? '(未知頁面)').trim();
+  const list = groups.get(pg) ?? [];
+  list.push(r.id);
+  groups.set(pg, list);
+}
+const sorted = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+const lines: string[] = [];
+lines.push('# ' + category + ' · 基準統計');
+lines.push('');
+lines.push('- 畫面 ID 總數：' + wanted.length);
+lines.push('- 出現頁面：' + sorted.length);
+lines.push('');
+for (const [pg, list] of sorted) {
+  lines.push('## ' + pg + '（' + list.length + '）');
+  lines.push('');
+  for (const id of list) lines.push(id);
+  lines.push('');
+}
+const text = lines.join('\n') + '\n';
+const out = join('/Users/hyd/Downloads', 'rea-figma-category-' + category + '.md');
+writeFileSync(out, text);
+console.log(text);
+console.log('written ' + out);
