@@ -578,8 +578,8 @@ export class AstGraphDB {
 
   finalizeSync(fileKey: string, totalNodes: number): number {
     const info = this.db
-      .prepare('UPDATE file_meta SET total_nodes = ?, updated_at = ? WHERE file_key = ?')
-      .run(finiteNumber(totalNodes, 0), new Date().toISOString(), fileKey);
+      .prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?')
+      .run(fileKey, new Date().toISOString(), fileKey);
     return info.changes;
   }
 

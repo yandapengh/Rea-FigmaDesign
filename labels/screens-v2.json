@@ -1,0 +1,5628 @@
+{
+  "version": 2,
+  "sample": "2026-11-20-baipai-full",
+  "note": "AI+human labels; major/minor one level only",
+  "counts": {
+    "頁面類": 346,
+    "彈窗類": 86,
+    "廢棄": 101,
+    "系統UI": 4,
+    "老UI": 265
+  },
+  "screens": [
+    {
+      "id": "15141:234574",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "15157:234239",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "15172:234175",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "15115:234290",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "15152:234156",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "15111:234351",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "6881:96296",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "8633:69529",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "8633:69526",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "128:13948",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "346:88859",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "769:90697",
+      "label": "用戶二維碼",
+      "major": "頁面類",
+      "minor": "用戶二維碼",
+      "generation": ""
+    },
+    {
+      "id": "769:90695",
+      "label": "用戶二維碼",
+      "major": "頁面類",
+      "minor": "用戶二維碼",
+      "generation": ""
+    },
+    {
+      "id": "11709:661775",
+      "label": "通用彈窗",
+      "major": "頁面類",
+      "minor": "彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11709:661882",
+      "label": "系統FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "系統FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661894",
+      "label": "系統FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "系統FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661413",
+      "label": "系統彈窗",
+      "major": "彈窗類",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661502",
+      "label": "系統FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "系統FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661506",
+      "label": "系統FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "系統FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661480",
+      "label": "系統FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "系統FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661199",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "11709:661200",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "11709:661363",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "11709:661190",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "11709:661398",
+      "label": "日期選擇器彈窗",
+      "major": "彈窗類",
+      "minor": "日期選擇器彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661375",
+      "label": "上傳avatar彈窗",
+      "major": "彈窗類",
+      "minor": "上傳avatar彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661385",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:661365",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661531",
+      "label": "指紋確認彈窗",
+      "major": "彈窗類",
+      "minor": "指紋確認彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661473",
+      "label": "指紋確認彈窗",
+      "major": "彈窗類",
+      "minor": "指紋確認彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661472",
+      "label": "指紋確認彈窗",
+      "major": "彈窗類",
+      "minor": "指紋確認彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661864",
+      "label": "指紋確認彈窗",
+      "major": "彈窗類",
+      "minor": "指紋確認彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661826",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661814",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661818",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "796:81808",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661139",
+      "label": "KYC 升級",
+      "major": "頁面類",
+      "minor": "KYC 升級",
+      "generation": ""
+    },
+    {
+      "id": "11709:661138",
+      "label": "KYC 升級",
+      "major": "頁面類",
+      "minor": "KYC 升級",
+      "generation": ""
+    },
+    {
+      "id": "11709:661364",
+      "label": "KYC 升級",
+      "major": "頁面類",
+      "minor": "KYC 升級",
+      "generation": ""
+    },
+    {
+      "id": "11709:661185",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661205",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661208",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661195",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11709:661191",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11709:661192",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11709:661690",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:661353",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:661939",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:661836",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:661840",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:482709",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:482710",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:482641",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:482642",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:482643",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "16016:13225",
+      "label": "活動詳情頁",
+      "major": "頁面類",
+      "minor": "活動詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "16016:13447",
+      "label": "活動詳情頁",
+      "major": "頁面類",
+      "minor": "活動詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "16697:110140",
+      "label": "活動詳情頁",
+      "major": "頁面類",
+      "minor": "活動詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "16065:106152",
+      "label": "列表頁",
+      "major": "頁面類",
+      "minor": "列表頁",
+      "generation": ""
+    },
+    {
+      "id": "16065:106151",
+      "label": "列表頁",
+      "major": "頁面類",
+      "minor": "列表頁",
+      "generation": ""
+    },
+    {
+      "id": "16605:387051",
+      "label": "空頁面",
+      "major": "頁面類",
+      "minor": "空頁面",
+      "generation": ""
+    },
+    {
+      "id": "17868:259166",
+      "label": "活動詳情頁",
+      "major": "頁面類",
+      "minor": "活動詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "16065:111667",
+      "label": "活動詳情頁",
+      "major": "頁面類",
+      "minor": "活動詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "12042:217251",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217254",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217242",
+      "label": "OTP彈窗",
+      "major": "彈窗類",
+      "minor": "OTP彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217221",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217224",
+      "label": "OTP彈窗",
+      "major": "彈窗類",
+      "minor": "OTP彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217275",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217261",
+      "label": "PIN確認彈窗",
+      "major": "彈窗類",
+      "minor": "PIN確認彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:217272",
+      "label": "PIN確認彈窗",
+      "major": "彈窗類",
+      "minor": "PIN確認彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "12042:215394",
+      "label": "H5下載引導",
+      "major": "頁面類",
+      "minor": "H5下載引導",
+      "generation": "old"
+    },
+    {
+      "id": "14913:258388",
+      "label": "H5下載引導",
+      "major": "頁面類",
+      "minor": "H5下載引導",
+      "generation": "new"
+    },
+    {
+      "id": "14913:246988",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "12687:294579",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11728:804371",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "9420:292161",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:806082",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:804549",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "9420:292165",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:859671",
+      "label": "老UI零散頁面",
+      "major": "頁面類",
+      "minor": "老UI零散頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859832",
+      "label": "老UI零散頁面",
+      "major": "頁面類",
+      "minor": "老UI零散頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859673",
+      "label": "老UI零散頁面",
+      "major": "頁面類",
+      "minor": "老UI零散頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859689",
+      "label": "老UI零散頁面",
+      "major": "頁面類",
+      "minor": "老UI零散頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859838",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:859865",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:859863",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:859862",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "9349:155252",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11728:804669",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11728:804083",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11728:804119",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:804224",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:804670",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "9349:154128",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "9420:292162",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "9420:292163",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "11728:859806",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859760",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859790",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859793",
+      "label": "分帳確認彈窗",
+      "major": "彈窗類",
+      "minor": "分帳確認彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11709:634049",
+      "label": "修改手機號彈窗",
+      "major": "彈窗類",
+      "minor": "修改手機號彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634071",
+      "label": "修改手機號彈窗",
+      "major": "彈窗類",
+      "minor": "修改手機號彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634060",
+      "label": "修改手機號彈窗",
+      "major": "彈窗類",
+      "minor": "修改手機號彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634027",
+      "label": "OTP彈窗",
+      "major": "彈窗類",
+      "minor": "OTP彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634030",
+      "label": "OTP彈窗",
+      "major": "彈窗類",
+      "minor": "OTP彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634127",
+      "label": "修改手機號彈窗",
+      "major": "頁面類",
+      "minor": "修改手機號的彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634123",
+      "label": "修改手機號彈窗",
+      "major": "頁面類",
+      "minor": "修改手機號的彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:634208",
+      "label": "輸入手機號頁面",
+      "major": "頁面類",
+      "minor": "輸入手機號頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11709:634207",
+      "label": "輸入手機號頁面",
+      "major": "頁面類",
+      "minor": "輸入手機號頁面",
+      "generation": "old"
+    },
+    {
+      "id": "11676:148824",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "11676:148826",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "11676:148829",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "11676:148823",
+      "label": "Send Money",
+      "major": "頁面類",
+      "minor": "Send Money",
+      "generation": ""
+    },
+    {
+      "id": "11676:148835",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:148836",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "10047:124374",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "10047:119134",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "17109:431154",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "18219:726684",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "13675:31741",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "11901:142133",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "18414:124739",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "18424:450065",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:463328",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:463329",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:463336",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "9228:69527",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "9228:69525",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "9228:69528",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11709:673082",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11709:673081",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13797:524467",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "13797:541747",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "13797:524551",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "13454:240918",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "13454:248140",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11679:300429",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11679:301275",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11679:301228",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11679:301227",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "13900:273802",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "13947:346446",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "11728:727919",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "13111:100879",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11728:732717",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13101:103900",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "12466:496256",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "12466:496987",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "13197:119543",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "12466:496615",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "12466:493819",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "12466:494305",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "12436:236443",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13197:119214",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:690804",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:690805",
+      "label": "Welcome 歡迎頁",
+      "major": "頁面類",
+      "minor": "Welcome page歡迎頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:690806",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12555:106782",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "12517:277832",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "12555:120988",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:132842",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133633",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133403",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "22109:246918",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "22089:215962",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "22270:60441",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "14913:257687",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "14913:257686",
+      "label": "OTP驗證",
+      "major": "頁面類",
+      "minor": "OTP驗證",
+      "generation": ""
+    },
+    {
+      "id": "11728:707200",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "5599:170574",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11728:707247",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:415106",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:415442",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:416110",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:416442",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:417423",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:418428",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11676:421188",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:421230",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:421231",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:421269",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:421307",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:420992",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420507",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420991",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420898",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420775",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420742",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420984",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11709:671482",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11709:671422",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11709:671420",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11709:671421",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11676:613825",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:613783",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11676:613784",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11676:613785",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11676:613786",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11676:613787",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11676:613789",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11728:843071",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843066",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843104",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843067",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843102",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843072",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843073",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": "old"
+    },
+    {
+      "id": "11728:771597",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11718:232332",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "11718:232294",
+      "label": "Toast",
+      "major": "彈窗類",
+      "minor": "Toast",
+      "generation": ""
+    },
+    {
+      "id": "11728:770094",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11728:770825",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:770827",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:770826",
+      "label": "選擇好友",
+      "major": "頁面類",
+      "minor": "選擇好友",
+      "generation": ""
+    },
+    {
+      "id": "11728:713506",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713507",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713508",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713567",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11728:713611",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11728:713660",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11728:713704",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11728:713749",
+      "label": "交易詳情",
+      "major": "頁面類",
+      "minor": "交易詳情",
+      "generation": "new"
+    },
+    {
+      "id": "11676:148656",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:148645",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:148579",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:148636",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:463228",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:463236",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:463379",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:463214",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:463215",
+      "label": "付款輸入頁面",
+      "major": "頁面類",
+      "minor": "付款輸入頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:463367",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:463375",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11927:164969",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11927:164996",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:649521",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "6552:151219",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13101:121449",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13101:110332",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11964:460986",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13191:96742",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13191:96753",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13947:341303",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13947:341300",
+      "label": "首頁",
+      "major": "頁面類",
+      "minor": "首頁",
+      "generation": ""
+    },
+    {
+      "id": "13016:170353",
+      "label": "系統UI",
+      "major": "系統UI",
+      "minor": "",
+      "generation": ""
+    },
+    {
+      "id": "13035:69269",
+      "label": "系統UI",
+      "major": "系統UI",
+      "minor": "",
+      "generation": ""
+    },
+    {
+      "id": "21682:152489",
+      "label": "Certificate 詳情",
+      "major": "頁面類",
+      "minor": "Certificate 詳情",
+      "generation": ""
+    },
+    {
+      "id": "21682:152490",
+      "label": "Certificate 詳情",
+      "major": "頁面類",
+      "minor": "Certificate 詳情",
+      "generation": ""
+    },
+    {
+      "id": "11676:420588",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420575",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420589",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "16064:141665",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "16098:146701",
+      "label": "設置PIN",
+      "major": "頁面類",
+      "minor": "設置PIN",
+      "generation": ""
+    },
+    {
+      "id": "11728:843036",
+      "label": "老UI - 通用彈窗",
+      "major": "老UI",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843593",
+      "label": "老UI - 通用彈窗",
+      "major": "老UI",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843037",
+      "label": "老UI - 通用彈窗",
+      "major": "老UI",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843272",
+      "label": "老UI - 通用彈窗",
+      "major": "老UI",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713833",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:713837",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:713850",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11728:713821",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11728:713841",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "5818:113795",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5279:85507",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5787:87788",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5899:88693",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "14265:116459",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13230:246881",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "21603:42640",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "14012:72187",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13588:475753",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "17109:431852",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "15251:313015",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "21600:40347",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18249:729054",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "5862:120504",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5862:120505",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5862:120506",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5279:85244",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "7880:56490",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11862:89008",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11862:89577",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11862:89987",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18414:56733",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13230:254580",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "15251:313204",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "16743:436656",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "16795:437463",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13230:220360",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13613:476647",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18459:451129",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13384:418723",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13230:188332",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5279:7008",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13230:220443",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11858:86122",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "17109:431419",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5697:154759",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "7140:204677",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13543:461096",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5218:96475",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "21624:47596",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18443:451070",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13512:457040",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13422:453253",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18414:56762",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "14265:117096",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "14312:221853",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18443:450203",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "16743:436291",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13359:366540",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "21636:52876",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "18202:726333",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11862:89246",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13359:366777",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "17093:409264",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "13422:452643",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12271:92451",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11679:302958",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303789",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:304209",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:301006",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303473",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:307343",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300717",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300811",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:308080",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:306142",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303567",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:307439",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300763",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:305231",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300672",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300372",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:306662",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303863",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:304111",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:304273",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:305440",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13112:214791",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "13112:214838",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "13112:214885",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "13112:215608",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "11728:735498",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "11728:735508",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "18720:239325",
+      "label": "消息通知類",
+      "major": "頁面類",
+      "minor": "消息通知類",
+      "generation": ""
+    },
+    {
+      "id": "11679:301920",
+      "label": "老UI - 消息通知類",
+      "major": "老UI",
+      "minor": "消息通知類",
+      "generation": "old"
+    },
+    {
+      "id": "11679:302034",
+      "label": "老UI - 消息通知類",
+      "major": "老UI",
+      "minor": "消息通知類",
+      "generation": "old"
+    },
+    {
+      "id": "11679:308447",
+      "label": "老UI - 消息通知類",
+      "major": "老UI",
+      "minor": "消息通知類",
+      "generation": "old"
+    },
+    {
+      "id": "13112:210983",
+      "label": "支付結果頁",
+      "major": "頁面類",
+      "minor": "支付結果頁",
+      "generation": ""
+    },
+    {
+      "id": "13112:210991",
+      "label": "支付結果頁",
+      "major": "頁面類",
+      "minor": "支付結果頁",
+      "generation": ""
+    },
+    {
+      "id": "13112:211205",
+      "label": "支付結果頁",
+      "major": "頁面類",
+      "minor": "支付結果頁",
+      "generation": ""
+    },
+    {
+      "id": "18720:233031",
+      "label": "支付結果頁",
+      "major": "頁面類",
+      "minor": "支付結果頁",
+      "generation": ""
+    },
+    {
+      "id": "13101:112518",
+      "label": "Tap結果頁",
+      "major": "頁面類",
+      "minor": "Tap結果頁",
+      "generation": ""
+    },
+    {
+      "id": "13101:121470",
+      "label": "Tap結果頁",
+      "major": "頁面類",
+      "minor": "Tap結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:731283",
+      "label": "Tap結果頁",
+      "major": "頁面類",
+      "minor": "Tap結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:731673",
+      "label": "Tap結果頁",
+      "major": "頁面類",
+      "minor": "Tap結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:730362",
+      "label": "Tap結果頁",
+      "major": "頁面類",
+      "minor": "Tap結果頁",
+      "generation": ""
+    },
+    {
+      "id": "13112:211212",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:413309",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:413475",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414118",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414428",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414595",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420001",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414273",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:413642",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420026",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419876",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "10047:119822",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10043:255559",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10047:123694",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10006:165192",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "9912:125497",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10006:165682",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10006:254798",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10043:255278",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "10006:254476",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:462824",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462823",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462825",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462826",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462828",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462830",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462827",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "15091:199882",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "13532:193008",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:732178",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "13532:194201",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "13101:103986",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "15726:219544",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "13101:110358",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:843010",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843009",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843007",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843005",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843006",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843056",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843075",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13101:110431",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:727185",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "13101:102304",
+      "label": "Tap&Pay 陣地頁",
+      "major": "頁面類",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:727125",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:730307",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:726785",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13797:552340",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "18740:271663",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "20850:164478",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "13797:552327",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "13828:559898",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "13797:552342",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11679:307760",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:307629",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:307893",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:307499",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303381",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303172",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:132984",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133295",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133225",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "783:86128",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133136",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133227",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:421009",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:421015",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:421021",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:421027",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:421033",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:421039",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11679:305748",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:305687",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:304775",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:305636",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:304723",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:695919",
+      "label": "個人中心",
+      "major": "頁面類",
+      "minor": "個人中心",
+      "generation": ""
+    },
+    {
+      "id": "11709:694516",
+      "label": "個人中心",
+      "major": "頁面類",
+      "minor": "個人中心",
+      "generation": ""
+    },
+    {
+      "id": "11709:694706",
+      "label": "個人中心",
+      "major": "頁面類",
+      "minor": "個人中心",
+      "generation": ""
+    },
+    {
+      "id": "11709:695086",
+      "label": "個人中心",
+      "major": "頁面類",
+      "minor": "個人中心",
+      "generation": ""
+    },
+    {
+      "id": "11709:695730",
+      "label": "個人中心",
+      "major": "頁面類",
+      "minor": "個人中心",
+      "generation": ""
+    },
+    {
+      "id": "11676:420678",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420679",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420726",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420630",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11676:420727",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "11728:713555",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11990:462984",
+      "label": "交易結果頁",
+      "major": "頁面類",
+      "minor": "交易結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:713504",
+      "label": "老UI - 交易結果頁",
+      "major": "老UI",
+      "minor": "交易結果頁",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713505",
+      "label": "老UI - 交易結果頁",
+      "major": "老UI",
+      "minor": "交易結果頁",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713503",
+      "label": "老UI - 交易結果頁",
+      "major": "老UI",
+      "minor": "交易結果頁",
+      "generation": "old"
+    },
+    {
+      "id": "11676:380442",
+      "label": "卡管理頁",
+      "major": "頁面類",
+      "minor": "卡管理頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:380436",
+      "label": "卡管理頁",
+      "major": "頁面類",
+      "minor": "卡管理頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:380443",
+      "label": "卡管理頁",
+      "major": "頁面類",
+      "minor": "卡管理頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:380444",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:380434",
+      "label": "卡管理頁",
+      "major": "頁面類",
+      "minor": "卡管理頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:148763",
+      "label": "系統短信頁",
+      "major": "頁面類",
+      "minor": "系統短信頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:148799",
+      "label": "系統短信頁",
+      "major": "頁面類",
+      "minor": "系統短信頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:148812",
+      "label": "系統短信頁",
+      "major": "頁面類",
+      "minor": "系統短信頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:148806",
+      "label": "老UI - 消息中心",
+      "major": "老UI",
+      "minor": "消息中心",
+      "generation": "old"
+    },
+    {
+      "id": "11676:390537",
+      "label": "支付方式偏好選擇",
+      "major": "頁面類",
+      "minor": "支付方式偏好選擇",
+      "generation": ""
+    },
+    {
+      "id": "11676:390535",
+      "label": "支付方式偏好選擇",
+      "major": "頁面類",
+      "minor": "支付方式偏好選擇",
+      "generation": ""
+    },
+    {
+      "id": "11676:390534",
+      "label": "支付方式偏好選擇",
+      "major": "頁面類",
+      "minor": "支付方式偏好選擇",
+      "generation": ""
+    },
+    {
+      "id": "11676:390533",
+      "label": "支付方式偏好選擇",
+      "major": "頁面類",
+      "minor": "支付方式偏好選擇",
+      "generation": ""
+    },
+    {
+      "id": "11709:673639",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11709:673664",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11709:673638",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11709:673665",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11728:729809",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:729304",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:729403",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:728528",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "12089:429136",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429142",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429133",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429145",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429041",
+      "label": "老UI - 通用彈窗",
+      "major": "老UI",
+      "minor": "通用彈窗",
+      "generation": "old"
+    },
+    {
+      "id": "11676:132958",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:132957",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:132954",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:132959",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133515",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133513",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133516",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133517",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13354:363731",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "13354:362151",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "12517:279804",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "13114:73996",
+      "label": "KYC",
+      "major": "頁面類",
+      "minor": "KYC",
+      "generation": ""
+    },
+    {
+      "id": "11709:696111",
+      "label": "系統彈窗",
+      "major": "彈窗類",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:693862",
+      "label": "系統彈窗",
+      "major": "彈窗類",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:694072",
+      "label": "系統彈窗",
+      "major": "彈窗類",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:694303",
+      "label": "FaceID彈窗",
+      "major": "彈窗類",
+      "minor": "FaceID彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:419761",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414754",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419778",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414784",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420136",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420140",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:414844",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420138",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713485",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713486",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713472",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713484",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "5279:7296",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "5279:7075",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "7783:93141",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "6976:100514",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "9119:142587",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "6976:103911",
+      "label": "收銀台",
+      "major": "頁面類",
+      "minor": "收銀台",
+      "generation": ""
+    },
+    {
+      "id": "9827:120022",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "9827:120529",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "9799:119364",
+      "label": "AI Chat頁面",
+      "major": "頁面類",
+      "minor": "AI Chat頁面",
+      "generation": ""
+    },
+    {
+      "id": "11634:359425",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11505:332282",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "11634:359426",
+      "label": "交易歷史記錄",
+      "major": "頁面類",
+      "minor": "交易歷史記錄",
+      "generation": ""
+    },
+    {
+      "id": "21847:40205",
+      "label": "Rewards",
+      "major": "頁面類",
+      "minor": "Rewards",
+      "generation": ""
+    },
+    {
+      "id": "21847:48527",
+      "label": "Rewards",
+      "major": "頁面類",
+      "minor": "Rewards",
+      "generation": ""
+    },
+    {
+      "id": "21847:48318",
+      "label": "Rewards",
+      "major": "頁面類",
+      "minor": "Rewards",
+      "generation": ""
+    },
+    {
+      "id": "13797:527795",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13797:527796",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13797:527797",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:729599",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:729168",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "11728:728618",
+      "label": "NFC 設置頁",
+      "major": "頁面類",
+      "minor": "NFC 設置頁",
+      "generation": ""
+    },
+    {
+      "id": "12089:429403",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12089:429002",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429126",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12089:429127",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429139",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429168",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13197:119128",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13197:119260",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "12275:149339",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13191:101035",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13191:100850",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "13191:100898",
+      "label": "掃碼收款/支付",
+      "major": "頁面類",
+      "minor": "掃碼收款/支付",
+      "generation": ""
+    },
+    {
+      "id": "11676:133539",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133540",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133384",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133463",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133464",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133465",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "22008:131247",
+      "label": "Rewards 列表",
+      "major": "頁面類",
+      "minor": "Rewards 列表",
+      "generation": ""
+    },
+    {
+      "id": "22008:130874",
+      "label": "Rewards 列表",
+      "major": "頁面類",
+      "minor": "Rewards 列表",
+      "generation": ""
+    },
+    {
+      "id": "22270:57268",
+      "label": "Rewards 列表",
+      "major": "頁面類",
+      "minor": "Rewards 列表",
+      "generation": ""
+    },
+    {
+      "id": "11676:420225",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420224",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420226",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843525",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843522",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843149",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713526",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713524",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713525",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859744",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:859737",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:148945",
+      "label": "Event 詳情頁",
+      "major": "頁面類",
+      "minor": "Event 詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:148950",
+      "label": "Event 詳情頁",
+      "major": "頁面類",
+      "minor": "Event 詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "21701:217219",
+      "label": "T&C彈窗",
+      "major": "彈窗類",
+      "minor": "T&C彈窗",
+      "generation": ""
+    },
+    {
+      "id": "5787:111839",
+      "label": "T&C彈窗",
+      "major": "彈窗類",
+      "minor": "T&C彈窗",
+      "generation": ""
+    },
+    {
+      "id": "16714:251694",
+      "label": "系統UI - 攝像機拍照",
+      "major": "系統UI",
+      "minor": "攝像機拍照",
+      "generation": ""
+    },
+    {
+      "id": "18089:720396",
+      "label": "系統UI - 攝像機拍照",
+      "major": "系統UI",
+      "minor": "攝像機拍照",
+      "generation": ""
+    },
+    {
+      "id": "11634:380253",
+      "label": "Coupon 列表",
+      "major": "頁面類",
+      "minor": "Coupon 列表",
+      "generation": ""
+    },
+    {
+      "id": "13227:155538",
+      "label": "Coupon 列表",
+      "major": "頁面類",
+      "minor": "Coupon 列表",
+      "generation": ""
+    },
+    {
+      "id": "11709:705002",
+      "label": "T&C彈窗",
+      "major": "彈窗類",
+      "minor": "T&C彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:705005",
+      "label": "T&C彈窗",
+      "major": "彈窗類",
+      "minor": "T&C彈窗",
+      "generation": ""
+    },
+    {
+      "id": "21790:238724",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "21790:239493",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "21847:40446",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "21847:41000",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11709:647542",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "6774:140116",
+      "label": "幫助中心",
+      "major": "頁面類",
+      "minor": "幫助中心",
+      "generation": ""
+    },
+    {
+      "id": "11679:300028",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300027",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300970",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300956",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "21140:243182",
+      "label": "Event 詳情頁",
+      "major": "頁面類",
+      "minor": "Event 詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "21140:242278",
+      "label": "Event 詳情頁",
+      "major": "頁面類",
+      "minor": "Event 詳情頁",
+      "generation": ""
+    },
+    {
+      "id": "11679:308636",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:308660",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:734605",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:734708",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12436:159941",
+      "label": "KYC彈窗",
+      "major": "彈窗類",
+      "minor": "KYC彈窗",
+      "generation": ""
+    },
+    {
+      "id": "13947:341302",
+      "label": "KYC彈窗",
+      "major": "彈窗類",
+      "minor": "KYC彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:132936",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:132843",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133426",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133425",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133536",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "790:70941",
+      "label": "下拉抽屜彈窗",
+      "major": "彈窗類",
+      "minor": "下拉抽屜彈窗",
+      "generation": ""
+    },
+    {
+      "id": "11676:133548",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133541",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133546",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133545",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133590",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133609",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133595",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133612",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12540:69087",
+      "label": "KYC結果頁",
+      "major": "頁面類",
+      "minor": "KYC結果頁",
+      "generation": ""
+    },
+    {
+      "id": "11676:633941",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12517:281396",
+      "label": "KYC彈窗",
+      "major": "彈窗類",
+      "minor": "KYC彈窗",
+      "generation": ""
+    },
+    {
+      "id": "12088:427400",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "22127:258603",
+      "label": "註冊頁面",
+      "major": "頁面類",
+      "minor": "註冊頁面",
+      "generation": ""
+    },
+    {
+      "id": "22127:258601",
+      "label": "註冊頁面",
+      "major": "頁面類",
+      "minor": "註冊頁面",
+      "generation": ""
+    },
+    {
+      "id": "22127:260916",
+      "label": "註冊頁面",
+      "major": "頁面類",
+      "minor": "註冊頁面",
+      "generation": ""
+    },
+    {
+      "id": "22127:258602",
+      "label": "註冊頁面",
+      "major": "頁面類",
+      "minor": "註冊頁面",
+      "generation": ""
+    },
+    {
+      "id": "21814:26594",
+      "label": "Voucher 列表",
+      "major": "頁面類",
+      "minor": "Voucher 列表",
+      "generation": ""
+    },
+    {
+      "id": "21245:1394996",
+      "label": "Voucher 列表",
+      "major": "頁面類",
+      "minor": "Voucher 列表",
+      "generation": ""
+    },
+    {
+      "id": "11676:419837",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419836",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419875",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419987",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:148918",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:148925",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:148924",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "6459:81499",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "6688:18018",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "9819:119642",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "10609:32885",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "21624:48767",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13422:419185",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "7551:101410",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462909",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462910",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462911",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462908",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462914",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462906",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462907",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:463190",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:463191",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:463192",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:462888",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673038",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673036",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673037",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673039",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673045",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673043",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673044",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673046",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673096",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673094",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673095",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673097",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:672991",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:672992",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:672994",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673009",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673008",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673010",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673052",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673050",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673051",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673059",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673060",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673062",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673111",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673112",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:673114",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649431",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649436",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649446",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649462",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649538",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "6552:150598",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16898:245953",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:649561",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13516:55176",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13516:50679",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13516:50685",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13516:108487",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13462:258829",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13454:253097",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13462:258425",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13886:197971",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13900:280824",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13144:567623",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "15917:190913",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "15926:192528",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "15926:192529",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300465",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300466",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300986",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:300995",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13112:210622",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "18720:238715",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16161:123280",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16161:123519",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13101:103162",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13101:103650",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13797:552328",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11679:303357",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16161:122486",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429020",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429017",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429018",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:429019",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12466:494333",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12436:234285",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13947:341304",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13947:341305",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16375:279318",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16375:279305",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16375:279319",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12466:497405",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12466:498417",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12089:428996",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13947:341299",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133647",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12555:87760",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133735",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133697",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133770",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133638",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133637",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:133650",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12517:277062",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12555:120987",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "12555:88891",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13738:61693",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "13751:62048",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:707131",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "5599:169575",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:696778",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:696568",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11709:696370",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420160",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420162",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420164",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420116",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420003",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420993",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420994",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:421046",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:421050",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "10213:180108",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "10213:180118",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:419870",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420031",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11676:420460",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:143468",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:143338",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:143372",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:139217",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:139219",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16064:141664",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "16098:146852",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:770482",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:770131",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:770307",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:772182",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:772183",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:772184",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843621",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843622",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843623",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:772449",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:772514",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843053",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843055",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843239",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843257",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843191",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:843565",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713510",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "11728:713497",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old"
+    },
+    {
+      "id": "384:113949",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133537",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133538",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:133547",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12517:290044",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12468:220909",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12555:84487",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "9104:123711",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "9427:84405",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "5639:151668",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "5218:96401",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "6288:139457",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:908945",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11407:283680",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11634:384811",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "21314:1398746",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "16065:119698",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "17868:260925",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "I16065:106347;13354:365205;32326:3781;17678:37050",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "8879:105577",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "514:88712",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:673087",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:149058",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:634113",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11676:463581",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13389:235498",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "12089:429402",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11709:671484",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:770693",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:843792",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "11728:713993",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13112:210999",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "13112:211007",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    },
+    {
+      "id": "16225:197600",
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
+    }
+  ]
+}
