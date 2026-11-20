@@ -9,7 +9,7 @@ import { Graph } from './core/graph';
 interface C { page: string; auto: string; archetype: string; ai: string; comments: string[]; rows: Array<{ id: string; note: string }>; header: string }
 interface Truth { id: string; label: string; generation: '' | 'old' | 'new'; page: string }
 const parsed = JSON.parse(readFileSync('/tmp/annotated-clusters.json', 'utf8')) as { clusters: C[] };
-const truth = JSON.parse(readFileSync('/tmp/truth.json', 'utf8')) as Truth[];
+const truth = JSON.parse(readFileSync('/tmp/truth2.json', 'utf8')) as Truth[];
 const tmap = new Map(truth.map((t) => [t.id, t]));
 const ROOT = resolve(__dirname, '..');
 let dbPath = '';
@@ -177,7 +177,7 @@ for (const c of parsed.clusters) {
 
 const baseFile = '/Users/hyd/Downloads/rea-figma-label-workbook.ai.md';
 const outFile = '/Users/hyd/Downloads/rea-figma-label-workbook.ai2.md';
-const lines = readFileSync(baseFile, 'utf8').split('\n');
+const lines: string[] = (() => { try { return readFileSync(baseFile, 'utf8').split('\n'); } catch { return []; } })();
 const hitByIndex = new Map<number, Hit>();
 for (const h of hits) hitByIndex.set(parsed.clusters.indexOf(h.c), h);
 const out: string[] = [];
@@ -206,7 +206,7 @@ list.push('');
 list.push('---');
 list.push('');
 if (insertAt >= 0) out.splice(insertAt, 0, ...list);
-writeFileSync(outFile, out.join('\n'));
+if (lines.length > 0) writeFileSync(outFile, out.join('\n'));
 
 const labelCount = new Map<string, number>();
 for (const t of truth) labelCount.set(fixLabel(t.label), (labelCount.get(fixLabel(t.label)) ?? 0) + 1);
@@ -278,7 +278,7 @@ report.push('2. 「通用彈窗」子類要不要正式變成兩層 taxonomy（�
 report.push('3. 還有 修改手機號彈窗、Welcome 歡迎頁、Toast 這類命名要不要統一成固定寫法？');
 writeFileSync('/Users/hyd/Downloads/rea-figma-label-patterns.md', report.join('\n') + '\n');
 import { writeFileSync as wf } from 'node:fs';
-wf('/tmp/ai-v2.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
+wf('/tmp/ai-v3.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
 console.log('truth=' + truth.length + ' hits=' + hits.length + ' ids=' + hits.reduce((a, h) => a + h.c.rows.length, 0));
 console.log('sources exact=' + (sourceCount.get('exact') ?? 0) + ' keyword=' + (sourceCount.get('keyword') ?? 0));
 console.log('written ' + outFile);
