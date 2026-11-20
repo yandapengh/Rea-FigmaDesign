@@ -3,11 +3,11 @@
   "sample": "2026-11-20-baipai-full",
   "note": "human labels preserved; generation from colour+structure",
   "counts": {
-    "頁面類": 350,
-    "彈窗類": 86,
-    "廢棄": 99,
+    "頁面類": 340,
+    "彈窗類": 91,
+    "廢棄": 100,
+    "老UI": 1710,
     "系統UI": 4,
-    "老UI": 1706,
     "新UI": 336
   },
   "screens": [
@@ -104,9 +104,9 @@
     },
     {
       "id": "11709:661775",
-      "label": "彈窗",
-      "major": "頁面類",
-      "minor": "彈窗",
+      "label": "通用彈窗",
+      "major": "彈窗類",
+      "minor": "通用彈窗",
       "generation": "old"
     },
     {
@@ -328,23 +328,23 @@
     },
     {
       "id": "11709:661690",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
       "id": "11709:661353",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
       "id": "11709:661939",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
@@ -434,7 +434,7 @@
     {
       "id": "16605:387051",
       "label": "空頁面",
-      "major": "頁面類",
+      "major": "廢棄",
       "minor": "空頁面",
       "generation": "old"
     },
@@ -511,14 +511,14 @@
     {
       "id": "12042:215394",
       "label": "H5下載引導",
-      "major": "頁面類",
+      "major": "彈窗類",
       "minor": "H5下載引導",
       "generation": "old"
     },
     {
       "id": "14913:258388",
       "label": "H5下載引導",
-      "major": "頁面類",
+      "major": "彈窗類",
       "minor": "H5下載引導",
       "generation": "new"
     },
@@ -573,30 +573,30 @@
     },
     {
       "id": "11728:859671",
-      "label": "老UI零散頁面",
-      "major": "頁面類",
-      "minor": "老UI零散頁面",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
       "generation": "old"
     },
     {
       "id": "11728:859832",
-      "label": "老UI零散頁面",
-      "major": "頁面類",
-      "minor": "老UI零散頁面",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
       "generation": "old"
     },
     {
       "id": "11728:859673",
-      "label": "老UI零散頁面",
-      "major": "頁面類",
-      "minor": "老UI零散頁面",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
       "generation": "old"
     },
     {
       "id": "11728:859689",
-      "label": "老UI零散頁面",
-      "major": "頁面類",
-      "minor": "老UI零散頁面",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
       "generation": "old"
     },
     {
@@ -755,16 +755,16 @@
     },
     {
       "id": "11709:634127",
-      "label": "修改手機號的彈窗",
-      "major": "頁面類",
-      "minor": "修改手機號的彈窗",
+      "label": "修改手機號彈窗",
+      "major": "彈窗類",
+      "minor": "修改手機號彈窗",
       "generation": "old"
     },
     {
       "id": "11709:634123",
-      "label": "修改手機號的彈窗",
-      "major": "頁面類",
-      "minor": "修改手機號的彈窗",
+      "label": "修改手機號彈窗",
+      "major": "彈窗類",
+      "minor": "修改手機號彈窗",
       "generation": "old"
     },
     {
@@ -1035,9 +1035,9 @@
     },
     {
       "id": "13101:103900",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
@@ -1098,16 +1098,16 @@
     },
     {
       "id": "11709:690804",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
       "id": "11709:690805",
-      "label": "Welcome page歡迎頁面",
+      "label": "Welcome 歡迎頁",
       "major": "頁面類",
-      "minor": "Welcome page歡迎頁面",
+      "minor": "Welcome 歡迎頁",
       "generation": "old"
     },
     {
@@ -2463,65 +2463,65 @@
     },
     {
       "id": "13112:210983",
-      "label": "支付結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "支付結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "13112:210991",
-      "label": "支付結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "支付結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "13112:211205",
-      "label": "支付結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "支付結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "18720:233031",
-      "label": "支付結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "支付結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "13101:112518",
-      "label": "Tap結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "Tap結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "13101:121470",
-      "label": "Tap結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "Tap結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "11728:731283",
-      "label": "Tap結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "Tap結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "11728:731673",
-      "label": "Tap結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "Tap結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "11728:730362",
-      "label": "Tap結果頁",
+      "label": "交易結果頁",
       "major": "頁面類",
-      "minor": "Tap結果頁",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -3198,23 +3198,23 @@
     },
     {
       "id": "11676:148763",
-      "label": "系統短信頁",
+      "label": "消息通知類",
       "major": "頁面類",
-      "minor": "系統短信頁",
+      "minor": "消息通知類",
       "generation": "old"
     },
     {
       "id": "11676:148799",
-      "label": "系統短信頁",
+      "label": "消息通知類",
       "major": "頁面類",
-      "minor": "系統短信頁",
+      "minor": "消息通知類",
       "generation": "old"
     },
     {
       "id": "11676:148812",
-      "label": "系統短信頁",
+      "label": "消息通知類",
       "major": "頁面類",
-      "minor": "系統短信頁",
+      "minor": "消息通知類",
       "generation": "old"
     },
     {
@@ -3625,23 +3625,23 @@
     },
     {
       "id": "21847:40205",
-      "label": "Rewards",
+      "label": "Rewards 列表",
       "major": "頁面類",
-      "minor": "Rewards",
+      "minor": "Rewards 列表",
       "generation": "old"
     },
     {
       "id": "21847:48527",
-      "label": "Rewards",
+      "label": "Rewards 列表",
       "major": "頁面類",
-      "minor": "Rewards",
+      "minor": "Rewards 列表",
       "generation": "old"
     },
     {
       "id": "21847:48318",
-      "label": "Rewards",
+      "label": "Rewards 列表",
       "major": "頁面類",
-      "minor": "Rewards",
+      "minor": "Rewards 列表",
       "generation": "old"
     },
     {
@@ -3954,16 +3954,16 @@
     },
     {
       "id": "11634:380253",
-      "label": "Coupon 列表",
+      "label": "券列表",
       "major": "頁面類",
-      "minor": "Coupon 列表",
+      "minor": "券列表",
       "generation": "old"
     },
     {
       "id": "13227:155538",
-      "label": "Coupon 列表",
+      "label": "券列表",
       "major": "頁面類",
-      "minor": "Coupon 列表",
+      "minor": "券列表",
       "generation": "old"
     },
     {
@@ -4206,9 +4206,9 @@
     },
     {
       "id": "12540:69087",
-      "label": "KYC結果頁",
+      "label": "KYC",
       "major": "頁面類",
-      "minor": "KYC結果頁",
+      "minor": "KYC",
       "generation": "new"
     },
     {
@@ -4262,16 +4262,16 @@
     },
     {
       "id": "21814:26594",
-      "label": "Voucher 列表",
+      "label": "券列表",
       "major": "頁面類",
-      "minor": "Voucher 列表",
+      "minor": "券列表",
       "generation": "old"
     },
     {
       "id": "21245:1394996",
-      "label": "Voucher 列表",
+      "label": "券列表",
       "major": "頁面類",
-      "minor": "Voucher 列表",
+      "minor": "券列表",
       "generation": "old"
     },
     {
