@@ -49,22 +49,20 @@ export function apply(ctx: { commands: { register: (def: Record<string, unknown>
     name: 'rea-figma-review',
     description: 'build the Rea-FigmaDesign review board and open it',
     recordInput: false,
-    handler: async (invocation: { rawInput?: string }) => {
+    handler: async () => {
       const missing = requireRoot();
       if (missing) return { kind: 'error', text: missing };
-      const category = String(invocation?.rawInput ?? '').trim();
-      const args = [join(root, 'server/query.ts'), 'review'];
-      if (category) args.push('--category', category);
-      const res = await exec(tsx, args, root);
+      const res = await exec(nodeBin, [tsxCli, join(root, 'server/review-all.ts')], root);
       if (res.code !== 0) {
         return { kind: 'error', text: 'review failed (exit ' + res.code + '):\n' + tail(res.err || res.out, 12) };
       }
-      const cards = /cards=(\d+)/.exec(res.out);
+      const unique = /unique=(\d+)/.exec(res.out);
       const html = join(root, '.scratch/review.html');
-      exec('open', [html], root);
+      if (!existsSync(html)) return { kind: 'error', text: 'review.html was not written: ' + html };
+      exec('/usr/bin/open', [html], root);
       return {
         kind: 'success',
-        text: 'Review board ready' + (category ? ' [' + category + ']' : '') + (cards ? ' (' + cards[1] + ' rows)' : '') + ': ' + html,
+        text: 'Review board ready' + (unique ? ' (' + unique[1] + ' unique screens)' : '') + ': ' + html,
       };
     },
   });
