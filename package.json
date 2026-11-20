@@ -23,7 +23,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "health": "tsx server/health-check.ts",
     "sample": "tsx server/sample-screens.ts",
-    "tier1": "tsx server/tier1-check.ts"
+    "tier1": "tsx server/tier1-check.ts",
+    "seed": "tsx server/label-seed.ts",
+    "review:all": "tsx server/review-all.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
