@@ -9,7 +9,7 @@ import { Graph } from './core/graph';
 interface C { page: string; auto: string; archetype: string; ai: string; comments: string[]; rows: Array<{ id: string; note: string }>; header: string }
 interface Truth { id: string; label: string; generation: '' | 'old' | 'new'; page: string }
 const parsed = JSON.parse(readFileSync('/tmp/annotated-clusters.json', 'utf8')) as { clusters: C[] };
-const truth = JSON.parse(readFileSync('/tmp/truth2.json', 'utf8')) as Truth[];
+const truth = JSON.parse(readFileSync('/tmp/truth3.json', 'utf8')) as Truth[];
 const tmap = new Map(truth.map((t) => [t.id, t]));
 const ROOT = resolve(__dirname, '..');
 let dbPath = '';
@@ -119,6 +119,14 @@ const keyword = (auto: string, arch: string): string => {
   if (a.indexOf('profile') !== -1) return 'KYC 升級';
   if (a.indexOf('input phone number') !== -1) return '輸入手機號頁面';
   if (a.indexOf('h5') !== -1 || a.indexOf('wap') !== -1) return 'H5下載引導';
+  if (a.indexOf('transaction history') !== -1 || a.indexOf('cashback history') !== -1) return '交易歷史記錄';
+  if (a.indexOf('nfc setting') !== -1) return 'NFC 設置頁';
+  if (a.indexOf('my account') !== -1) return '個人中心';
+  if (a.indexOf('ai chat') !== -1) return 'AI Chat頁面';
+  if (a.indexOf('certificate') !== -1) return 'Certificate 詳情';
+  if (a.indexOf('payment preference') !== -1) return '支付方式偏好選擇';
+  if (a.indexOf('pay receive') !== -1) return '掃碼收款/支付';
+  if (a.indexOf('rewards page') !== -1) return 'Rewards';
   if (a.indexOf('faceid') !== -1) return '系統FaceID彈窗';
   return '';
 };
@@ -278,7 +286,7 @@ report.push('2. 「通用彈窗」子類要不要正式變成兩層 taxonomy（�
 report.push('3. 還有 修改手機號彈窗、Welcome 歡迎頁、Toast 這類命名要不要統一成固定寫法？');
 writeFileSync('/Users/hyd/Downloads/rea-figma-label-patterns.md', report.join('\n') + '\n');
 import { writeFileSync as wf } from 'node:fs';
-wf('/tmp/ai-v3.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
+wf('/tmp/ai-v4.json', JSON.stringify({ truthCount: truth.length, hits: hits.map((h) => ({ index: parsed.clusters.indexOf(h.c), page: h.c.page, auto: h.c.auto, archetype: h.c.archetype, label: h.label, source: h.source, gen: h.gen, ids: h.c.rows.map((r) => r.id) })) }, null, 2));
 console.log('truth=' + truth.length + ' hits=' + hits.length + ' ids=' + hits.reduce((a, h) => a + h.c.rows.length, 0));
 console.log('sources exact=' + (sourceCount.get('exact') ?? 0) + ' keyword=' + (sourceCount.get('keyword') ?? 0));
 console.log('written ' + outFile);
