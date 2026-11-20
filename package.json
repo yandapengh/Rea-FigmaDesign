@@ -25,7 +25,8 @@
     "sample": "tsx server/sample-screens.ts",
     "tier1": "tsx server/tier1-check.ts",
     "seed": "tsx server/label-seed.ts",
-    "review:all": "tsx server/review-all.ts"
+    "review:all": "tsx server/review-all.ts",
+    "label:md": "tsx server/export-label-review.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
