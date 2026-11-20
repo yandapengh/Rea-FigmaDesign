@@ -121,14 +121,6 @@ CREATE TABLE IF NOT EXISTS batch_pages (
   PRIMARY KEY (batch_id, page_id)
 );
 
-CREATE TABLE IF NOT EXISTS hidden_screens (
-  file_key TEXT NOT NULL,
-  id TEXT NOT NULL,
-  opacity REAL NOT NULL,
-  scanned_at TEXT NOT NULL,
-  PRIMARY KEY (file_key, id)
-);
-
 CREATE TABLE IF NOT EXISTS nodes_staging (
   file_key TEXT NOT NULL,
   page_id TEXT NOT NULL,
@@ -486,14 +478,6 @@ export class AstGraphDB {
     const sameSlot = this.db.prepare('SELECT page_id FROM pages WHERE file_key = ? AND page_index = ? AND page_name = ?').get(fileKey, page.page_index, page.page_name) as { page_id: string } | undefined;
     if (sameSlot) return sameSlot.page_id;
     return page.page_id;
-  }
-
-  saveHiddenScreens(fileKey: string, rows: Array<{ id: string; opacity: number }>): number {
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
-    const now = new Date().toISOString();
-    const stmt = this.db.prepare('INSERT OR REPLACE INTO hidden_screens (file_key, id, opacity, scanned_at) VALUES (?, ?, ?, ?)');
-    this.db.transaction(() => { for (const r of rows) stmt.run(fileKey, String(r.id), Number(r.opacity) || 0, now); })();
-    return rows.length;
   }
 
   skipPage(fileKey: string, page: PageSkipPayload): void {

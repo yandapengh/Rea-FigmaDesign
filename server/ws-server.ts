@@ -237,14 +237,6 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           count = pages.length;
           break;
         }
-        case 'HIDDEN_SCREENS': {
-          if (!isRecord(payload) || !Array.isArray(payload.rows)) throw new Error('HIDDEN_SCREENS payload must be { file_key, rows }');
-          const hiddenKey = asString(payload.file_key) || state.fileKey || '';
-          if (!hiddenKey) throw new Error('HIDDEN_SCREENS requires file_key');
-          if (!state.db) { state.fileKey = hiddenKey; state.db = dbFor(hiddenKey, '', state); }
-          count = state.db.saveHiddenScreens(hiddenKey, payload.rows as Array<{ id: string; opacity: number }>);
-          break;
-        }
         case 'PAGE_CENSUS': {
           if (!state.db) throw new Error('PAGE_CENSUS requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('PAGE_CENSUS payload must be an array');
