@@ -201,6 +201,7 @@ function dehydrateStyle(node: SceneNode): string {
     strokeWeight: jsonScalarOrNull(readField<unknown>(node, 'strokeWeight')),
     strokeAlign: jsonScalarOrNull(readField<unknown>(node, 'strokeAlign')),
     cornerRadius: jsonScalarOrNull(readField<unknown>(node, 'cornerRadius')),
+    opacity: jsonScalarOrNull(readField<unknown>(node, 'opacity')),
     effects: dehydrateEffects(readField<unknown>(node, 'effects')),
   };
   return JSON.stringify(style);
