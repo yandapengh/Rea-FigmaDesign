@@ -29,6 +29,14 @@
 
 ## Unreleased
 
+### Stage 5–8（2026-11-23）
+
+- 收編 Tier 1.5 洋蔥正規化（server/core/onion.ts、npm run tier15）
+- 收編 UX 空間特徵（server/core/ux.ts、npm run ux）
+- 收編 Detach 相似度（server/core/detach.ts、npm run detach）
+- 回歸：Tier 1 Merkle / z-order 不變、parity / pipeline / MCP / health 全綠
+- 清理 stage 5–7 lab，歸檔到 .scratch/archive/stage5-7
+
 - Part 2 階段 4：Tier 2 基線分析
 - labels v2 接進 query/MCP
 

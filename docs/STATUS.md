@@ -48,6 +48,17 @@ Figma 擅長畫，不擅長「查」：改名、複製、隱藏稿、新舊版�
 | 彈窗小類 | 15 種 |
 | 健康檢查 | PASS（staging 0、SYNCING 0、0 幽靈） |
 
+## Part 2 模組收編（2026-11-23）
+
+| 模組 | 指令 | 狀態 |
+|---|---|---|
+| Tier 1.5 剝洋蔥正規化 | npm run tier15 | 1,413 → 1,401 組；11 組合併 |
+| UX 空間特徵（15 項） | npm run ux -- node-id | LOO 強制 top1 61% |
+| Detach 合成體檢 | npm run detach | 核心版 Top-3 86%（lab 版含 token 89%） |
+
+- Tier 1 Merkle 與 z-order 未改動：server/core/graph.ts 自 v0.2.0 起無變更
+- 模組只新增檔案；既有查詢/CLI 行為不變
+
 ## 迭代方向
 
 ### Part 2（下一步）

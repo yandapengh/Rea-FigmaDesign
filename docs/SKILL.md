@@ -30,6 +30,9 @@
 | npm run health | 全量一致性檢查（頁數、節點、staging、狀態） | 唯讀；--fix 可修計數 | 終端機 |
 | npm run tier1 | Tier 1 回歸（screen 規則、Merkle、archetype） | 唯讀 | 終端機 |
 | npm run sample | 跨頁抽 10 個畫面供人工抽檢 | 唯讀 | 終端機 |
+| npm run tier15 | Tier 1.5 剝洋蔥正規化摘要（唯讀） | 終端機 |
+| npm run ux -- node-id | 15 項 UX 空間特徵（唯讀） | 終端機 |
+| npm run detach | Detach 合成召回（唯讀） | 終端機 |
 | npm run hidden | 列出透明度 ≤35% 的隱藏畫面 | 唯讀 | 終端機 |
 | npm run report:category -- <分類> | 分類 × Figma 頁面 × node ID | 唯讀 | ~/Downloads/rea-figma-category-<分類>.md |
 | npm run audit:db -- <db> | 深層資料品質統計 | 唯讀 | 終端機 |

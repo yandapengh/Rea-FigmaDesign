@@ -26,7 +26,10 @@
     "tier1": "tsx server/tier1-check.ts",
     "hidden": "tsx server/hidden.ts",
     "report:category": "tsx server/category-report.ts",
-    "skill:install": "bash scripts/install-skill.sh"
+    "skill:install": "bash scripts/install-skill.sh",
+    "tier15": "tsx server/onion.ts",
+    "ux": "tsx server/ux.ts",
+    "detach": "tsx server/detach.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
