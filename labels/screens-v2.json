@@ -3,10 +3,10 @@
   "sample": "2026-11-20-baipai-full",
   "note": "human labels preserved; generation from colour+structure",
   "counts": {
-    "頁面類": 340,
-    "彈窗類": 91,
+    "頁面類": 339,
+    "彈窗類": 90,
     "廢棄": 100,
-    "老UI": 1710,
+    "老UI": 1712,
     "系統UI": 4,
     "新UI": 336
   },
@@ -482,8 +482,8 @@
     },
     {
       "id": "12042:217224",
-      "label": "OTP彈窗",
-      "major": "彈窗類",
+      "label": "老UI - OTP彈窗",
+      "major": "老UI",
       "minor": "OTP彈窗",
       "generation": "old"
     },
@@ -769,8 +769,8 @@
     },
     {
       "id": "11709:634208",
-      "label": "輸入手機號頁面",
-      "major": "頁面類",
+      "label": "老UI - 輸入手機號頁面",
+      "major": "老UI",
       "minor": "輸入手機號頁面",
       "generation": "old"
     },
