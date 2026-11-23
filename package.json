@@ -29,7 +29,8 @@
     "skill:install": "bash scripts/install-skill.sh",
     "tier15": "tsx server/onion.ts",
     "ux": "tsx server/ux.ts",
-    "detach": "tsx server/detach.ts"
+    "detach": "tsx server/detach.ts",
+    "report:categories": "tsx server/category-report.ts --list"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

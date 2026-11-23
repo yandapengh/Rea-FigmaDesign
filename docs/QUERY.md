@@ -176,6 +176,7 @@ DSH 用 `@deepseek-ai/dsh-mcp-client`，每個 server 一個 plugin 實例。在
 
 | 指令 | 用途 | 產物 |
 |---|---|---|
+| npm run report:categories | 列出全部大類/小類與數量 | 終端機 |
 | npm run tier15 | Tier 1.5 剝洋蔥正規化摘要 | 終端機 |
 | npm run ux -- node-id | 15 項 UX 空間特徵 | 終端機 |
 | npm run detach | Detach 合成召回 | 終端機 |

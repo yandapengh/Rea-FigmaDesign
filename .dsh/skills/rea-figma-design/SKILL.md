@@ -27,6 +27,7 @@ npm run health      # graph consistency; stop on FAIL
 | Need | Use |
 |---|---|
 | Which pages contain category X, with IDs? | npm run report:category -- <category> |
+| Which categories exist right now? | npm run report:categories |
 | List screens by archetype / counts | MCP list_screens |
 | One screen feature card | MCP screen_sheet |
 | Structural family / variants | MCP screen_family, screen_variants |

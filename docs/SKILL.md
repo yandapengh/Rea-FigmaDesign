@@ -34,6 +34,7 @@
 | npm run ux -- node-id | 15 項 UX 空間特徵（唯讀） | 終端機 |
 | npm run detach | Detach 合成召回（唯讀） | 終端機 |
 | npm run hidden | 列出透明度 ≤35% 的隱藏畫面 | 唯讀 | 終端機 |
+| npm run report:categories | 列出全部大類/小類、畫面數、頁面數 | 唯讀 | 終端機 |
 | npm run report:category -- <分類> | 分類 × Figma 頁面 × node ID | 唯讀 | ~/Downloads/rea-figma-category-<分類>.md |
 | npm run audit:db -- <db> | 深層資料品質統計 | 唯讀 | 終端機 |
 | npm run query -- <cmd> | 舊版查詢層（sheet/family/diff/category…） | 依命令 | 終端機/.scratch |

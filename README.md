@@ -34,6 +34,7 @@ v0.2.0（2026-11-20）· Part 1 完成，Part 2 待啟動
 
 | 指令 | 做什麼 |
 |---|---|
+| npm run report:categories | 列出目前所有分類與數量 |
 | npm run tier15 | 剝洋蔥正規化後的鬆弛分群（1,413 → 1,401） |
 | npm run ux -- node-id | 15 項白話空間特徵 |
 | npm run detach | Detach 合成召回（Top-3 86%） |
