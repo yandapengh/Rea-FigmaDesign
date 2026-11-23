@@ -5,8 +5,8 @@
   "counts": {
     "頁面類": 339,
     "彈窗類": 90,
-    "廢棄": 100,
-    "老UI": 1712,
+    "廢棄": 108,
+    "老UI": 1704,
     "系統UI": 4,
     "新UI": 336
   },
@@ -3485,16 +3485,16 @@
     },
     {
       "id": "11676:420136",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "11676:420140",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -4598,45 +4598,45 @@
     },
     {
       "id": "11709:673059",
-      "label": "老UI",
+      "label": "老UI - 交易詳情",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易詳情",
       "generation": "old"
     },
     {
       "id": "11709:673060",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673062",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673111",
-      "label": "老UI",
+      "label": "老UI - 交易詳情",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易詳情",
       "generation": "old"
     },
     {
       "id": "11709:673112",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673114",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:649431",
@@ -8560,9 +8560,9 @@
     },
     {
       "id": "11676:420137",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -8574,9 +8574,9 @@
     },
     {
       "id": "11676:420141",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -9092,16 +9092,16 @@
     },
     {
       "id": "12042:212815",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12042:212816",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -9120,16 +9120,16 @@
     },
     {
       "id": "12042:212819",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12042:212820",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -9225,16 +9225,16 @@
     },
     {
       "id": "12042:215289",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12042:215290",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -9253,16 +9253,16 @@
     },
     {
       "id": "12042:215293",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12042:215294",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -9918,17 +9918,17 @@
     },
     {
       "id": "11709:673066",
-      "label": "老UI",
+      "label": "老UI - 交易詳情",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易詳情",
       "generation": "old"
     },
     {
       "id": "11709:673067",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673068",
@@ -9939,10 +9939,10 @@
     },
     {
       "id": "11709:673069",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673073",
@@ -9988,24 +9988,24 @@
     },
     {
       "id": "11709:673119",
-      "label": "老UI",
+      "label": "老UI - 交易詳情",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易詳情",
       "generation": "old"
     },
     {
       "id": "11709:673120",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673122",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
+      "label": "廢棄頁面",
+      "major": "廢棄",
+      "minor": "廢棄頁面",
+      "generation": ""
     },
     {
       "id": "11709:673123",
@@ -11794,16 +11794,16 @@
     },
     {
       "id": "12125:484113",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12125:484217",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
@@ -12473,16 +12473,16 @@
     },
     {
       "id": "16936:232060",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "16936:232061",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -12501,16 +12501,16 @@
     },
     {
       "id": "16936:232064",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "16936:232065",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -12823,30 +12823,30 @@
     },
     {
       "id": "12089:429006",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429007",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429008",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429009",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
@@ -13012,30 +13012,30 @@
     },
     {
       "id": "12089:429365",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429366",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429367",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:429368",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
@@ -13082,16 +13082,16 @@
     },
     {
       "id": "12089:429427",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12089:429428",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -13110,16 +13110,16 @@
     },
     {
       "id": "12089:429431",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12089:429432",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -13299,30 +13299,30 @@
     },
     {
       "id": "12089:445815",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:445816",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:445817",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:445818",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
@@ -13579,30 +13579,30 @@
     },
     {
       "id": "12089:446174",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:446175",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:446176",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
       "id": "12089:446177",
-      "label": "老UI",
+      "label": "老UI - 掃碼收款/支付",
       "major": "老UI",
-      "minor": "",
+      "minor": "掃碼收款/支付",
       "generation": "old"
     },
     {
@@ -13663,16 +13663,16 @@
     },
     {
       "id": "12089:446235",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12089:446236",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
@@ -13691,16 +13691,16 @@
     },
     {
       "id": "12089:446239",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
       "id": "12089:446240",
-      "label": "老UI",
+      "label": "老UI - 交易結果頁",
       "major": "老UI",
-      "minor": "",
+      "minor": "交易結果頁",
       "generation": "old"
     },
     {
