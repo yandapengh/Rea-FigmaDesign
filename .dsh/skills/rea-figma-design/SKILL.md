@@ -37,6 +37,13 @@ npm run health      # graph consistency; stop on FAIL
 | Health / regression | npm run health, npm run tier1 |
 | Random human spot-check list | npm run sample |
 | Hidden (opacity <=35%) screens | npm run hidden |
+| Tier 1.5 onion grouping | npm run tier15 |
+| UX spatial features (15) | npm run ux -- node-id |
+| Detach synthetic recall | npm run detach |
+
+## Part 2 analysis (CLI only)
+
+Tier 1.5 onion grouping, UX spatial features and detach recall are CLI tools; they are not exposed as MCP tools yet. Do not present them as production classifiers before the designer confirms the metric.
 
 ## Category report (most common ask)
 

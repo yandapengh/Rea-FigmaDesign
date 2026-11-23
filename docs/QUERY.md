@@ -172,6 +172,16 @@ DSH 用 `@deepseek-ai/dsh-mcp-client`，每個 server 一個 plugin 實例。在
 
 改完 `server/mcp.ts` 後不必重啟 DSH：kill 掉子進程，client 會在 500ms 後自動重連並重新同步工具（`mcp-client(rea-figma): reconnected`）。
 
+## Part 2 分析模組（2026-11-23）
+
+| 指令 | 用途 | 產物 |
+|---|---|---|
+| npm run tier15 | Tier 1.5 剝洋蔥正規化摘要 | 終端機 |
+| npm run ux -- node-id | 15 項 UX 空間特徵 | 終端機 |
+| npm run detach | Detach 合成召回 | 終端機 |
+
+皆為唯讀；MCP 尚未暴露這三個工具，agent 需直接呼叫 CLI。
+
 ## 輸出契約
 
 所有命令支援 `--json`，回傳統一 envelope：
