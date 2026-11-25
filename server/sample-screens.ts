@@ -4,31 +4,20 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Database = require('better-sqlite3');
-import { Graph, archetypeOf } from './core/graph';
+import { AstGraphDB } from './db';
+import { Graph, archetypeOf, findScreenRoots } from './core/graph';
 
 const ROOT = resolve(__dirname, '..');
 const argv = process.argv.slice(2);
 let dbPath = '';
 let json = false;
-let wanted = 10;
+const wanted = 10;
 for (let i = 0; i < argv.length; i += 1) {
   if (argv[i] === '--json') json = true;
   else if (argv[i] === '--db') dbPath = resolve(ROOT, argv[++i] ?? '');
   else if (!argv[i].startsWith('--')) dbPath = resolve(ROOT, argv[i]);
 }
-if (!dbPath) {
-  const dirs = require('node:fs').readdirSync(resolve(ROOT, 'data'), { withFileTypes: true }) as Array<{ isDirectory: () => boolean; name: string }>;
-  let best = '';
-  let bestTime = 0;
-  for (const d of dirs) {
-    if (!d.isDirectory()) continue;
-    const p = resolve(ROOT, 'data', d.name, 'graph.sqlite');
-    if (!existsSync(p)) continue;
-    const t = require('node:fs').statSync(p).mtimeMs;
-    if (t > bestTime) { bestTime = t; best = p; }
-  }
-  dbPath = best;
-}
+if (!dbPath) dbPath = AstGraphDB.resolveLatestGraphDb(ROOT) ?? '';
 if (!dbPath || !existsSync(dbPath)) { console.error('no database'); process.exit(1); }
 
 const g = new Graph(dbPath);
@@ -39,24 +28,11 @@ for (const row of db.prepare('SELECT page_id, page_name, page_index FROM pages')
 }
 db.close();
 
-const candidates: string[] = [];
-for (const [id, n] of g.nodes) {
-  if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
-  if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
-  candidates.push(id);
-}
-const set = new Set(candidates);
-const roots = candidates.filter((id) => {
-  let p = g.nodes.get(id)?.parent_id ?? null;
-  while (p) { if (set.has(p)) return false; p = g.nodes.get(p)?.parent_id ?? null; }
-  return true;
-});
-
+const roots = findScreenRoots(g, 40);
 const byPage = new Map<string, Array<{ id: string; nodes: number }>>();
 for (const id of roots) {
   const n = g.nodes.get(id)!;
   const sub = g.subtree(id);
-  if (sub.length < 40) continue;
   const bucket = byPage.get(n.page_id);
   const row = { id, nodes: sub.length };
   if (bucket) bucket.push(row); else byPage.set(n.page_id, [row]);

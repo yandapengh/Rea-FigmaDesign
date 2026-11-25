@@ -11,6 +11,8 @@
     "build:plugin": "esbuild plugin/src/code.ts --bundle --outfile=plugin/dist/code.js --target=es2020",
     "build:dsh-plugin": "esbuild dsh-plugin/src/index.ts --bundle --format=esm --platform=node --target=node20 --outfile=dsh-plugin/dist/index.js",
     "start:server": "tsx server/ws-server.ts",
+    "test:core": "tsx server/verify-core.ts",
+    "test:bridge": "tsx server/verify-bridge.ts",
     "test:pipeline": "tsx server/verify-mock.ts",
     "test:parity": "tsx server/verify-parity.ts",
     "test:mcp": "tsx server/verify-mcp.ts",
@@ -19,7 +21,7 @@
     "query": "tsx server/query.ts",
     "doctor": "tsx server/doctor.ts",
     "mcp": "tsx server/mcp.ts",
-    "sync": "tsx server/query.ts sheets --unique && tsx server/query.ts propagate && tsx server/query.ts review && npm run -s test:parity && tsx server/query.ts verify-source",
+    "sync": "tsx server/health-check.ts && tsx server/review-board.ts && npm run -s test:parity && tsx server/query.ts verify-source",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "health": "tsx server/health-check.ts",
     "sample": "tsx server/sample-screens.ts",
@@ -30,7 +32,8 @@
     "tier15": "tsx server/onion.ts",
     "ux": "tsx server/ux.ts",
     "detach": "tsx server/detach.ts",
-    "report:categories": "tsx server/category-report.ts --list"
+    "report:categories": "tsx server/category-report.ts --list",
+    "review:board": "tsx server/review-board.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

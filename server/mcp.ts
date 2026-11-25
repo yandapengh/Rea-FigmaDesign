@@ -8,42 +8,26 @@
  * Run: npm run mcp
  */
 
-import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import { Graph, archetypeOf, headlineOf, profileOf, slotsOf } from './core/graph';
+import { Graph, archetypeOf, findScreenRoots, headlineOf, profileOf, slotsOf } from './core/graph';
 import { AstGraphDB } from './db';
 import { buildSheetCard, diffScreens, findSimilar } from './core/analyze';
-import { deriveFamilyAxes, groupStats, classifyWith, decideLabel, loadLabels, type LabelEntry, type ScreenLabel } from './core/semantics';
+import {
+  deriveFamilyAxes, loadLabels,
+  tryLoadScreenLabelsV2, recomputeV2Counts, summarizeCategoriesV2, categoryReportV2,
+  type LabelEntry, type ScreenLabelV2, type ScreenLabelsV2File,
+} from './core/semantics';
+import { runHealthChecks } from './core/health';
+import { generateReviewBoard } from './review-board';
 
 const ROOT = resolve(__dirname, '..');
 const SAMPLES = resolve(ROOT, 'data/samples');
 const LIVE_DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 const LABELS = resolve(ROOT, 'labels');
-const SCRATCH = resolve(ROOT, '.scratch');
 
 const graphs = new Map<string, Graph>();
-
-/** Screen roots: 390x844 frames with no candidate ancestor (same rule as sheets --unique). */
-function screenRoots(g: Graph): string[] {
-  const cand = new Set<string>();
-  for (const [id, n] of g.nodes) {
-    if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
-    if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
-    cand.add(id);
-  }
-  const roots: string[] = [];
-  for (const id of cand) {
-    let p = g.nodes.get(id)?.parent_id ?? null;
-    let nested = false;
-    while (p) {
-      if (cand.has(p)) { nested = true; break; }
-      p = g.nodes.get(p)?.parent_id ?? null;
-    }
-    if (!nested) roots.push(id);
-  }
-  return roots.sort();
-}
 
 const CALL_LOG = resolve(ROOT, '.scratch/mcp-calls.jsonl');
 const STARTED_AT = new Date().toISOString();
@@ -53,7 +37,7 @@ function logCall(tool: string, args: Record<string, unknown>, ms: number, ok: bo
   callCount += 1;
   try {
     const summary: Record<string, unknown> = {};
-    for (const k of ['id', 'a', 'b', 'page', 'sample', 'archetype']) if (args[k] !== undefined) summary[k] = args[k];
+    for (const k of ['id', 'a', 'b', 'page', 'sample', 'archetype', 'category']) if (args[k] !== undefined) summary[k] = args[k];
     appendFileSync(CALL_LOG, JSON.stringify({ ts: new Date().toISOString(), pid: process.pid, tool, args: summary, ms, ok }) + '\n', 'utf8');
   } catch {
     // logging must never break a call
@@ -88,12 +72,28 @@ function labelsFile(): LabelEntry[] {
   }
 }
 
-function screensFile(): { screens: ScreenLabel[]; taxonomy?: Record<string, string[]> } {
-  return JSON.parse(readFileSync(resolve(LABELS, 'screens.json'), 'utf8')) as { screens: ScreenLabel[]; taxonomy?: Record<string, string[]> };
+function loadV2LabelsDoc(): ScreenLabelsV2File {
+  const v2Path = resolve(LABELS, 'screens-v2.json');
+  return tryLoadScreenLabelsV2(v2Path) ?? {
+    version: 2,
+    sample: 'live',
+    note: 'created via apply_labels',
+    counts: {},
+    screens: [],
+  };
 }
 
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+function loadV2LabelsMap(): Map<string, ScreenLabelV2> {
+  const doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
+  const map = new Map<string, ScreenLabelV2>();
+  if (doc) for (const s of doc.screens) map.set(s.id, s);
+  return map;
+}
+
+function pageMapFromGraph(g: Graph): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [id, n] of g.nodes) map.set(id, n.page_name ?? '');
+  return map;
 }
 
 function ok(data: unknown): Record<string, unknown> {
@@ -159,7 +159,7 @@ const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: 'list_screens',
-    description: 'Enumerate screens with their layout archetype and count them by archetype. Default unique:true keeps one row per (structure hash + headline), so 512 duplicated screens collapse to 291; unique:false returns every screen. Answers "how many overlay screens are there" without scanning the database.',
+    description: 'Enumerate screens with their layout archetype, v2 taxonomy label, and count them by archetype. Default unique:true keeps one row per (structure hash + headline); unique:false returns every screen.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -175,14 +175,16 @@ const TOOL_DEFS: ToolDef[] = [
       const allowed = ['page', 'overlay-panel', 'overlay', 'unknown'];
       if (want && allowed.indexOf(want) === -1) throw new Error('invalid archetype: ' + want + ' (allowed: ' + allowed.join(', ') + ')');
       const g = graphFor(a.sample as string);
-      const roots = screenRoots(g);
+      const roots = findScreenRoots(g, 40);
       const unique = a.unique !== false;
+      const v2Map = loadV2LabelsMap();
       const seen = new Set<string>();
       const counts: Record<string, number> = {};
       const rows: Array<Record<string, unknown>> = [];
+      let labeled = 0;
+      let unlabeled = 0;
       for (const id of roots) {
         const nodes = g.subtree(id).length;
-        if (nodes < 40) continue;
         const hash = g.hash.get(id)!;
         const key = hash + '|' + headlineOf(slotsOf(g, id).texts);
         if (unique && seen.has(key)) continue;
@@ -190,6 +192,9 @@ const TOOL_DEFS: ToolDef[] = [
         const n = g.nodes.get(id)!;
         const archetype = archetypeOf(g, id);
         counts[archetype] = (counts[archetype] ?? 0) + 1;
+        const v2 = v2Map.get(id);
+        if (v2) labeled += 1;
+        else unlabeled += 1;
         rows.push({
           id,
           name: n.name,
@@ -197,12 +202,18 @@ const TOOL_DEFS: ToolDef[] = [
           archetype,
           nodes,
           family: hash.slice(0, 12),
+          label: v2?.label ?? '',
+          major: v2?.major ?? '',
+          minor: v2?.minor ?? '',
+          generation: v2?.generation ?? '',
         });
       }
       const filtered = want ? rows.filter((r) => r.archetype === want) : rows;
       const limit = typeof a.limit === 'number' ? Math.max(1, Math.min(2000, a.limit)) : 500;
       return {
         total: rows.length,
+        labeled,
+        unlabeled,
         byArchetype: counts,
         archetype: want || 'all',
         matched: filtered.length,
@@ -247,8 +258,7 @@ const TOOL_DEFS: ToolDef[] = [
       if (!g.nodes.has(id)) throw new Error('node not found: ' + id);
       const members = g.topLevelMembers(g.hash.get(id)!).filter((m) => g.subtree(m).length >= 120);
       if (members.length < 2) throw new Error('no sibling variants (family size ' + members.length + ')');
-      const fam = deriveFamilyAxes(g, members, false);
-      return fam;
+      return deriveFamilyAxes(g, members, false);
     },
   },
   {
@@ -298,32 +308,96 @@ const TOOL_DEFS: ToolDef[] = [
     handler: (a) => findSimilar(graphFor(a.sample as string), samplePath(a.sample as string), String(a.id), typeof a.limit === 'number' ? a.limit : 8),
   },
   {
-    name: 'review_queue',
-    description: 'Pending category decisions from the last propagate run, optionally filtered by layout archetype (page / overlay-panel / overlay).',
+    name: 'list_categories',
+    description: 'List all major/minor categories in labels/screens-v2.json with screen counts and Figma page counts.',
+    inputSchema: {
+      type: 'object',
+      properties: { sample: { type: 'string' } },
+      additionalProperties: false,
+    },
+    handler: (a) => {
+      const v2Doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
+      if (!v2Doc || v2Doc.screens.length === 0) return { total: 0, majors: [] };
+      const g = graphFor(a.sample as string);
+      const majors = summarizeCategoriesV2(v2Doc.screens, pageMapFromGraph(g));
+      return { total: v2Doc.screens.length, majors };
+    },
+  },
+  {
+    name: 'category_report',
+    description: 'List every Figma page and node ID belonging to one category (minor, label, or major) in labels/screens-v2.json.',
     inputSchema: {
       type: 'object',
       properties: {
-        archetype: { type: 'string', enum: ['page', 'overlay-panel', 'overlay', 'unknown'] },
-        limit: { type: 'number', minimum: 1, maximum: 500 },
+        category: { type: 'string', description: 'Minor, label, or major category name' },
+        sample: { type: 'string' },
+      },
+      required: ['category'],
+      additionalProperties: false,
+    },
+    handler: (a) => {
+      const category = String(a.category ?? '').trim();
+      if (!category) throw new Error('category is required');
+      const v2Doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
+      if (!v2Doc || v2Doc.screens.length === 0) throw new Error('no v2 labels yet in labels/screens-v2.json');
+      const g = graphFor(a.sample as string);
+      const report = categoryReportV2(v2Doc.screens, category, pageMapFromGraph(g));
+      if (!report) throw new Error('no screens found for category: ' + category);
+      return report;
+    },
+  },
+  {
+    name: 'health_check',
+    description: 'Run read-only SQLite graph integrity checks (file_meta, staging, syncing, orphan nodes, page/node counts).',
+    inputSchema: {
+      type: 'object',
+      properties: { sample: { type: 'string' } },
+      additionalProperties: false,
+    },
+    handler: (a) => runHealthChecks(samplePath(a.sample as string), false),
+  },
+  {
+    name: 'build_review_board',
+    description: 'Generate the visual human-review workbench (.scratch/review.html) with freeform feedback inputs and Copy-as-Prompt export. Supports cold-start AST grouping (unlabeled:true), category audit, stratified sampling, or explicit IDs.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: { type: 'string' },
+        unlabeled: { type: 'boolean' },
+        sampleCount: { type: 'number', minimum: 1, maximum: 500 },
+        page: { type: 'string' },
+        ids: { type: 'array', items: { type: 'string' } },
+        open: { type: 'boolean' },
+        sample: { type: 'string' },
       },
       additionalProperties: false,
     },
     handler: (a) => {
-      const path = resolve(SCRATCH, 'predictions.jsonl');
-      if (!existsSync(path)) throw new Error('no predictions yet: run sync first');
-      const rows = readFileSync(path, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l) as Record<string, unknown>);
-      const want = typeof a.archetype === 'string' ? a.archetype : '';
-      const allowed = ['page', 'overlay-panel', 'overlay', 'unknown'];
-      if (want && allowed.indexOf(want) === -1) throw new Error('invalid archetype: ' + want + ' (allowed: ' + allowed.join(', ') + ')');
-      const filtered = want ? rows.filter((r) => String(r.archetype) === want) : rows;
-      const limit = typeof a.limit === 'number' ? a.limit : 20;
-      filtered.sort((x, y) => Number(x.confidence) - Number(y.confidence));
-      return { total: rows.length, filtered: filtered.length, items: filtered.slice(0, limit) };
+      const db = samplePath(a.sample as string);
+      const g = graphFor(a.sample as string);
+      const res = generateReviewBoard({
+        dbPath: db,
+        graph: g,
+        category: typeof a.category === 'string' ? a.category : undefined,
+        unlabeled: a.unlabeled === true,
+        sample: typeof a.sampleCount === 'number' ? a.sampleCount : undefined,
+        page: typeof a.page === 'string' ? a.page : undefined,
+        ids: Array.isArray(a.ids) ? a.ids.map(String) : undefined,
+        open: a.open === true,
+      });
+      return {
+        html: res.html,
+        unique: res.unique,
+        screens: res.screens,
+        modeLabel: res.modeLabel,
+        isColdStart: res.isColdStart,
+      };
     },
   },
   {
     name: 'apply_labels',
-    description: 'MUTATING: write category/note decisions into labels/screens.json. Requires confirm:true. Use dryRun:true to preview.',
+    description: 'MUTATING: write label/major/minor/generation/note decisions into labels/screens-v2.json. Requires confirm:true. Use dryRun:true to preview.',
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: 'object',
@@ -332,7 +406,15 @@ const TOOL_DEFS: ToolDef[] = [
           type: 'array',
           items: {
             type: 'object',
-            properties: { id: { type: 'string' }, category: { type: 'string' }, note: { type: 'string' } },
+            properties: {
+              id: { type: 'string' },
+              major: { type: 'string' },
+              minor: { type: 'string' },
+              label: { type: 'string' },
+              generation: { type: 'string', enum: ['', 'old', 'new'] },
+              category: { type: 'string' },
+              note: { type: 'string' },
+            },
             required: ['id'],
             additionalProperties: false,
           },
@@ -345,31 +427,56 @@ const TOOL_DEFS: ToolDef[] = [
     },
     handler: (a) => {
       if (a.confirm !== true && a.dryRun !== true) throw new Error('apply_labels is mutating: pass confirm:true (or dryRun:true)');
-      const doc = screensFile();
-      const byId = new Map(doc.screens.map((s) => [s.id, s]));
+      const v2Path = resolve(LABELS, 'screens-v2.json');
+      const v2Doc = loadV2LabelsDoc();
+      const g = existsSync(LIVE_DB) ? graphFor('live') : null;
+      const byId = new Map(v2Doc.screens.map((s) => [s.id, s]));
       const updates: Array<Record<string, unknown>> = [];
       for (const raw of (a.rows as Array<Record<string, unknown>>) ?? []) {
-        const id = String(raw.id ?? '');
+        const id = String(raw.id ?? '').trim();
         if (!id) continue;
-        let entry = byId.get(id);
-        if (!entry) {
-          entry = { id, category: String(raw.category ?? '未分類'), kind: /彈窗|dialog|popup|modal/i.test(String(raw.category ?? '')) ? 'dialog' : 'page' };
-          doc.screens.push(entry);
+        if (g && !g.nodes.has(id)) {
+          throw new Error('node id not found in live graph: ' + id);
+        }
+        const cat = typeof raw.category === 'string' ? raw.category.trim() : '';
+        const majorIn = typeof raw.major === 'string' ? raw.major.trim() : '';
+        const minorIn = typeof raw.minor === 'string' ? raw.minor.trim() : '';
+        const labelIn = typeof raw.label === 'string' ? raw.label.trim() : '';
+        const genIn = typeof raw.generation === 'string' ? raw.generation.trim() : undefined;
+        const noteIn = typeof raw.note === 'string' ? raw.note.trim() : '';
+        const inferredMajor = cat ? (/彈窗|dialog|popup|modal|toast/i.test(cat) ? '彈窗類' : '頁面類') : '';
+        const nextMajor = majorIn || inferredMajor;
+        const nextMinor = minorIn || cat;
+        const nextLabel = labelIn || nextMinor || nextMajor;
+
+        const existing = byId.get(id);
+        if (!existing) {
+          if (!nextMajor) throw new Error('new screen entry requires major (or category) for id: ' + id);
+          const entry: ScreenLabelV2 = {
+            id,
+            label: nextLabel || nextMajor,
+            major: nextMajor,
+            minor: nextMinor,
+            generation: genIn ?? '',
+          };
+          if (noteIn) entry.note = noteIn;
+          v2Doc.screens.push(entry);
           byId.set(id, entry);
-          updates.push({ id, added: true, category: entry.category, note: raw.note ?? null });
+          updates.push({ id, added: true, after: { ...entry } });
           continue;
         }
-        const before = entry.category;
-        if (typeof raw.category === 'string' && raw.category) {
-          entry.category = raw.category;
-          entry.kind = /彈窗|dialog|popup|modal/i.test(raw.category) ? 'dialog' : 'page';
-        }
-        if (typeof raw.note === 'string' && raw.note) entry.note = raw.note;
-        updates.push({ id, before, after: entry.category, note: entry.note ?? null });
+        const before = { ...existing };
+        if (nextMajor) existing.major = nextMajor;
+        if (minorIn || cat) existing.minor = nextMinor;
+        if (labelIn || minorIn || cat || majorIn) existing.label = labelIn || existing.minor || existing.major;
+        if (genIn !== undefined) existing.generation = genIn;
+        if (noteIn) existing.note = noteIn;
+        updates.push({ id, before, after: { ...existing } });
       }
-      if (a.dryRun === true) return { dryRun: true, updates };
-      writeFileSync(resolve(LABELS, 'screens.json'), JSON.stringify(doc, null, 2) + '\n', 'utf8');
-      return { dryRun: false, written: resolve(LABELS, 'screens.json'), updates };
+      v2Doc.counts = recomputeV2Counts(v2Doc.screens);
+      if (a.dryRun === true) return { dryRun: true, target: 'labels/screens-v2.json', counts: v2Doc.counts, updates };
+      writeFileSync(v2Path, JSON.stringify(v2Doc, null, 2) + '\n', 'utf8');
+      return { dryRun: false, written: v2Path, counts: v2Doc.counts, updates };
     },
   },
 ];
@@ -383,7 +490,7 @@ const toolsList = {
     name: t.name,
     description: t.description,
     inputSchema: t.inputSchema,
-    annotations: (t as { annotations?: Record<string, unknown> }).annotations ?? { readOnlyHint: true, openWorldHint: false },
+    annotations: t.annotations ?? { readOnlyHint: true, openWorldHint: false },
   })),
 };
 

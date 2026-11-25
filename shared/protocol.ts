@@ -110,6 +110,71 @@ export interface ResetDatabasePayload {
   confirm: true;
 }
 
+export type BridgeClientRole = 'figma-plugin' | 'review-ui';
+
+export interface BridgeHelloPayload {
+  role: BridgeClientRole;
+  file_key?: string;
+  file_name?: string;
+}
+
+export interface BridgeFocusRequestPayload {
+  request_id: string;
+  node_ids: string[];
+  page_id?: string;
+  page_name?: string;
+  page_only?: boolean;
+}
+
+export interface BridgeFocusResultPayload {
+  request_id: string;
+  ok: boolean;
+  page_id?: string;
+  page_name?: string;
+  page_only?: boolean;
+  selected_count?: number;
+  missing_ids?: string[];
+  cross_page_pages?: Array<{ page_id: string; page_name: string; count: number }>;
+  error?: string;
+}
+
+export interface BridgeStatusPayload {
+  figma_connected: boolean;
+  figma_file_name?: string;
+  figma_file_key?: string;
+  review_clients: number;
+}
+
+export interface BridgeSelectionItem {
+  id: string;
+  name: string;
+  type: string;
+  page_id: string;
+  page_name: string;
+  width?: number;
+  height?: number;
+  text_preview?: string;
+  ancestor_ids?: string[];
+}
+
+export interface BridgeLookupRequestPayload {
+  request_id: string;
+  file_key?: string;
+  file_name?: string;
+  page_id: string;
+  page_name: string;
+  items: BridgeSelectionItem[];
+}
+
+export interface BridgeLookupResultPayload {
+  request_id: string;
+  ok: boolean;
+  total?: number;
+  matched_count?: number;
+  unrecorded_count?: number;
+  error?: string;
+}
+
 export type WsMessage =
   | { type: 'PAGE_CENSUS'; payload: PageCensusRow[] }
   | { type: 'SYNC_START'; payload: FileMetaPayload }
@@ -121,6 +186,12 @@ export type WsMessage =
   | { type: 'CHUNK_VARIABLES'; payload: VariableRow[] }
   | { type: 'CHUNK_COMPONENTS'; payload: ComponentRow[] }
   | { type: 'CHUNK_NODES'; payload: NodeRow[] }
-  | { type: 'SYNC_COMPLETE'; payload: { total_nodes: number; duration_ms: number } };
+  | { type: 'SYNC_COMPLETE'; payload: { total_nodes: number; duration_ms: number } }
+  | { type: 'BRIDGE_HELLO'; payload: BridgeHelloPayload }
+  | { type: 'BRIDGE_FOCUS_NODES'; payload: BridgeFocusRequestPayload }
+  | { type: 'BRIDGE_FOCUS_RESULT'; payload: BridgeFocusResultPayload }
+  | { type: 'BRIDGE_STATUS'; payload: BridgeStatusPayload }
+  | { type: 'BRIDGE_LOOKUP_SELECTION'; payload: BridgeLookupRequestPayload }
+  | { type: 'BRIDGE_LOOKUP_RESULT'; payload: BridgeLookupResultPayload };
 
 export type WsEnvelopeMessage = WsMessage & { batch_id?: number };

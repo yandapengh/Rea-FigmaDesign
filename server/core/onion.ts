@@ -6,7 +6,7 @@
  */
 import { createHash } from 'node:crypto';
 import Database = require('better-sqlite3');
-import { Graph, headlineOf } from './graph';
+import { Graph, findScreenRootCandidates, headlineOf } from './graph';
 
 export interface OnionOptions {
   textBucket?: boolean;
@@ -54,18 +54,33 @@ function textBucket(text: string | null): string {
   return s.length > 24 ? 'long' : 'short';
 }
 
-/** Compute onion-normalized hashes for every node in the graph. */
+/** Compute onion-normalized hashes for every node in the graph (iterative post-order traversal). */
 export function onionHashes(g: Graph, dbPath: string, options: OnionOptions = {}): Map<string, string> {
   const shells = transparentShells(g, dbPath);
   const runMin = options.runMin ?? 3;
   const memo = new Map<string, string>();
-  const visit = (id: string): string => {
-    const cached = memo.get(id);
-    if (cached !== undefined) return cached;
+  const stack: Array<[string, boolean]> = [];
+  for (const id of g.nodes.keys()) {
+    if (!memo.has(id)) stack.push([id, false]);
+  }
+  while (stack.length > 0) {
+    const [id, visited] = stack.pop()!;
+    if (memo.has(id)) continue;
     const n = g.nodes.get(id);
-    if (!n) return '';
-    if (n.is_icon_container === 1) { memo.set(id, 'ICON'); return 'ICON'; }
-    const tokens = (g.children.get(id) ?? []).map((kid) => visit(kid));
+    if (!n) continue;
+    if (n.is_icon_container === 1) {
+      memo.set(id, 'ICON');
+      continue;
+    }
+    const kids = g.children.get(id) ?? [];
+    if (!visited) {
+      stack.push([id, true]);
+      for (let i = kids.length - 1; i >= 0; i -= 1) {
+        if (!memo.has(kids[i])) stack.push([kids[i], false]);
+      }
+      continue;
+    }
+    const tokens = kids.map((kid) => memo.get(kid) ?? '');
     const collapsed: string[] = [];
     for (let i = 0; i < tokens.length;) {
       let j = i + 1;
@@ -82,18 +97,15 @@ export function onionHashes(g: Graph, dbPath: string, options: OnionOptions = {}
     const isScreen = Math.abs((n.bbox_w ?? 0) - 390) <= 4 && Math.abs((n.bbox_h ?? 0) - 844) <= 6;
     if (!isScreen && shells.has(id) && collapsed.length === 1) {
       memo.set(id, collapsed[0]);
-      return collapsed[0];
+      continue;
     }
     let key = n.type + '|' + collapsed.join('');
     if (options.textBucket && n.type === 'TEXT') key += '|T' + textBucket(n.text_content);
     if (options.dimBucket && (n.type === 'FRAME' || n.type === 'INSTANCE' || n.type === 'COMPONENT')) {
       key += '|D' + Math.round((n.bbox_w ?? 0) / 50) * 50 + 'x' + Math.round((n.bbox_h ?? 0) / 50) * 50;
     }
-    const hash = md5(key);
-    memo.set(id, hash);
-    return hash;
-  };
-  for (const id of g.nodes.keys()) visit(id);
+    memo.set(id, md5(key));
+  }
   return memo;
 }
 
@@ -106,17 +118,7 @@ export interface OnionScreenGroup {
 
 /** Screen-level groups: onion hash + headline. */
 export function onionScreenGroups(g: Graph, hashes: Map<string, string>): OnionScreenGroup[] {
-  const candidates = new Set<string>();
-  for (const [id, n] of g.nodes) {
-    if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
-    if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
-    candidates.add(id);
-  }
-  const roots = [...candidates].filter((id) => {
-    let p = g.nodes.get(id)?.parent_id ?? null;
-    while (p) { if (candidates.has(p)) return false; p = g.nodes.get(p)?.parent_id ?? null; }
-    return true;
-  });
+  const roots = findScreenRootCandidates(g);
   const groups = new Map<string, OnionScreenGroup>();
   for (const id of roots) {
     const sub = g.subtree(id);

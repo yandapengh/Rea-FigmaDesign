@@ -405,3 +405,33 @@ export function topEntries<K>(m: Map<K, number>, n: number): Array<[K, number]> 
   return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
+/** Top-level 390x844 frame/component/instance screen root candidates (non-nested, sorted). */
+export function findScreenRootCandidates(g: Graph): string[] {
+  const cand = new Set<string>();
+  for (const [id, n] of g.nodes) {
+    if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
+    if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
+    cand.add(id);
+  }
+  const roots: string[] = [];
+  for (const id of cand) {
+    let p = g.nodes.get(id)?.parent_id ?? null;
+    let nested = false;
+    while (p) {
+      if (cand.has(p)) {
+        nested = true;
+        break;
+      }
+      p = g.nodes.get(p)?.parent_id ?? null;
+    }
+    if (!nested) roots.push(id);
+  }
+  return roots.sort();
+}
+
+/** Screen roots filtered by minimum subtree node count (default 40). */
+export function findScreenRoots(g: Graph, minNodes = 40): string[] {
+  return findScreenRootCandidates(g).filter((id) => g.subtree(id).length >= minNodes);
+}
+
+

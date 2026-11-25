@@ -27,6 +27,7 @@ interface Rpc {
       annotations?: Record<string, unknown>;
     }>;
     content?: Array<{ text?: string }>;
+    isError?: boolean;
   };
   error?: unknown;
 }
@@ -76,12 +77,23 @@ async function main(): Promise<void> {
 
   const list = await rpc(2, 'tools/list', {});
   const tools = list.result?.tools ?? [];
-  check('tools/list advertises 11 tools', tools.length === 11, String(tools.length));
+  check('tools/list advertises 14 tools', tools.length === 14, String(tools.length));
 
   const byName = new Map(tools.map((t) => [t.name, t]));
-  for (const required of ['list_screens', 'screen_sheet', 'screen_family', 'apply_labels', 'server_info']) {
+  for (const required of [
+    'list_screens',
+    'screen_sheet',
+    'screen_family',
+    'list_categories',
+    'category_report',
+    'health_check',
+    'build_review_board',
+    'apply_labels',
+    'server_info',
+  ]) {
     check('tool present: ' + required, byName.has(required));
   }
+  check('legacy tool removed: review_queue', !byName.has('review_queue'));
 
   const screens = byName.get('list_screens');
   const enumValues = screens?.inputSchema.properties?.archetype?.enum ?? [];
@@ -109,6 +121,17 @@ async function main(): Promise<void> {
   const info = await rpc(4, 'tools/call', { name: 'server_info', arguments: {} });
   const infoText = info.result?.content?.[0]?.text ?? '';
   check('server_info answers ok', infoText.indexOf('"ok": true') !== -1);
+
+  const health = await rpc(7, 'tools/call', { name: 'health_check', arguments: {} });
+  const healthText = health.result?.content?.[0]?.text ?? '';
+  check('health_check answers ok', healthText.indexOf('"ok": true') !== -1);
+
+  const cats = await rpc(8, 'tools/call', { name: 'list_categories', arguments: {} });
+  const catsText = cats.result?.content?.[0]?.text ?? '';
+  check('list_categories answers ok', catsText.indexOf('"ok": true') !== -1);
+
+  const badCat = await rpc(9, 'tools/call', { name: 'category_report', arguments: { category: '__non_existent_cat__' } });
+  check('category_report rejects unknown category', badCat.result?.isError === true);
 
   child.kill();
 

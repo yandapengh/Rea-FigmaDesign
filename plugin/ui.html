@@ -8,6 +8,10 @@
 .file{padding:7px 12px;border-bottom:1px solid var(--line);color:var(--muted);display:flex;justify-content:space-between}
 .sum{padding:8px 12px;display:flex;gap:10px;color:var(--muted);border-bottom:1px solid var(--line);font-size:11px}
 .sum b{color:var(--text)}
+.bridge{margin:8px 12px 0;padding:7px 9px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;gap:8px}
+.bridge button{background:var(--accent);color:#fff;border:0;border-radius:5px;padding:5px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bridge button:disabled{opacity:0.45;cursor:not-allowed}
+.bridge .bstat{flex:1;min-width:0;font-size:10px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hint{margin:8px 12px 4px;padding:7px 9px;background:#233042;border:1px solid #2f4a66;border-radius:6px;color:#bcd6f5;font-size:11px}
 .actions{display:flex;gap:6px;padding:0 12px 6px}
 .actions button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer}
@@ -39,6 +43,7 @@
 <div class="file"><span id="fname">等待 Figma…</span><span id="fcount"></span></div>
 <div class="file" id="lastrow" style="display:none"><span id="last"></span></div>
 <div class="sum"><span>已完成 <b id="s-done">0</b></span><span>未導出 <b id="s-todo">0</b></span><span>中斷 <b id="s-warn">0</b></span><span>空頁 <b id="s-skip">0</b></span></div>
+<div class="bridge"><button id="lookup" title="將目前在 Figma 選中的單個或多個設計稿送到複審工作台查找">查找選中項 → 複審台</button><span class="bstat" id="bstat">畫布已選 0 項</span></div>
 <div class="hint" id="hint">正在讀取頁面清單…</div>
 <div class="actions"><button id="all">全選</button><button id="todo">僅選未導出</button><button id="none">清除選擇</button><button id="refresh">重整狀態</button></div>
 <div class="list" id="list"></div>
@@ -47,17 +52,23 @@
 <div class="foot"><button class="primary" id="go">匯出</button><button class="danger" id="clr">清空資料庫</button></div>
 <div class="modal hidden" id="modal"><div class="dialog"><h4>清空資料庫？</h4><p>所有已導出的頁面與節點都會刪除，無法復原。</p><div class="r"><button id="no">取消</button><button class="red" id="yes">確定清空</button></div></div></div>
 <script>
-var WS='ws://localhost:8765', ws=null, fileKey='', fileName='', pages=[], status={}, sByName={}, sel={}, seq=0, starting=0, t0=0, timer=null;
+var WS='ws://localhost:8765', ws=null, fileKey='', fileName='', pages=[], status={}, sByName={}, sel={}, seq=0, starting=0, t0=0, timer=null, selCount=0, reviewClients=0;
 function $id(i){return document.getElementById(i)}
 function post(o){parent.postMessage({pluginMessage:o},'*')}
-function connect(){ws=new WebSocket(WS);ws.onopen=function(){$id('conn').textContent='● 已連線';$id('conn').style.color='var(--ok)';askStatus();pump()};ws.onclose=function(){$id('conn').textContent='○ 離線';$id('conn').style.color='var(--err)';setTimeout(connect,2000)};ws.onmessage=function(e){var m=JSON.parse(e.data);onAck(m)}}
+function updateBridgeBar(){$id('lookup').textContent=selCount>0?('查找選中項 ('+selCount+') → 複審台'):'查找選中項 → 複審台';$id('bstat').textContent='畫布已選 '+selCount+' 項 · '+(reviewClients>0?'複審台已連線':'未連複審台')}
+function sendHello(){if(!ws||ws.readyState!==1)return;ws.send(JSON.stringify({type:'BRIDGE_HELLO',payload:{role:'figma-plugin',file_key:fileKey||undefined,file_name:fileName||undefined}}))}
+function connect(){ws=new WebSocket(WS);ws.onopen=function(){$id('conn').textContent='● 已連線';$id('conn').style.color='var(--ok)';sendHello();askStatus();pump()};ws.onclose=function(){$id('conn').textContent='○ 離線';$id('conn').style.color='var(--err)';reviewClients=0;updateBridgeBar();setTimeout(connect,2000)};ws.onmessage=function(e){var m=JSON.parse(e.data);if(m.type==='BRIDGE_FOCUS_NODES'){$id('hint').textContent='聯動定位中…';post({type:'BRIDGE_FOCUS_NODES',payload:m.payload});return}if(m.type==='BRIDGE_STATUS'){reviewClients=(m.payload&&m.payload.review_clients)||0;updateBridgeBar();return}if(m.type==='BRIDGE_LOOKUP_RESULT'){var r=m.payload||{};var msgText=r.ok?('已查找 '+(r.total||0)+' 筆：已收錄 '+(r.matched_count||0)+' 筆 · 未收錄 '+(r.unrecorded_count||0)+' 筆'):('查找失敗：'+(r.error||'未知錯誤'));$id('hint').textContent=msgText;post({type:'LOOKUP_NOTIFY',message:msgText,isError:!r.ok});return}onAck(m)}}
 var outbox=[];
 function pump(){if(!ws||ws.readyState!==1)return;while(outbox.length&&ws.bufferedAmount<4*1024*1024){var m=outbox.shift();ws.send(JSON.stringify(m))}if(outbox.length)setTimeout(pump,25)}
 function sendRelay(message,batchId){outbox.push({type:message.type,payload:message.payload,batch_id:batchId});pump()}
 function onAck(m){if(m.batchId){post({type:'ACK',batchId:m.batchId,status:m.status,error:m.error||''})}try{if(m.receivedType==='PAGE_COMPLETE'&&m.pageId&&m.status==='OK'){status[m.pageId]=status[m.pageId]||{};status[m.pageId].status='DONE';status[m.pageId].node_count=m.committed||0;render()}if(m.receivedType==='PAGE_SKIP'&&m.pageId){status[m.pageId]={status:'SKIPPED',node_count:0};render()}}catch(e){console.error(e)}if(m.batchId)return;if(m.status==='ERROR'&&m.receivedType==='PAGE_STATUS'){$id('hint').textContent='狀態查詢失敗：'+(m.error||'unknown')}if(m.receivedType==='PAGE_STATUS'&&m.pages){for(var i=0;i<m.pages.length;i++){status[m.pages[i].page_id]=m.pages[i];sByName[m.pages[i].page_name]=m.pages[i]}if(m.latestBatch){var b=m.latestBatch;var el=document.getElementById('lastrow');el.style.display='';document.getElementById('last').textContent='上次匯出：第 '+b.batch_id+' 批 · '+b.pages_done+'/'+b.pages_total+' 頁 · '+b.status}render()}}
 function askStatus(){if(!fileKey)return;outbox.push({type:'PAGE_STATUS',payload:{file_key:fileKey}});pump()}
 window.onmessage=function(e){var m=e.data&&e.data.pluginMessage;if(!m)return;
- if(m.type==='PAGE_META'){fileKey=m.payload.file.file_key;fileName=m.payload.file.file_name;pages=m.payload.pages;$id('fname').textContent=fileName;$id('fcount').textContent=pages.length+' 頁';askStatus();defaults();render();return}
+ if(m.type==='PAGE_META'){fileKey=m.payload.file.file_key;fileName=m.payload.file.file_name;pages=m.payload.pages;$id('fname').textContent=fileName;$id('fcount').textContent=pages.length+' 頁';sendHello();askStatus();defaults();render();return}
+ if(m.type==='SELECTION_COUNT'){selCount=m.count||0;updateBridgeBar();return}
+ if(m.type==='BRIDGE_LOOKUP_ERROR'){$id('hint').textContent=m.error||'無法查找';return}
+ if(m.type==='BRIDGE_LOOKUP_SELECTION'){if(!ws||ws.readyState!==1){$id('hint').textContent='本地伺服器離線，請先啟動 npm run start:server';post({type:'LOOKUP_NOTIFY',message:'本地伺服器離線，無法連線到複審工作台',isError:true});return}$id('hint').textContent='正在複審台查找 '+m.payload.items.length+' 筆選中項…';outbox.push({type:'BRIDGE_LOOKUP_SELECTION',payload:m.payload});pump();return}
+ if(m.type==='BRIDGE_FOCUS_RESULT'){outbox.push({type:'BRIDGE_FOCUS_RESULT',payload:m.payload});pump();if(m.payload&&m.payload.ok){$id('hint').textContent=m.payload.page_only?('已聯動跳轉到頁面「'+(m.payload.page_name||'')+'」'):('已聯動定位到「'+(m.payload.page_name||'')+'」· 選中 '+(m.payload.selected_count||0)+' 個節點')}else if(m.payload&&m.payload.error){$id('hint').textContent='聯動定位失敗：'+m.payload.error}return}
  if(m.type==='RELAY'){sendRelay(m.message,m.batchId);return}
  if(m.type==='PAGE_PROGRESS'){showProgress(m.payload);return}
  if(m.type==='HIDDEN_PROGRESS'){$id('hint').textContent='掃描隱藏稿：第 '+m.payload.index+' / '+m.payload.total+' 頁 · '+m.payload.page;return}
@@ -81,6 +92,7 @@ $id('all').onclick=function(){sel={};for(var i=0;i<pages.length;i++)if(!isSkip(p
 $id('todo').onclick=function(){sel={};for(var i=0;i<pages.length;i++)if(!isDone(pages[i].page_id)&&!isSkip(pages[i].page_id))sel[pages[i].page_id]=true;render()}
 $id('none').onclick=function(){sel={};render()}
 $id('go').onclick=function(){var ids=selectedIds();if(!ids.length)return;t0=Date.now();starting=1;$id('err').classList.add('hidden');post({action:'START_EXTRACTION',pageIds:ids});updateGo()}
+$id('lookup').onclick=function(){post({type:'LOOKUP_SELECTION'})}
 $id('refresh').onclick=function(){askStatus()}
 $id('clr').onclick=function(){$id('modal').classList.remove('hidden')}
 $id('no').onclick=function(){$id('modal').classList.add('hidden')}

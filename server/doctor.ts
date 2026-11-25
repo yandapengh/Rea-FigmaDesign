@@ -7,10 +7,11 @@
  * prints the concrete fix.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import Database = require('better-sqlite3');
+import { AstGraphDB } from './db';
 
 const ROOT = resolve(__dirname, '..');
 const SCRATCH = resolve(ROOT, '.scratch');
@@ -72,20 +73,7 @@ function inspectDb(path: string, label: string): { nodes: number; ok: boolean } 
 
 function checkData(): void {
   section('data');
-  const live = (() => {
-    const dataRoot = resolve(ROOT, 'data');
-    if (!existsSync(dataRoot)) return resolve(dataRoot, 'rea-figma.sqlite');
-    let best = '';
-    let bestTime = 0;
-    for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const candidate = resolve(dataRoot, entry.name, 'graph.sqlite');
-      if (!existsSync(candidate)) continue;
-      const t = statSync(candidate).mtimeMs;
-      if (t > bestTime) { bestTime = t; best = candidate; }
-    }
-    return best || resolve(dataRoot, 'rea-figma.sqlite');
-  })();
+  const live = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
   if (!existsSync(live)) {
     warn('no live db yet (fresh checkout)', 'run the Figma extraction: npm run start:server, then the plugin');
   } else {
@@ -112,6 +100,39 @@ function checkData(): void {
 
 function checkLabels(): void {
   section('labels');
+  let hasV2 = false;
+  const v2Abs = resolve(ROOT, 'labels/screens-v2.json');
+  if (!existsSync(v2Abs)) {
+    warn('screen labels v2 missing (labels/screens-v2.json)', 'run `npm run review:board -- --unlabeled` to start labeling');
+  } else {
+    try {
+      const parsed = JSON.parse(readFileSync(v2Abs, 'utf8')) as { version?: unknown; screens?: unknown[] };
+      if (parsed.version !== 2 || !Array.isArray(parsed.screens)) {
+        bad('screen labels v2 invalid: expected version=2 and screens array', 'fix labels/screens-v2.json');
+      } else {
+        let invalidEntry: string | null = null;
+        const majors = new Set<string>();
+        for (const s of parsed.screens) {
+          const e = s as { id?: unknown; major?: unknown; label?: unknown };
+          if (typeof e.id !== 'string' || !e.id) { invalidEntry = 'entry missing id'; break; }
+          if (typeof e.major !== 'string' || !e.major) { invalidEntry = 'entry missing major (' + e.id + ')'; break; }
+          if (typeof e.label !== 'string') { invalidEntry = 'entry label must be string (' + e.id + ')'; break; }
+          majors.add(e.major);
+        }
+        if (invalidEntry) {
+          bad('screen labels v2 invalid: ' + invalidEntry, 'fix labels/screens-v2.json');
+        } else if (parsed.screens.length === 0) {
+          warn('screen labels v2 is empty', 'run `npm run review:board -- --unlabeled` to start labeling');
+        } else {
+          hasV2 = true;
+          ok('screen labels v2  (' + parsed.screens.length + ' screens, ' + majors.size + ' majors)');
+        }
+      }
+    } catch (err) {
+      bad('screen labels v2 is not valid JSON: ' + (err instanceof Error ? err.message : String(err)), 'restore labels/screens-v2.json from git');
+    }
+  }
+
   const files: Array<[string, string, (v: unknown) => string | null]> = [
     ['labels/style.json', 'style labels', (v) => {
       const d = v as { labels?: unknown[] };
@@ -122,30 +143,21 @@ function checkLabels(): void {
       }
       return null;
     }],
-    ['labels/screens.json', 'screen labels', (v) => {
-      const d = v as { screens?: unknown[] };
-      if (!Array.isArray(d.screens)) return 'no screens array';
-      for (const s of d.screens) {
-        const e = s as { id?: string; category?: string; kind?: string };
-        if (!e.id || !e.category) return 'entry missing id/category';
-        if (e.kind !== 'page' && e.kind !== 'dialog') return 'entry kind must be page|dialog';
-      }
-      return null;
-    }],
   ];
-  try {
-    const style = JSON.parse(readFileSync(resolve(ROOT, 'labels/style.json'), 'utf8')) as { labels?: unknown[] };
-    const screens = JSON.parse(readFileSync(resolve(ROOT, 'labels/screens.json'), 'utf8')) as { screens?: unknown[]; taxonomy?: { page?: unknown[]; dialog?: unknown[] } };
-    if ((style.labels ?? []).length === 0 && (screens.screens ?? []).length === 0) {
-      warn('labels are empty (fresh checkout)', 'fill taxonomy and label screens after the first extraction');
+  if (!hasV2) {
+    try {
+      const style = JSON.parse(readFileSync(resolve(ROOT, 'labels/style.json'), 'utf8')) as { labels?: unknown[] };
+      if ((style.labels ?? []).length === 0) {
+        warn('labels are empty (fresh checkout)', 'fill labels/screens-v2.json after the first extraction');
+      }
+    } catch {
+      // validation below reports the real problem
     }
-  } catch {
-    // validation below reports the real problem
   }
   for (const [rel, name, validate] of files) {
     const abs = resolve(ROOT, rel);
     if (!existsSync(abs)) {
-      warn(name + ' missing (' + rel + ')', 'classification will fall back to unlabelled');
+      if (!hasV2) warn(name + ' missing (' + rel + ')', 'classification will fall back to unlabelled');
       continue;
     }
     try {
@@ -184,7 +196,7 @@ function checkScripts(): void {
   const pkgPath = resolve(ROOT, 'package.json');
   try {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { scripts?: Record<string, string> };
-    for (const name of ['start:server', 'sync', 'query', 'typecheck', 'test:pipeline', 'test:parity', 'test:mcp', 'test:pages']) {
+    for (const name of ['start:server', 'sync', 'query', 'health', 'review:board', 'typecheck', 'test:core', 'test:bridge', 'test:pipeline', 'test:parity', 'test:mcp', 'test:pages']) {
       if (pkg.scripts && pkg.scripts[name]) ok('npm run ' + name);
       else bad('missing npm script: ' + name, 'restore it in package.json');
     }

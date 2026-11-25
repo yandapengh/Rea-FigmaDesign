@@ -1,25 +1,16 @@
 /// <reference lib="es2022" />
 /** Stage 4 Tier 2 baseline with streaming style features. */
 
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import Database = require('better-sqlite3');
+import { AstGraphDB } from './db';
 import { Graph, headlineOf, jaccard } from './core/graph';
 
 const ROOT = resolve(__dirname, '..');
 const max = process.argv.indexOf('--max') !== -1 ? Number(process.argv[process.argv.indexOf('--max') + 1]) : 0;
-let dbPath = '';
-{
-  let best = ''; let bestTime = 0;
-  for (const d of readdirSync(join(ROOT, 'data'), { withFileTypes: true })) {
-    if (!d.isDirectory()) continue;
-    const p = join(ROOT, 'data', d.name, 'graph.sqlite');
-    if (!existsSync(p)) continue;
-    const t = statSync(p).mtimeMs;
-    if (t > bestTime) { bestTime = t; best = p; }
-  }
-  dbPath = best;
-}
+const dbPath = AstGraphDB.resolveLatestGraphDb(ROOT) ?? '';
+if (!dbPath || !existsSync(dbPath)) { console.error('no database'); process.exit(1); }
 const g = new Graph(dbPath);
 const labelFile = JSON.parse(readFileSync(join(ROOT, 'labels/screens-v2.json'), 'utf8')) as { screens: Array<{ id: string; label: string; major: string; minor: string; generation: string }> };
 const labels = labelFile.screens.filter((r) => g.nodes.has(r.id));

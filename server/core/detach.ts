@@ -1,6 +1,6 @@
 /// <reference lib="es2022" />
 /** Detach similarity utilities (stage 6, promoted with lab caveats). */
-import { Graph } from './graph';
+import { Graph, cosine } from './graph';
 
 export interface DetachFeature {
   id: string;
@@ -27,12 +27,6 @@ export function detachFeature(g: Graph, id: string): DetachFeature {
   return { id, name: n.name, nodes: sub.length, depth, types, w: n.bbox_w ?? 0, h: n.bbox_h ?? 0, hash: g.hash.get(id) ?? '' };
 }
 
-const cosine = (a: Map<string, number>, b: Map<string, number>): number => {
-  let dot = 0, na = 0, nb = 0;
-  for (const [k, v] of a) { na += v * v; const x = b.get(k); if (x) dot += v * x; }
-  for (const v of b.values()) nb += v * v;
-  return na > 0 && nb > 0 ? dot / Math.sqrt(na * nb) : 0;
-};
 const ratio = (a: number, b: number): number => (a <= 0 || b <= 0 ? 0 : Math.min(a, b) / Math.max(a, b));
 
 /** Structural similarity; callers can add token/shape evidence. */

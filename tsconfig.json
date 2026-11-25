@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["shared/**/*.ts", "server/**/*.ts", "plugin/src/**/*.ts"]
+  "include": ["shared/**/*.ts", "server/**/*.ts", "plugin/src/**/*.ts", "dsh-plugin/src/**/*.ts"]
 }

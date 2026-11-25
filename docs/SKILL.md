@@ -6,19 +6,20 @@
 ## 1. 何時使用
 
 - 在 Figma AST 圖譜上查結構、風格、分類、家族、差異
-- 回答「某分類出現在哪些頁面、幾個、ID 是什麼」
+- 回答「目前有幾個分類」「某分類出現在哪些頁面、幾個、ID 是什麼」
 - 做資料健康檢查、世代（老UI/新UI）統計、標註覆蓋率
-- 把設計師的分類回饋整理成可驗證的清單
+- 產生可視化人工複審工作台，讓設計師自由填寫意見後回貼給 agent 修正標註
 
 不適用：需要即時讀 Figma 檔案本身（要先由插件匯出到 SQLite）。
 
 ## 2. 環境與資料
 
-- 圖譜在 data/<file-key>/graph.sqlite；不要假設固定檔名 data/rea-figma.sqlite
-- 路徑解析一律交給 CLI（會挑最新的 data/*/graph.sqlite）
-- 只有匯入資料時需要啟動 server：npm run start:server（port 8765）
+- 圖譜在 `data/<file-key>/graph.sqlite`；不要假設固定檔名 `data/rea-figma.sqlite`
+- 路徑解析一律交給 CLI（透過 `AstGraphDB.resolveLatestGraphDb`，挑最新的 `data/*/graph.sqlite`）
+- 跨專案目錄呼叫已安裝的 skill 時，讀取 `<skill-dir>/.repo-root`（或 `$REA_FIGMA_ROOT`），並用 `npm --prefix <repo-root> run ...` 執行
+- 只有匯入資料時需要啟動 server：`npm run start:server`（port 8765）
 - 查詢、報表、健康檢查都是唯讀，不需要 server
-- 標註來源：labels/screens-v2.json（新版）；labels/screens.json 是舊格式、目前為空
+- 唯一有效標註來源：`labels/screens-v2.json`（含 `major`/`minor`/`generation`）
 
 ## 3. 工具表面
 
@@ -26,59 +27,64 @@
 
 | 指令 | 用途 | 讀寫 | 產物 |
 |---|---|---|---|
-| npm run doctor | 開工前環境檢查 | 唯讀 | 終端機 |
-| npm run health | 全量一致性檢查（頁數、節點、staging、狀態） | 唯讀；--fix 可修計數 | 終端機 |
-| npm run tier1 | Tier 1 回歸（screen 規則、Merkle、archetype） | 唯讀 | 終端機 |
-| npm run sample | 跨頁抽 10 個畫面供人工抽檢 | 唯讀 | 終端機 |
-| npm run tier15 | Tier 1.5 剝洋蔥正規化摘要（唯讀） | 終端機 |
-| npm run ux -- node-id | 15 項 UX 空間特徵（唯讀） | 終端機 |
-| npm run detach | Detach 合成召回（唯讀） | 終端機 |
-| npm run hidden | 列出透明度 ≤35% 的隱藏畫面 | 唯讀 | 終端機 |
-| npm run report:categories | 列出全部大類/小類、畫面數、頁面數 | 唯讀 | 終端機 |
-| npm run report:category -- <分類> | 分類 × Figma 頁面 × node ID | 唯讀 | ~/Downloads/rea-figma-category-<分類>.md |
-| npm run audit:db -- <db> | 深層資料品質統計 | 唯讀 | 終端機 |
-| npm run query -- <cmd> | 舊版查詢層（sheet/family/diff/category…） | 依命令 | 終端機/.scratch |
-| npm run mcp | 啟動 MCP server（stdio） | 唯讀查詢/標註寫入 | MCP |
-| npm run start:server | 啟動插件匯入用 WebSocket server | 寫入 DB | data/… |
+| `npm run doctor` | 開工前環境與 v2 標註檢查 | 唯讀 | 終端機 |
+| `npm run health` | 全量一致性檢查（頁數、節點、staging、狀態） | 唯讀；`--fix` 可修計數 | 終端機 |
+| `npm run tier1` | Tier 1 回歸（screen 規則、Merkle、archetype） | 唯讀 | 終端機 |
+| `npm run sample` | 跨頁抽 10 個畫面供人工抽檢 | 唯讀 | 終端機 |
+| `npm run review:board -- [選項]` | 產生可視化人工複審工作台（支援 `--unlabeled` / `--category` / `--sample` / `--ids` / `--page` / `--open`） | 唯讀圖譜，寫 HTML | `.scratch/review.html` |
+| `npm run tier15` | Tier 1.5 剝洋蔥正規化摘要 | 唯讀 | 終端機 |
+| `npm run ux -- <node-id>` | 15 項 UX 空間特徵 | 唯讀 | 終端機 |
+| `npm run detach` | Detach 合成召回 | 唯讀 | 終端機 |
+| `npm run hidden` | 列出透明度 ≤35% 的隱藏畫面 | 唯讀 | 終端機 |
+| `npm run report:categories` | 列出全部大類/小類、畫面數、頁面數 | 唯讀 | 終端機 |
+| `npm run report:category -- <分類>` | 分類 × Figma 頁面 × node ID（`--no-file` 可不寫檔） | 唯讀圖譜 | `.scratch/rea-figma-category-<分類>.md` |
+| `npm run audit:db -- <db>` | 深層資料品質統計 | 唯讀 | 終端機 |
+| `npm run query -- <cmd>` | AST 查詢層（`sheet`/`sheets`/`family`/`variants`/`profile`/`diff`/`find`/`verify-source` 等） | 依命令 | 終端機 / `.scratch` |
+| `npm run sync` | 一鍵健康檢查 → 重生複審看板 → parity → `verify-source` | 寫入 `.scratch/` | `.scratch/review.html` |
+| `npm run mcp` | 啟動 MCP server（stdio） | 唯讀查詢 / v2 標註寫入 | MCP |
+| `npm run start:server` | 啟動插件匯入用 WebSocket server | 寫入 DB | `data/…` |
 
-### 3.2 MCP 工具（11 個）
+### 3.2 MCP 工具（14 個）
 
 | 工具 | 回答什麼 |
 |---|---|
-| list_screens | 檔案有哪些畫面、各 archetype 數量 |
-| screen_sheet | 單一畫面的結構/風格/文案特徵卡 |
-| screen_family | 同一結構家族的所有成員 |
-| screen_variants | 家族內的變體軸與差異 |
-| diff_screens | 兩個畫面的結構/風格差異 |
-| find_similar | 長得像的畫面（分層召回） |
-| style_profile | 頁面或節點的風格指紋 |
-| review_queue | 待分類佇列 |
-| apply_labels | 寫入分類/備註（需 confirm 或 dryRun） |
-| list_samples | 列出可用樣本 |
-| server_info | MCP 連線與版本 |
+| `list_categories` | 列出 `labels/screens-v2.json` 全部大類/小類、畫面數與頁面數 |
+| `category_report` | 列出某分類（大類/小類）出現的 Figma 頁面與全部 node ID |
+| `health_check` | 執行唯讀圖譜完整性檢查（`file_meta`/staging/syncing/孤兒節點） |
+| `build_review_board` | 生成可視化人工複審工作台 `.scratch/review.html`（支援冷啟動/分類/抽樣/指定 ID） |
+| `list_screens` | 檔案有哪些畫面、各 archetype 數量，以及 `labels/screens-v2.json` 標註狀態 |
+| `screen_sheet` | 單一畫面的結構/風格/文案特徵卡 |
+| `screen_family` | 同一結構家族的所有成員 |
+| `screen_variants` | 家族內的變體軸與差異 |
+| `diff_screens` | 兩個畫面的結構/風格差異 |
+| `find_similar` | 長得像的畫面（分層召回） |
+| `style_profile` | 頁面或節點的風格指紋 |
+| `apply_labels` | 寫入 `labels/screens-v2.json` 的分類/世代/備註（需 `confirm: true` 或 `dryRun: true`） |
+| `list_samples` | 列出可用樣本 |
+| `server_info` | MCP 連線與版本 |
 
-規則：能列舉就不要猜 ID；「有多少」先 list_screens，不要自己掃 DB。
+規則：能列舉就不要猜 ID；「有多少」先用 `list_categories` 或 `list_screens`，不要自己掃 DB。若環境尚未掛載 MCP，使用對應 CLI 替代。
 
 ### 3.3 DSH 斜線命令（零 token）
 
 | 命令 | 動作 |
 |---|---|
-| /rea-figma-review | 重生成 .scratch/review.html 並開啟 |
-| /rea-figma-doctor | 跑 doctor 並回報結果 |
+| `/rea-figma-review` | 重生成 `.scratch/review.html` 並開啟 |
+| `/rea-figma-doctor` | 跑 `doctor` 並回報結果 |
 
-命令不吃參數；分類名稱由 agent 解析後呼叫 CLI。
+命令不吃參數；需要帶篩選條件（如只看某分類、冷啟動未標註、抽樣 N 筆）時，由 agent 呼叫 MCP `build_review_board` 或 `npm run review:board -- ...`。
 
 ## 4. 核心契約
 
 1. 不得編造 ID、名稱、數量；每個數字都要能從 SQLite 重現。
 2. ID 必須一一對應 DB；找不到就報錯，不要用鄰近資料補。
 3. 回答分類問題要附 node ID，讓設計師能貼回 Figma 驗證。
-4. 不確定就回 unknown；unknown 是合法答案，不是失敗。
+4. 不確定就回 `unknown`；`unknown` 是合法答案，不是失敗。
 5. 分類只來自主檔 taxonomy（major + minor 一層），不要自創。
 6. 任何抽樣都要同時顯示 total 與 shown；不得靜默截斷。
-7. 唯讀工具不得寫 DB；要寫入必須明確標示並取得確認。
+7. 唯讀工具不得寫 DB 或 `labels/`；要寫入必須先預覽（`dryRun: true`）並取得明確確認。
 
-## 5. 標註 v2（labels/screens-v2.json）
+## 5. 標註 v2（`labels/screens-v2.json`）
 
 ~~~json
 {
@@ -89,29 +95,45 @@
 }
 ~~~
 
-六個 major：老UI、新UI、系統UI、彈窗類、頁面類、廢棄。
-minor 只有一層；generation 只放 old/new（世代軸，與 major 分開）。
-頁面類目前 30 個 minor；完整清單見 labels/screens-v2.json。
+六個 major：`老UI`、`新UI`、`系統UI`、`彈窗類`、`頁面類`、`廢棄`。
+`minor` 只有一層；`generation` 只放 `old`/`new`（世代軸，與 `major` 分開）。
+頁面類目前 30 個 minor；完整清單見 `labels/screens-v2.json`。
 
 ## 6. 常用流程
 
-### 6.1 查某分類的頁面與 IDs
+### 6.1 查目前全部分類與某分類的頁面 IDs
 
 ~~~bash
+npm run report:categories
 npm run report:category -- 收銀台
 ~~~
 
 輸出固定格式：總數、出現頁面數、每個頁面的 ID 陣列（一行一個，可直接複製到 Figma）。
 回報時要包含：分類、total、頁面數，以及至少前 3 個 ID 當證據。
 
-### 6.2 查畫面特徵
+### 6.2 可視化人工複審與冷啟動打標（重要）
 
-用 MCP：先 list_screens 縮小範圍，再 screen_sheet / screen_family / diff_screens。
-不要一次把所有畫面 dump 給使用者。
-
-### 6.3 健康檢查與驗收
+只要涉及「首次匯出 AST 歸組打標」「分類抽查」「糾正機器偏差」，一律產出 `.scratch/review.html` 讓使用者用網頁檢視，不要在對話裡逐條問答：
 
 ~~~bash
+npm run review:board -- --unlabeled          # 冷啟動：按 AST Merkle 家族歸組未標註畫面
+npm run review:board -- --category 收銀台     # 複審單一分類
+npm run review:board -- --sample 15          # 跨頁抽樣 15 筆人工複審
+npm run review:board -- --ids 1:1,2:2 --open # 針對特定 ID 產出並開啟瀏覽器
+~~~
+
+- 網頁上「沒問題留空、有問題在後方自由描述」，點 **「複製為 Agent 提示詞」** 貼回給 agent。
+- Agent 收到貼回的提示詞後，只針對有填意見的 ID / 家族做比對，用 `apply_labels(dryRun: true)` 列出修改前後對照，經人工確認後才寫入 `labels/screens-v2.json`。
+
+### 6.3 查畫面特徵
+
+用 MCP：先 `list_screens` 縮小範圍，再 `screen_sheet` / `screen_family` / `diff_screens`。
+不要一次把所有畫面 dump 給使用者。
+
+### 6.4 健康檢查與驗收
+
+~~~bash
+npm run doctor
 npm run health
 npm run tier1
 npm run sample
@@ -128,27 +150,25 @@ npm run sample
 
 ## 8. 停止條件
 
-- health FAIL（staging > 0、SYNCING > 0、頁面/節點不一致）
+- `health` FAIL（`staging > 0`、`SYNCING > 0`、頁面/節點不一致）
 - ID 在 DB 找不到
-- MCP 工具回 unknown 比例異常
-- 需要寫入 labels 但沒有明確確認
+- 需要寫入 `labels/screens-v2.json` 但沒有明確確認
 
-## 9. 已知限制（下週要補）
+## 9. 已知限制
 
-1. labels/screens-v2.json 尚未接進 query/MCP；舊 labels/screens.json 仍是空檔。
-2. 舊 query 層（apply/review/propagate）仍依賴舊 taxonomy page/dialog，不要在新流程使用。
-3. 分類文件尚未同步到 docs/QUERY.md；以 labels/screens-v2.json 為準。
-4. 老UI/新UI 的 minor 多數為空，屬預期（世代與功能分開）。
+1. 老UI/新UI 的 minor 多數為空，屬預期（世代與功能分開）。
+2. 沒有縮圖：複審看板用色票、文案、Figma 頁名與一鍵定位腳本輔助核對。
 
 ## 10. 快速範例
 
+使用者：「目前全部有多少分類？」
+1. MCP `list_categories` 或 `npm run report:categories`
+2. 回報大類／小類清單與畫面／頁面數。
+
 使用者：「收銀台出現在哪些頁？各幾個？」
+1. MCP `category_report(category="收銀台")` 或 `npm run report:category -- 收銀台`
+2. 回報：28 個畫面 / 5 頁；附每個頁面計數與至少 3 個 ID。
 
-1. npm run report:category -- 收銀台
-2. 回報：28 個畫面 / 5 頁；8月 Cashier 15、(持续) AI Assistant 7、…；附 ID。
-
-使用者：「這份資料健康嗎？」
-
-1. npm run health
-2. 回報 RESULT 與失敗原因。
-
+使用者：「幫我抽 15 個畫面確認分類對不對」
+1. MCP `build_review_board(sampleCount=15, open=true)` 或 `npm run review:board -- --sample 15 --open`
+2. 請使用者在 `.scratch/review.html` 僅針對有問題的項目填寫意見並複製提示詞回貼。

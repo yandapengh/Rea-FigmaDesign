@@ -1,21 +1,25 @@
 /// <reference lib="es2022" />
 /**
- * Local ingestion server (stage 2, design A):
+ * Local ingestion + Live Bridge server (stage 2 + Live Bridge):
  *  - one folder per Figma file: data/<safeKey>/graph.sqlite + manifest.json + batches/
  *  - SYNC_START only upserts metadata; PAGE_START stages; PAGE_COMPLETE swaps atomically
  *  - empty pages arrive as PAGE_SKIP and are recorded as SKIPPED
  *  - RESET_DATABASE(confirm:true) is the only destructive path
+ *  - Live Bridge relays BRIDGE_FOCUS_NODES / BRIDGE_FOCUS_RESULT between review-ui and figma-plugin
+ *  - HTTP GET / or /review serves .scratch/review.html when present
  */
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { AstGraphDB } from './db';
 import type {
-  ComponentRow, FileMetaPayload, NodeRow, PageCensusRow, PageCompletePayload, PageSkipPayload,
-  PageStartPayload, PageStatusRow, VariableRow, WsMessage,
+  BridgeClientRole, BridgeFocusRequestPayload, BridgeFocusResultPayload, BridgeLookupRequestPayload,
+  BridgeLookupResultPayload, BridgeSelectionItem, BridgeStatusPayload, ComponentRow, FileMetaPayload,
+  NodeRow, PageCensusRow, PageCompletePayload, PageSkipPayload, PageStartPayload, VariableRow, WsMessage,
 } from '../shared/protocol';
 
 const DEFAULT_HOST = '127.0.0.1';
@@ -23,6 +27,7 @@ const DEFAULT_PORT = 8765;
 const MAX_PAYLOAD_BYTES = 64 * 1024 * 1024;
 const WS_OPEN = 1;
 const HEARTBEAT_MS = 30000;
+const FOCUS_TIMEOUT_MS = 15000;
 
 export interface IngestServerOptions { host?: string; port?: number; dbPath?: string; quiet?: boolean }
 
@@ -39,6 +44,8 @@ interface AckError { status: 'ERROR'; receivedType: string | null; error: string
 interface BatchRecord { batch_id: number; file_key: string; started_at: string; finished_at: string | null; requested: Array<{ page_id: string; page_name: string; page_index: number }>; pages: Record<string, string> }
 interface SocketState {
   fileKey: string | null;
+  fileName: string | null;
+  role: BridgeClientRole | null;
   page: { fileKey: string; pageId: string; pageName: string; pageIndex: number } | null;
   db: AstGraphDB | null;
   folder: string | null;
@@ -78,12 +85,51 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
   const port = options.port ?? DEFAULT_PORT;
   const root = resolve(__dirname, '..');
   const dataRoot = join(root, 'data');
+  const reviewHtmlPath = join(root, '.scratch', 'review.html');
   const configured = options.dbPath ?? process.env.REA_DB_PATH;
   const fixedDb = configured ? new AstGraphDB(resolve(root, configured)) : null;
   const quiet = options.quiet ?? false;
   const openDbs = new Map<string, AstGraphDB>();
   const states = new Map<WebSocket, SocketState>();
   const alive = new Map<WebSocket, boolean>();
+  const pendingFocus = new Map<string, { requester: WebSocket; timer: ReturnType<typeof setTimeout> }>();
+  const pendingLookup = new Map<string, { requester: WebSocket; timer: ReturnType<typeof setTimeout> }>();
+
+  function activeFigmaPlugin(): WebSocket | null {
+    let found: WebSocket | null = null;
+    for (const [sock, st] of states) {
+      if (st.role === 'figma-plugin' && sock.readyState === WS_OPEN) found = sock;
+    }
+    return found;
+  }
+
+  function activeReviewClients(): WebSocket[] {
+    const clients: WebSocket[] = [];
+    for (const [sock, st] of states) {
+      if (st.role === 'review-ui' && sock.readyState === WS_OPEN) clients.push(sock);
+    }
+    return clients;
+  }
+
+  function currentBridgeStatus(): BridgeStatusPayload {
+    const pluginSock = activeFigmaPlugin();
+    const pluginState = pluginSock ? states.get(pluginSock) : undefined;
+    const reviewClients = activeReviewClients().length;
+    return {
+      figma_connected: pluginSock !== null,
+      figma_file_name: pluginState?.fileName ?? undefined,
+      figma_file_key: pluginState?.fileKey ?? undefined,
+      review_clients: reviewClients,
+    };
+  }
+
+  function broadcastBridgeStatus(): void {
+    const status = currentBridgeStatus();
+    const msg = { type: 'BRIDGE_STATUS', payload: status };
+    for (const [sock, st] of states) {
+      if ((st.role === 'review-ui' || st.role === 'figma-plugin') && sock.readyState === WS_OPEN) sendJson(sock, msg);
+    }
+  }
 
   function dbFor(fileKey: string, fileName: string, state: SocketState): AstGraphDB {
     if (fixedDb) { state.folder = null; return fixedDb; }
@@ -122,16 +168,6 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     atomicJson(path, manifest);
   }
 
-  function beginBatch(state: SocketState, requested: Array<{ page_id: string; page_name: string; page_index: number }>): void {
-    if (!state.folder) return;
-    const dir = join(state.folder, 'batches');
-    mkdirSync(dir, { recursive: true });
-    const next = readdirSync(dir).filter((f) => f.endsWith('.json')).length + 1;
-    const record: BatchRecord = { batch_id: next, file_key: state.fileKey ?? '', started_at: nowIso(), finished_at: null, requested, pages: {} };
-    state.batch = record;
-    atomicJson(join(dir, String(next).padStart(3, '0') + '_batch.json'), record);
-  }
-
   function saveBatch(state: SocketState): void {
     if (!state.folder || !state.batch) return;
     atomicJson(join(state.folder, 'batches', String(state.batch.batch_id).padStart(3, '0') + '_batch.json'), state.batch);
@@ -146,7 +182,167 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     const payload = parsed.payload;
     const batchId = typeof parsed.batch_id === 'number' ? parsed.batch_id : undefined;
     let state = states.get(socket);
-    if (!state) { state = { fileKey: null, page: null, db: null, folder: null, batch: null, batchId: null }; states.set(socket, state); }
+    if (!state) { state = { fileKey: null, fileName: null, role: null, page: null, db: null, folder: null, batch: null, batchId: null }; states.set(socket, state); }
+
+    // Live Bridge control plane (does not write DB or emit ingestion AckOk)
+    if (receivedType === 'BRIDGE_HELLO') {
+      if (!isRecord(payload) || (payload.role !== 'figma-plugin' && payload.role !== 'review-ui')) {
+        sendError(socket, receivedType, 'INVALID_BRIDGE_ROLE', batchId);
+        return;
+      }
+      state.role = payload.role;
+      if (typeof payload.file_key === 'string' && payload.file_key) state.fileKey = payload.file_key;
+      if (typeof payload.file_name === 'string' && payload.file_name) state.fileName = payload.file_name;
+      sendJson(socket, { type: 'BRIDGE_STATUS', payload: currentBridgeStatus() });
+      broadcastBridgeStatus();
+      if (!quiet) console.log('[bridge] hello role=' + state.role + (state.fileName ? ' file="' + state.fileName + '"' : ''));
+      return;
+    }
+
+    if (receivedType === 'BRIDGE_FOCUS_NODES') {
+      if (!isRecord(payload) || typeof payload.request_id !== 'string' || !payload.request_id) {
+        sendError(socket, receivedType, 'BRIDGE_FOCUS_NODES requires request_id', batchId);
+        return;
+      }
+      const reqId = payload.request_id;
+      const pageOnly = payload.page_only === true;
+      const pageIdIn = typeof payload.page_id === 'string' ? payload.page_id.trim() : '';
+      const pageNameIn = typeof payload.page_name === 'string' ? payload.page_name.trim() : '';
+      const rawIds = Array.isArray(payload.node_ids) ? payload.node_ids.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : [];
+      const nodeIds = [...new Set(rawIds.map((x) => x.trim()))].slice(0, 500);
+      if (nodeIds.length === 0 && !(pageOnly && (pageIdIn || pageNameIn))) {
+        sendJson(socket, { type: 'BRIDGE_FOCUS_RESULT', payload: { request_id: reqId, ok: false, error: '沒有可定位的 node_id' } });
+        return;
+      }
+      const pluginSock = activeFigmaPlugin();
+      if (!pluginSock) {
+        sendJson(socket, {
+          type: 'BRIDGE_FOCUS_RESULT',
+          payload: {
+            request_id: reqId,
+            ok: false,
+            error: 'Figma 插件未連線：請先在 Figma Desktop 開啟「Rea-FigmaDesign AST 探針」插件',
+          },
+        });
+        return;
+      }
+      const prev = pendingFocus.get(reqId);
+      if (prev) clearTimeout(prev.timer);
+      const timer = setTimeout(() => {
+        pendingFocus.delete(reqId);
+        sendJson(socket, {
+          type: 'BRIDGE_FOCUS_RESULT',
+          payload: { request_id: reqId, ok: false, error: 'Figma 插件定位超時（15 秒），請確認插件視窗仍處於開啟狀態' },
+        });
+      }, FOCUS_TIMEOUT_MS);
+      pendingFocus.set(reqId, { requester: socket, timer });
+
+      const forward: BridgeFocusRequestPayload = {
+        request_id: reqId,
+        node_ids: nodeIds,
+        page_id: pageIdIn || undefined,
+        page_name: pageNameIn || undefined,
+        page_only: pageOnly ? true : undefined,
+      };
+      sendJson(pluginSock, { type: 'BRIDGE_FOCUS_NODES', payload: forward });
+      if (!quiet) console.log('[bridge] focus -> figma (' + nodeIds.length + ' ids, req=' + reqId + ')');
+      return;
+    }
+
+    if (receivedType === 'BRIDGE_FOCUS_RESULT') {
+      if (!isRecord(payload) || typeof payload.request_id !== 'string') return;
+      const pending = pendingFocus.get(payload.request_id);
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      pendingFocus.delete(payload.request_id);
+      const resPayload = payload as unknown as BridgeFocusResultPayload;
+      sendJson(pending.requester, { type: 'BRIDGE_FOCUS_RESULT', payload: resPayload });
+      if (!quiet) console.log('[bridge] result -> review (' + (resPayload.ok ? 'OK ' + (resPayload.selected_count ?? 0) : 'ERR ' + (resPayload.error ?? '')) + ')');
+      return;
+    }
+
+    if (receivedType === 'BRIDGE_LOOKUP_SELECTION') {
+      if (!isRecord(payload) || typeof payload.request_id !== 'string' || !payload.request_id) {
+        sendError(socket, receivedType, 'BRIDGE_LOOKUP_SELECTION requires request_id', batchId);
+        return;
+      }
+      const reqId = payload.request_id;
+      const rawItems = Array.isArray(payload.items) ? payload.items : [];
+      const seenIds = new Set<string>();
+      const items: BridgeSelectionItem[] = [];
+      for (const rawItem of rawItems) {
+        if (!isRecord(rawItem) || typeof rawItem.id !== 'string') continue;
+        const id = rawItem.id.trim();
+        if (!id || seenIds.has(id)) continue;
+        seenIds.add(id);
+        const item: BridgeSelectionItem = {
+          id,
+          name: asString(rawItem.name),
+          type: asString(rawItem.type),
+          page_id: asString(rawItem.page_id),
+          page_name: asString(rawItem.page_name),
+        };
+        if (typeof rawItem.width === 'number' && Number.isFinite(rawItem.width)) item.width = rawItem.width;
+        if (typeof rawItem.height === 'number' && Number.isFinite(rawItem.height)) item.height = rawItem.height;
+        if (typeof rawItem.text_preview === 'string' && rawItem.text_preview) item.text_preview = rawItem.text_preview.slice(0, 200);
+        if (Array.isArray(rawItem.ancestor_ids)) {
+          const ancestors = rawItem.ancestor_ids
+            .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+            .map((x) => x.trim())
+            .slice(0, 30);
+          if (ancestors.length > 0) item.ancestor_ids = ancestors;
+        }
+        items.push(item);
+        if (items.length >= 200) break;
+      }
+      if (items.length === 0) {
+        sendJson(socket, { type: 'BRIDGE_LOOKUP_RESULT', payload: { request_id: reqId, ok: false, error: '請先在 Figma 中選中至少 1 個設計稿節點' } });
+        return;
+      }
+      const reviewClients = activeReviewClients();
+      if (reviewClients.length === 0) {
+        sendJson(socket, {
+          type: 'BRIDGE_LOOKUP_RESULT',
+          payload: { request_id: reqId, ok: false, error: '複審工作台未連線：請先開啟 review.html（http://127.0.0.1:8765/review）' },
+        });
+        return;
+      }
+      const prev = pendingLookup.get(reqId);
+      if (prev) clearTimeout(prev.timer);
+      const timer = setTimeout(() => {
+        pendingLookup.delete(reqId);
+        sendJson(socket, {
+          type: 'BRIDGE_LOOKUP_RESULT',
+          payload: { request_id: reqId, ok: false, error: '複審工作台回應超時（15 秒），請確認瀏覽器分頁處於開啟狀態' },
+        });
+      }, FOCUS_TIMEOUT_MS);
+      pendingLookup.set(reqId, { requester: socket, timer });
+
+      const forward: BridgeLookupRequestPayload = {
+        request_id: reqId,
+        file_key: asString(payload.file_key) || undefined,
+        file_name: asString(payload.file_name) || undefined,
+        page_id: asString(payload.page_id),
+        page_name: asString(payload.page_name),
+        items,
+      };
+      for (const client of reviewClients) sendJson(client, { type: 'BRIDGE_LOOKUP_SELECTION', payload: forward });
+      if (!quiet) console.log('[bridge] lookup -> review (' + items.length + ' items, req=' + reqId + ')');
+      return;
+    }
+
+    if (receivedType === 'BRIDGE_LOOKUP_RESULT') {
+      if (!isRecord(payload) || typeof payload.request_id !== 'string') return;
+      const pending = pendingLookup.get(payload.request_id);
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      pendingLookup.delete(payload.request_id);
+      const resPayload = payload as unknown as BridgeLookupResultPayload;
+      sendJson(pending.requester, { type: 'BRIDGE_LOOKUP_RESULT', payload: resPayload });
+      if (!quiet) console.log('[bridge] lookup result -> plugin (' + (resPayload.ok ? 'OK matched=' + (resPayload.matched_count ?? 0) + ' new=' + (resPayload.unrecorded_count ?? 0) : 'ERR ' + (resPayload.error ?? '')) + ')');
+      return;
+    }
+
     const stage = state.page ? 'page=' + state.page.pageName + ' (' + state.page.pageId + ')' : 'file=' + (state.fileKey ?? 'none');
 
     try {
@@ -161,6 +357,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const meta = payload as unknown as FileMetaPayload;
           if (!asString(meta.file_key)) throw new Error('SYNC_START payload.file_key is required');
           state.fileKey = asString(meta.file_key);
+          state.fileName = asString(meta.file_name) || state.fileName;
           state.page = null;
           state.db = dbFor(state.fileKey, asString(meta.file_name), state);
           state.db.upsertFileMeta(meta);
@@ -298,12 +495,28 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     }
   }
 
-  const wss = new WebSocketServer({ host, port, maxPayload: MAX_PAYLOAD_BYTES, perMessageDeflate: false });
+  const httpServer = createServer((req, res) => {
+    const urlPath = (req.url ?? '/').split('?')[0];
+    if (req.method === 'GET' && (urlPath === '/' || urlPath === '/review')) {
+      if (existsSync(reviewHtmlPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(readFileSync(reviewHtmlPath, 'utf8'));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('review.html not found. Run: npm run review:board');
+      }
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not found');
+  });
+
+  const wss = new WebSocketServer({ server: httpServer, maxPayload: MAX_PAYLOAD_BYTES, perMessageDeflate: false });
 
   wss.on('connection', (socket, request) => {
     const remote = request.socket.remoteAddress ?? 'unknown';
     if (!quiet) console.log('[ws] client connected (' + remote + ')');
-    states.set(socket, { fileKey: null, page: null, db: null, folder: null, batch: null, batchId: null });
+    states.set(socket, { fileKey: null, fileName: null, role: null, page: null, db: null, folder: null, batch: null, batchId: null });
     alive.set(socket, true);
     socket.on('pong', () => alive.set(socket, true));
     socket.on('message', (data, isBinary) => {
@@ -313,6 +526,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     socket.on('error', (error) => { if (!quiet) console.error('[ws] socket error: ' + describeError(error)); });
     socket.on('close', (code, reason) => {
       const state = states.get(socket);
+      const closedRole = state?.role ?? null;
       if (state?.page && state.db) {
         state.db.abortPage(state.page.fileKey, state.page.pageId);
         if (state.batchId !== null) { state.db.setBatchPage(state.batchId, state.page.pageId, state.page.pageName, 'INCOMPLETE', 0); state.db.finishBatch(state.batchId, 'PARTIAL'); }
@@ -320,6 +534,43 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       }
       states.delete(socket);
       alive.delete(socket);
+
+      if (closedRole === 'figma-plugin') {
+        for (const [reqId, pending] of pendingFocus.entries()) {
+          clearTimeout(pending.timer);
+          pendingFocus.delete(reqId);
+          sendJson(pending.requester, {
+            type: 'BRIDGE_FOCUS_RESULT',
+            payload: { request_id: reqId, ok: false, error: 'Figma 插件已斷線' },
+          });
+        }
+        for (const [reqId, pending] of pendingLookup.entries()) {
+          if (pending.requester === socket) {
+            clearTimeout(pending.timer);
+            pendingLookup.delete(reqId);
+          }
+        }
+        broadcastBridgeStatus();
+      } else if (closedRole === 'review-ui') {
+        for (const [reqId, pending] of pendingFocus.entries()) {
+          if (pending.requester === socket) {
+            clearTimeout(pending.timer);
+            pendingFocus.delete(reqId);
+          }
+        }
+        if (activeReviewClients().length === 0) {
+          for (const [reqId, pending] of pendingLookup.entries()) {
+            clearTimeout(pending.timer);
+            pendingLookup.delete(reqId);
+            sendJson(pending.requester, {
+              type: 'BRIDGE_LOOKUP_RESULT',
+              payload: { request_id: reqId, ok: false, error: '複審工作台已斷線' },
+            });
+          }
+        }
+        broadcastBridgeStatus();
+      }
+
       if (!quiet) console.log('[ws] client disconnected code=' + code + (reason.length ? ' (' + reason.toString() + ')' : ''));
     });
   });
@@ -336,21 +587,23 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
 
   try {
     await new Promise<void>((resolveReady, rejectReady) => {
-      const onListening = (): void => { wss.off('error', onStartupError); resolveReady(); };
-      const onStartupError = (error: Error): void => { wss.off('listening', onListening); rejectReady(error); };
-      wss.once('listening', onListening);
-      wss.once('error', onStartupError);
+      const onListening = (): void => { httpServer.off('error', onStartupError); resolveReady(); };
+      const onStartupError = (error: Error): void => { httpServer.off('listening', onListening); rejectReady(error); };
+      httpServer.once('listening', onListening);
+      httpServer.once('error', onStartupError);
+      httpServer.listen(port, host);
     });
   } catch (error) {
     clearInterval(heartbeat);
     fixedDb?.close();
     for (const db of openDbs.values()) db.close();
     try { wss.close(); } catch { /* never bound */ }
+    try { httpServer.close(); } catch { /* never bound */ }
     throw error;
   }
 
   if (!quiet) {
-    console.log('[ws] listening on ws://' + host + ':' + port);
+    console.log('[ws] listening on ws://' + host + ':' + port + '  (review UI: http://' + host + ':' + port + '/review)');
     console.log('[ws] sqlite sink: ' + (fixedDb ? 'fixed' : join(dataRoot, '<file-key>/graph.sqlite')));
   }
 
@@ -359,8 +612,13 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     if (closed) return;
     closed = true;
     clearInterval(heartbeat);
+    for (const pending of pendingFocus.values()) clearTimeout(pending.timer);
+    pendingFocus.clear();
+    for (const pending of pendingLookup.values()) clearTimeout(pending.timer);
+    pendingLookup.clear();
     wss.clients.forEach((client) => client.terminate());
     await new Promise<void>((resolveClosed) => { wss.close(() => resolveClosed()); });
+    await new Promise<void>((resolveHttp) => { httpServer.close(() => resolveHttp()); });
     fixedDb?.close();
     for (const db of openDbs.values()) db.close();
   };

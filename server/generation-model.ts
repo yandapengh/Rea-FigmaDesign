@@ -1,44 +1,48 @@
 /// <reference lib="es2022" />
 /** Generation model: colour fingerprint + structure, trained on human labels only. */
 
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import Database = require('better-sqlite3');
-import { Graph } from './core/graph';
+import { AstGraphDB } from './db';
+import { Graph, findScreenRootCandidates } from './core/graph';
+import { recomputeV2Counts, type ScreenLabelV2 } from './core/semantics';
 
 const ROOT = resolve(__dirname, '..');
-let dbPath = '';
-{
-  let best = ''; let bestTime = 0;
-  for (const d of readdirSync(join(ROOT, 'data'), { withFileTypes: true })) {
-    if (!d.isDirectory()) continue;
-    const p = join(ROOT, 'data', d.name, 'graph.sqlite');
-    if (!existsSync(p)) continue;
-    const t = statSync(p).mtimeMs;
-    if (t > bestTime) { bestTime = t; best = p; }
-  }
-  dbPath = best;
+const args = process.argv.slice(2);
+let basePath = '';
+let humanPath = '';
+let outPath = join(ROOT, '.scratch/screens-v2.generated.json');
+let dbFlag = '';
+
+for (let i = 0; i < args.length; i += 1) {
+  const a = args[i];
+  if (a === '--base') basePath = args[++i] ?? '';
+  else if (a === '--human') humanPath = args[++i] ?? '';
+  else if (a === '--out') outPath = resolve(ROOT, args[++i] ?? '');
+  else if (a === '--db') dbFlag = args[++i] ?? '';
 }
+
+if (!basePath || !humanPath) {
+  console.error('usage: tsx server/generation-model.ts --base <truth.json> --human <human.json> [--out .scratch/screens-v2.generated.json] [--db path]');
+  process.exit(1);
+}
+
+const dbPath = dbFlag ? resolve(ROOT, dbFlag) : (AstGraphDB.resolveLatestGraphDb(ROOT) ?? '');
+if (!dbPath || !existsSync(dbPath)) {
+  console.error('no database found');
+  process.exit(1);
+}
+
 const g = new Graph(dbPath);
 const db = new Database(dbPath, { readonly: true, fileMustExist: true });
-const truth8 = JSON.parse(readFileSync('/tmp/truth8.json', 'utf8')) as Array<{ id: string; label: string; major: string; minor: string; generation: string }>;
-const truth5 = JSON.parse(readFileSync('/tmp/truth5.json', 'utf8')) as Array<{ id: string; label: string; major: string; minor: string; generation: string }>;
-const tmap = new Map(truth8.map((t) => [t.id, t]));
-const human = new Map(truth5.map((t) => [t.id, t]));
+const truthBase = JSON.parse(readFileSync(resolve(ROOT, basePath), 'utf8')) as ScreenLabelV2[];
+const truthHuman = JSON.parse(readFileSync(resolve(ROOT, humanPath), 'utf8')) as ScreenLabelV2[];
+const tmap = new Map(truthBase.map((t) => [t.id, { ...t }]));
+const human = new Map(truthHuman.map((t) => [t.id, t]));
 
-const cand = new Set<string>();
-for (const [id, n] of g.nodes) {
-  if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
-  if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
-  cand.add(id);
-}
-const roots = [...cand].filter((id) => {
-  let p = g.nodes.get(id)?.parent_id ?? null;
-  while (p) { if (cand.has(p)) return false; p = g.nodes.get(p)?.parent_id ?? null; }
-  return true;
-});
+const roots = findScreenRootCandidates(g);
 const rootSet = new Set(roots);
-// node -> nearest screen root
 const nodeRoot = new Map<string, string>();
 for (const root of roots) {
   const stack = [root];
@@ -79,7 +83,7 @@ const topColors = (id: string, n: number): string[] => {
   if (!pal) return [];
   return [...pal.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([h]) => h);
 };
-const humanGen = [...human.values()].filter((t) => t.generation === 'old' || t.generation === 'new' && rootSet.has(t.id));
+const humanGen = [...human.values()].filter((t) => (t.generation === 'old' || t.generation === 'new') && rootSet.has(t.id));
 const vocabCount = new Map<string, number>();
 for (const t of humanGen) for (const c of topColors(t.id, 8)) vocabCount.set(c, (vocabCount.get(c) ?? 0) + 1);
 const vocab = [...vocabCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 80).map(([h]) => h);
@@ -132,7 +136,6 @@ const classify = (id: string, weight: number): string => {
   const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
   return best && best[1] >= 3 ? best[0] : '';
 };
-// LOO on human labels for weights
 for (const w of [0, 0.5, 1, 2, 3]) {
   let ok = 0;
   for (const t of train) {
@@ -156,7 +159,6 @@ for (const id of roots) {
   const gen = pred;
   const cur = tmap.get(id);
   if (human.has(id)) {
-    // never touch human label; only fill empty generation
     if (cur && !cur.generation) { cur.generation = gen; }
     continue;
   }
@@ -173,13 +175,12 @@ for (const id of roots) {
   }
 }
 const all = [...tmap.values()];
-// assert human labels untouched
 let humanChanged = 0;
 for (const [id, h] of human) { const n = tmap.get(id); if (!n || n.label !== h.label || n.major !== h.major) humanChanged += 1; }
-writeFileSync('/tmp/truth9.json', JSON.stringify(all, null, 2));
-const counts = new Map<string, number>();
-for (const r of all) counts.set(r.major, (counts.get(r.major) ?? 0) + 1);
-writeFileSync('labels/screens-v2.json', JSON.stringify({ version: 2, sample: '2026-11-20-baipai-full', note: 'human labels preserved; generation from colour+structure', counts: Object.fromEntries(counts), screens: all.map((r) => ({ id: r.id, label: r.label, major: r.major, minor: r.minor, generation: r.generation })) }, null, 2));
+const counts = recomputeV2Counts(all);
+mkdirSync(dirname(outPath), { recursive: true });
+writeFileSync(outPath, JSON.stringify({ version: 2, sample: '2026-11-20-baipai-full', note: 'human labels preserved; generation from colour+structure', counts, screens: all.map((r) => ({ id: r.id, label: r.label, major: r.major, minor: r.minor, generation: r.generation })) }, null, 2));
 console.log('truth=' + all.length + ' changed=' + changed + ' humanChanged=' + humanChanged);
-console.log('majors=' + JSON.stringify(Object.fromEntries(counts)));
+console.log('majors=' + JSON.stringify(counts));
+console.log('written ' + outPath);
 console.log('sample changes:'); for (const c of changes.slice(0, 12)) console.log('  ' + c);

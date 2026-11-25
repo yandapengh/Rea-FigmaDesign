@@ -3,10 +3,10 @@
   "sample": "2026-11-20-baipai-full",
   "note": "human labels preserved; generation from colour+structure",
   "counts": {
-    "頁面類": 339,
+    "頁面類": 334,
     "彈窗類": 90,
     "廢棄": 108,
-    "老UI": 1704,
+    "老UI": 1709,
     "系統UI": 4,
     "新UI": 336
   },
@@ -1259,38 +1259,38 @@
     },
     {
       "id": "11676:421188",
-      "label": "交易詳情",
-      "major": "頁面類",
+      "label": "老UI - 交易詳情",
+      "major": "老UI",
       "minor": "交易詳情",
-      "generation": "new"
+      "generation": "old"
     },
     {
       "id": "11676:421230",
-      "label": "交易詳情",
-      "major": "頁面類",
+      "label": "老UI - 交易詳情",
+      "major": "老UI",
       "minor": "交易詳情",
-      "generation": "new"
+      "generation": "old"
     },
     {
       "id": "11676:421231",
-      "label": "交易詳情",
-      "major": "頁面類",
+      "label": "老UI - 交易詳情",
+      "major": "老UI",
       "minor": "交易詳情",
-      "generation": "new"
+      "generation": "old"
     },
     {
       "id": "11676:421269",
-      "label": "交易詳情",
-      "major": "頁面類",
+      "label": "老UI - 交易詳情",
+      "major": "老UI",
       "minor": "交易詳情",
-      "generation": "new"
+      "generation": "old"
     },
     {
       "id": "11676:421307",
-      "label": "交易詳情",
-      "major": "頁面類",
+      "label": "老UI - 交易詳情",
+      "major": "老UI",
       "minor": "交易詳情",
-      "generation": "new"
+      "generation": "old"
     },
     {
       "id": "11676:420992",

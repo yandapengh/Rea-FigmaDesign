@@ -1,6 +1,6 @@
-# 查詢層使用說明（Rea-FigmaDesign Phase 2）
+# 查詢層與 MCP 使用說明（Rea-FigmaDesign）
 
-唯讀 CLI，跑在已凍結的 SQLite 圖譜上。路徑一律以專案根目錄解析，**可從任何目錄執行**。
+唯讀 CLI 與 MCP，跑在已凍結或最新抽取的 SQLite 圖譜上。路徑一律以專案根目錄解析，**可從任何目錄執行**。
 
 ```bash
 npm run query -- <command> [args] [--db path] [--json]
@@ -9,16 +9,22 @@ npm run query -- <command> [args] [--db path] [--json]
 ## 一、一鍵流程
 
 ```bash
-npm run doctor        # 開工前：環境、資料、labels、路徑檢查（非 0 退出＝不要動手）
-npm run sync          # sheets --unique → propagate → review → test:parity，並開瀏覽器
+npm run doctor        # 開工前：環境、資料、labels/screens-v2.json、腳本檢查
+npm run sync          # health → review:board → test:parity → verify-source
 ```
 
 ## 架構
 
 ```
-server/core/graph.ts       圖載入、Merkle hash、profile / slots / archetype（純函式）
-server/core/semantics.ts   標註、世代投票、變體軸、彈窗標記（純函式）
-server/query.ts            CLI 轉接頭：參數、排版、寫檔、開瀏覽器
+server/core/graph.ts       圖載入、Merkle hash、screenRoots、profile / slots / archetype（純函式）
+server/core/semantics.ts   v2 標註讀寫/聚合、世代投票、變體軸（純函式）
+server/core/health.ts      11 項資料庫完整性稽核（純函式）
+server/core/analyze.ts     組合查詢（sheet / diff / find）
+server/core/onion.ts       Tier 1.5 剝洋蔥正規化
+server/core/ux.ts          15 項 UX 空間特徵
+server/core/detach.ts      Detach 結構相似度
+server/query.ts            CLI 轉接頭：參數、排版、寫檔
+server/mcp.ts              MCP 轉接頭（stdio JSON-RPC，14 個工具）
 ```
 
 核心模組不呼叫 `process.exit`、不寫檔、不讀 CLI 全域設定——CLI 與 MCP 都直接 import，**adapter 層不得自行重算**。
@@ -31,172 +37,67 @@ server/query.ts            CLI 轉接頭：參數、排版、寫檔、開瀏覽�
 npm run mcp      # JSON-RPC 2.0 over stdio, 無需額外 SDK
 ```
 
-11 個工具，唯讀 10 個、變更 1 個：
+14 個工具（12 唯讀／產出，1 標註寫入需確認）：
 
 | 工具 | 讀/寫 | 說明 |
 |---|---|---|
+| `server_info` | 讀 | MCP 連線自證（pid / uptime / calls / log） |
 | `list_samples` | 讀 | live db 與所有凍結樣本 |
-| `list_screens` | 讀 | 所有唯一畫面 + 版面原型計數（可依 archetype 過濾） |
+| `list_categories` | 讀 | `labels/screens-v2.json` 全部分類與數量統計 |
+| `category_report` | 讀 | 單一分類出現的所有 Figma 頁面與 node ID |
+| `health_check` | 讀 | 11 項 SQLite 圖譜一致性檢查 |
+| `list_screens` | 讀 | 所有唯一畫面 + 版面原型計數 + v2 標註欄位 |
 | `screen_sheet` | 讀 | 單頁特徵卡（含 AST 判不了的清單） |
 | `screen_family` | 讀 | 精確結構家族成員 |
 | `screen_variants` | 讀 | 無詞彙變體軸 |
 | `style_profile` | 讀 | 節點或整頁的風格指紋 |
 | `diff_screens` | 讀 | 結構 + 風格差異 |
 | `find_similar` | 讀 | 三層召回 |
-| `review_queue` | 讀 | 上次 propagate 的待分類清單 |
-| `apply_labels` | **寫** | 寫入 labels/screens.json；需 `confirm:true`，`dryRun:true` 可預覽 |
+| `build_review_board` | 寫 `.scratch/` | 生成可視化人工複審工作台 `.scratch/review.html` |
+| `apply_labels` | **寫** | 寫入 `labels/screens-v2.json`；需 `confirm:true`，`dryRun:true` 可預覽 |
 
-要點：MCP adapter 直接 import `server/core/*`，**不 spawn CLI**；錯誤以 `{ok:false,error:{code,message}}` 回傳並標記 `isError`。
+要點：MCP adapter 直接 import `server/core/*` 與 `generateReviewBoard`，並快取記憶體中的 `Graph` 實例；錯誤以 `{ok:false,error:{code,message}}` 回傳並標記 `isError`。
 
 ### 工具約束與守則
-
-MCP 的 schema 只能約束**形狀**，不能約束**意圖**。下面三張表把界線說清楚，外部 agent 接入時應以此為準。
-
-#### 1. schema 與 server 能強制的
 
 | 約束 | 在哪裡 | 效果 |
 |---|---|---|
 | 型別 / 必填 | `inputSchema` | 參數形狀不對，client 就在送出前擋下 |
-| `enum` | `list_screens.archetype`、`review_queue.archetype` | 只接受 `page` / `overlay-panel` / `overlay` / `unknown` |
-| 數值範圍 | `limit` 的 `minimum` / `maximum` | 避免一次拉出整份資料 |
-| `additionalProperties: false` | 所有工具與 `apply_labels.rows` | 打錯欄位名會被拒絕，不會靜默忽略 |
-| `annotations` | 全部工具 | `readOnlyHint` / `destructiveHint` 讓 host 能顯示風險 |
-| `confirm: true` | `apply_labels` | 沒有明確確認就不寫檔 |
-| server 端驗證 | handler | 節點不存在、樣本不存在、沒有 predictions，都回 `error.code` 與 `fix` |
+| `enum` | `list_screens.archetype`、`apply_labels.rows[].generation` | 嚴格限制允許值 |
+| `additionalProperties: false` | 所有工具與 `apply_labels.rows` | 打錯欄位名會被拒絕 |
+| `annotations` | 全部工具 | `readOnlyHint` / `destructiveHint` 標記風險 |
+| `confirm: true` | `apply_labels` | 沒有明確確認就不寫 `labels/screens-v2.json` |
+| server 端驗證 | handler | 節點不存在、樣本不存在、分類無結果，都回 error |
 
-#### 2. schema 不能強制的
-
-| 做不到 | 為什麼 |
-|---|---|
-| 模型選哪個工具 | 工具描述只能引導，不能規定推理路徑 |
-| 模型怎麼解讀數字 | 它可以把 119 說成 87，或把結構答案說成語意答案 |
-| 模型是否標註來源 | 它可能不給 ID、不說明定義 |
-| 模型是否先問清定義 | 需要 host 的提示詞或 SKILL 約束，協議層管不到 |
-
-#### 3. 真正的保證
-
-| 保證 | 來源 |
-|---|---|
-| 數字是算出來的，不是生成的 | `list_screens` 回傳 server 端計數 |
-| 每個畫面都能回查 | 回傳帶 Figma node id |
-| 同一份資料、同一版本，答案相同 | 核心是決定性的，沒有隨機性 |
-| 錯了能自我修正 | 錯誤帶 `code` 與 `fix`，模型可重試 |
-
-#### 對外部 agent 的期待
-
-1. 問「有多少」先用 `list_screens`（可帶 `archetype`），不要自己遍歷資料庫。
-2. 沒有 labels 時，語意分類一律回 `unknown`，不要用結構答案冒充。
-3. 引用具體 ID，讓使用者能貼回 Figma 驗證。
-
-> 設計原則：**協議約束形狀，文件約束流程，資料保證來源。** 三者缺一，模型就會變成黑盒。
->
-> 完整敘事：[docs/constraints.html](constraints.html)。
-
-上述約束由 `npm run test:mcp` 自動檢查（工具數、enum、annotations、未知工具錯誤、`server_info`）。
+上述約束由 `npm run test:mcp` 自動檢查。
 
 ### DSH 斜線命令（plugin）
-
-確定性操作不需要模型，做成命令可以零 token、即時執行：
 
 | 命令 | 行為 |
 |---|---|
 | `/rea-figma-review` | 生成 `.scratch/review.html` 並開啟（不接受參數） |
-| `/rea-figma-doctor` | 跑 preflight |
 | `/rea-figma-doctor` | 跑 preflight，回報 RESULT |
 
-安裝（本機）：
+需要帶條件篩選（`--unlabeled`、`--category`、`--sample`、`--ids`）時，由 agent 呼叫 `build_review_board` 或 `npm run review:board -- ...`。
 
-```bash
-npm run build:dsh-plugin
-mkdir -p ~/.dsh/profiles/node_modules/dsh-plugin-rea-figma/dist
-cp dsh-plugin/package.json ~/.dsh/profiles/node_modules/dsh-plugin-rea-figma/
-cp dsh-plugin/dist/index.js ~/.dsh/profiles/node_modules/dsh-plugin-rea-figma/dist/
-```
+## 二、CLI 命令總表
 
-在 profile 的 `cordis.patch.yml` 追加：
+### 常用報表與複審指令
 
-```yaml
-- insert:
-    - id: rea-figma-commands
-      name: dsh-plugin-rea-figma
-      config:
-        root: /path/to/rea-figma
-```
-
-重啟 DSH 後，輸入 `/rea-figma` 應看到兩個命令。命令在 UI 命令平面執行，輸出**不進模型歷史、不消耗 token**。
-
-**命令刻意不吃參數。** 要只看某個分類時，用自然語言跟 agent 說，由 agent 讀 `labels/screens.json` 的 taxonomy、補正錯字，再回填 CLI 參數：
-
-```text
-使用者：review 首ye        ← 錯字
-agent：解析為「首頁」→ npm run query -- review --category 首頁
-```
-
-這樣「穩定」與「方便」各自歸位：命令是固定動作，分類名稱的模糊匹配交給模型；CLI 只接受精確分類，錯了會回 `did you mean: 首頁`。
-
-### 在 DSH 註冊 MCP（本機）
-
-DSH 用 `@deepseek-ai/dsh-mcp-client`，每個 server 一個 plugin 實例。在 profile 的 `cordis.patch.yml` 追加：
-
-```yaml
-- id: mcp-rea-figma
-  name: "@deepseek-ai/dsh-mcp-client"
-  config:
-    serverName: rea-figma
-    transport: stdio
-    # 用 node 直接跑 tsx 的 CLI，不要用 node_modules/.bin/tsx：
-    # 那個 shim 靠 /usr/bin/env node，host 的 PATH 沒有 node 時會啟動失敗。
-    command: /usr/local/bin/node
-    args:
-      - /path/to/rea-figma/node_modules/tsx/dist/cli.mjs
-      - /path/to/rea-figma/server/mcp.ts
-    cwd: /path/to/rea-figma
-    failOnStartupError: true
-```
-
-重啟 DSH 後，工具以 `mcp__rea-figma__<name>` 註冊（例：`mcp__rea-figma__screen_sheet`）。
-
-已用官方 SDK client（`@modelcontextprotocol/sdk` 1.29.0）驗證：`initialize` → `tools/list`（9 個）→ `tools/call` 正常，錯誤路徑回 `isError: true`。
-
-### 如何確認「這次呼叫真的走了 MCP」
-
-三個獨立證據，任一即可：
-
-| 方法 | 怎麼看 |
+| 指令 | 作用 |
 |---|---|
-| 呼叫紀錄 | `tail -f .scratch/mcp-calls.jsonl` — 每次呼叫一行（ts / pid / tool / args / ms / ok） |
-| 連線自證 | 呼叫 `mcp__rea-figma__server_info` — 回 pid、startedAt、uptime、calls、log 路徑 |
-| 工具名稱 | transcript 顯示的是 `mcp__rea-figma__*`，不是 CLI |
+| `npm run report:categories` | 列出 `labels/screens-v2.json` 全部大類／小類、畫面數、頁面數 |
+| `npm run report:category -- <分類>` | 輸出該分類在各 Figma 頁面的 ID 清單，並存至 `.scratch/rea-figma-category-<分類>.md` |
+| `npm run review:board -- [選項]` | 生成 `.scratch/review.html` 可視化人工複審工作台（`--unlabeled` / `--category` / `--sample` / `--ids` / `--page` / `--open`） |
+| `npm run health` | 11 項圖譜完整性檢查 |
+| `npm run tier1` | Tier 1 規則、Merkle 去重與版面原型回歸 |
+| `npm run sample` | 跨頁抽樣 10 個畫面 |
+| `npm run hidden` | 列出透明度 ≤35% 的隱藏畫面 |
+| `npm run tier15` | Tier 1.5 剝洋蔥正規化摘要 |
+| `npm run ux -- <node-id>` | 15 項 UX 空間特徵 |
+| `npm run detach` | Detach 合成召回 |
 
-呼叫紀錄由 server 自己在 `tools/call` 時寫入，所以「有紀錄」等於「請求真的經過 MCP server 的 handler」。失敗的呼叫也會記錄（`ok:false`）。
-
-改完 `server/mcp.ts` 後不必重啟 DSH：kill 掉子進程，client 會在 500ms 後自動重連並重新同步工具（`mcp-client(rea-figma): reconnected`）。
-
-## Part 2 分析模組（2026-11-23）
-
-| 指令 | 用途 | 產物 |
-|---|---|---|
-| npm run report:categories | 列出全部大類/小類與數量 | 終端機 |
-| npm run tier15 | Tier 1.5 剝洋蔥正規化摘要 | 終端機 |
-| npm run ux -- node-id | 15 項 UX 空間特徵 | 終端機 |
-| npm run detach | Detach 合成召回 | 終端機 |
-
-皆為唯讀；MCP 尚未暴露這三個工具，agent 需直接呼叫 CLI。
-
-## 輸出契約
-
-所有命令支援 `--json`，回傳統一 envelope：
-
-```json
-{ "ok": true, "data": { ... } }
-{ "ok": false, "error": { "code": "not_found", "message": "...", "fix": "..." } }
-```
-
-- 錯誤碼：`invalid_argument` / `not_found` / `missing_input` / `guard_rejected` / `internal`
-- 失敗時 exit code = 1，成功 = 0
-- 查詢工具清單：`npm run query -- manifest`（或 `--json`）
-
-## 二、命令總表
+### `npm run query -- <command>`
 
 | 命令 | 作用 |
 |---|---|
@@ -207,73 +108,26 @@ DSH 用 `@deepseek-ai/dsh-mcp-client`，每個 server 一個 plugin 實例。在
 | `profile <id \| --page X>` | 風格量化指紋 |
 | `diff <a> <b>` | 結構 + 風格差異 |
 | `find <id> --top N` | 三層召回：L1 同構 / L2 近構 / L3 樣式近 |
-| `classify <id>` / `scan` / `derive` | 新舊世代分類（標註驅動） |
+| `classify <id>` / `scan` / `derive` | 新舊世代分類（`labels/style.json` 驅動） |
 | `cluster --k N [--archetype X]` | k-means 聚類（功能分類候選） |
-| `markers` | 從標註學「彈窗專用元件」（實驗用，未套用） |
-| `propagate` | 以標註做 kNN 傳播，輸出信心分級 |
-| `review` | 產生可視化排查板 `.scratch/review.html`；左側導航依資料動態分組（預設預測分類） |
-| `review --category X` | 只生成某一分類；若該分類沒有待分類項目，改為列出已標註的該分類畫面（唯讀檢視） |
-| `review --group-by archetype` | 改以版面原型分組（page / overlay-panel / overlay） |
-| `apply --md <file>` | 解析設計師回饋的 Markdown 表，寫回 `labels/screens.json` |
-| `category <name>` | 列出某分類的畫面；超過 40 張自動抽樣 10 個（`--all` 全量） |
-| `verify-source` | 檢查 labels／predictions／queue 的 ID 與名稱都存在於樣本 |
-| `--help` | 任何命令加 `--help` 印出完整工具清單與參數 |
+| `verify-source` | 檢查 `labels/screens-v2.json` 的每個 ID 都存在於樣本圖譜 |
+| `--help` | 印出完整工具清單與參數 |
 
-## 三、資料位置（初始狀態）
-
-**這個 repo 不含任何資料庫。** 抽取出來的 SQLite、凍結樣本、備份與測試產物都放在 repo 外面：
-
-```
-~/Downloads/rea-figma-data-<date>/     # 外部資料根（建議）
-  ├── live/        data/rea-figma.sqlite
-  ├── samples/     *.sqlite + *.manifest.json
-  ├── backups/     *.sqlite
-  └── scratch/     review.html、sheets.jsonl、predictions.jsonl …
-```
-
-新 checkout 的初始狀態是：`data/`、`backups/`、`.scratch/` 都是空的，`doctor` 會把它當成 warning（不是 failure），並提示先跑抽取。
-
-抽取時**不需要手動放檔**：`npm run start:server` 會自動建立 `data/rea-figma.sqlite`（含父目錄），plugin 連上就開始寫入。路徑以 repo 根目錄解析，從哪個目錄啟動都一樣。
-
-要沿用外部既有資料，用環境變數指定：
-
-```bash
-REA_DB_PATH=~/Downloads/rea-figma-data-2026-11-13/live/rea-figma.sqlite npm run start:server
-```
-
-## 資料位置
+## 三、資料位置
 
 | 路徑 | 內容 | 進 git |
 |---|---|---|
-| `labels/style.json` | 新舊世代的標註 | ✅ 來源 |
-| `labels/screens.json` | 頁面分類標註（設計師回饋寫這裡） | ✅ 來源 |
-| `labels/archetype.json` | 從標註學到的彈窗元件（實驗紀錄） | ✅ |
-| `data/samples/*.sqlite` | 凍結的樣本 | ❌ 衍生 |
-| `.scratch/*` | 特徵表、聚類、預測、排查板 | ❌ 產物 |
+| `labels/screens-v2.json` | 畫面分類與世代標註（`major` / `minor` / `generation`） | ✅ 來源 |
+| `labels/style.json` | 世代風格輔助標註 | ✅ 來源 |
+| `data/<file-key>/graph.sqlite` | 本機抽取圖譜（工具自動挑最新） | ❌ 衍生 |
+| `data/samples/*.sqlite` | 凍結的基準樣本 | ❌ 衍生 |
+| `.scratch/*` | 複審看板、分類報表、特徵表、呼叫紀錄 | ❌ 產物 |
 
-**產物一律進 `.scratch/`**，要清就 `rm -rf .scratch`。CLI 的 `--out` 只接受 `.scratch/` 路徑，寫到別處會直接拒絕。
+**產物一律進 `.scratch/`**，要清就 `rm -rf .scratch`。
 
-## 四、版面原型（archetype）
+## 四、設計師 ↔ Agent 迴圈
 
-`page` / `overlay-panel` / `overlay` 由規則算出，不用聚類：
-
-1. 只有一個滿版子節點時往內拆（wrapper）
-2. 找**與畫布同尺寸（±3px）且這一層不含文字**的子節點＝遮罩
-3. 遮罩之上還有更小的兄弟節點（面積 <50%）＝彈窗面板
-
-驗證：42 個人工標註，precision 1.00 / recall 1.00。
-
-## 五、設計師 ↔ Agent 迴圈
-
-1. 設計師開 `.scratch/review.html`：左側按版面原型導航，表格第一欄是 ID
-2. 勾選（Shift 連選）→ 批次套用分類／備註
-3. 需要回 Figma 看：勾選後按「複製 Figma 指令」，貼進 plugin 執行（會按頁面分組切換）
-4. 按「複製 Markdown」→ 貼給 agent
-5. Agent：`npm run query -- apply --md feedback.md` → `npm run sync`
-
-## 六、已知限制
-
-- 語意分類（首頁／收銀台…）不能自動命名，只能聚類出候選，由人命名
-- kNN 傳播目前 LOO 57%，僅 unanimous（86%）可作建議，其餘需人工複審
-- 沒有縮圖；排查板用色票 + 型別比例 + 文案當視覺替代
-- `pages` 表可能過期（census 與抽取脫鉤），查詢層一律從 `nodes.page_name` 聚合
+1. Agent 或設計師執行 `npm run review:board -- [--unlabeled | --category X | --sample 15] --open`。
+2. 設計師在 `.scratch/review.html` 檢視：無問題直接留空，有問題在右側輸入框自由描述；需要回 Figma 看可一鍵複製 ID 或 Figma 定位腳本。
+3. 點擊 **「複製為 Agent 提示詞」**，貼回給 Agent。
+4. Agent 根據意見用 `apply_labels(dryRun: true)` 列出修改前後對照，經設計師確認後正式寫入 `labels/screens-v2.json`。

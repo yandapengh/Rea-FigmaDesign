@@ -4,7 +4,7 @@
  *
  * Pure by contract: no process.exit, no CLI formatting, no writes.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { Graph, profileOf, jaccard, normalizeText, isChrome } from './graph';
 
 export interface ScreenLabel { id: string; category: string; kind: string; note?: string }
@@ -299,6 +299,113 @@ export function deriveFamilyAxes(g: Graph, members: string[], showHint: boolean)
   }
 
   return { family: '', nameHint: g.nodes.get(members[0])!.name, members: members.length, axes, unresolved };
+}
+
+export const V2_MAJORS = ['老UI', '新UI', '系統UI', '彈窗類', '頁面類', '廢棄'] as const;
+
+export interface ScreenLabelV2 {
+  id: string;
+  label: string;
+  major: string;
+  minor: string;
+  generation: string;
+  note?: string;
+}
+
+export interface ScreenLabelsV2File {
+  version: 2;
+  sample?: string;
+  note?: string;
+  counts: Record<string, number>;
+  screens: ScreenLabelV2[];
+}
+
+export function recomputeV2Counts(screens: ScreenLabelV2[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const s of screens) {
+    counts[s.major] = (counts[s.major] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export function loadScreenLabelsV2(path: string): ScreenLabelsV2File {
+  let raw = '';
+  try {
+    raw = readFileSync(path, 'utf8');
+  } catch {
+    throw new Error('v2 labels file not found: ' + path);
+  }
+  const parsed = JSON.parse(raw) as Partial<ScreenLabelsV2File>;
+  if (!parsed || parsed.version !== 2 || !Array.isArray(parsed.screens)) {
+    throw new Error('invalid v2 labels file (expected version=2 and screens array): ' + path);
+  }
+  return {
+    version: 2,
+    sample: parsed.sample,
+    note: parsed.note,
+    counts: parsed.counts && typeof parsed.counts === 'object' ? parsed.counts : recomputeV2Counts(parsed.screens),
+    screens: parsed.screens,
+  };
+}
+
+export function tryLoadScreenLabelsV2(path: string): ScreenLabelsV2File | null {
+  if (!existsSync(path)) return null;
+  return loadScreenLabelsV2(path);
+}
+
+export interface V2CategoryListItem {
+  major: string;
+  count: number;
+  minors: Array<{ minor: string; count: number; pages: number }>;
+}
+
+export function summarizeCategoriesV2(screens: ScreenLabelV2[], pageById: Map<string, string>): V2CategoryListItem[] {
+  const majors = new Map<string, { count: number; minors: Map<string, { count: number; pages: Set<string> }> }>();
+  for (const r of screens) {
+    const rec = majors.get(r.major) ?? { count: 0, minors: new Map() };
+    rec.count += 1;
+    const minor = r.minor || '(只到大類)';
+    const sub = rec.minors.get(minor) ?? { count: 0, pages: new Set<string>() };
+    sub.count += 1;
+    const pg = (pageById.get(r.id) ?? '').trim();
+    if (pg) sub.pages.add(pg);
+    rec.minors.set(minor, sub);
+    majors.set(r.major, rec);
+  }
+  return [...majors.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([major, rec]) => ({
+      major,
+      count: rec.count,
+      minors: [...rec.minors.entries()]
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([minor, sub]) => ({ minor, count: sub.count, pages: sub.pages.size })),
+    }));
+}
+
+export interface V2CategoryReport {
+  category: string;
+  total: number;
+  pages: Array<{ page: string; count: number; ids: string[] }>;
+}
+
+export function categoryReportV2(screens: ScreenLabelV2[], category: string, pageById: Map<string, string>): V2CategoryReport | null {
+  let wanted = screens.filter((r) => r.label === category || r.minor === category);
+  if (wanted.length === 0) {
+    wanted = screens.filter((r) => r.major === category);
+  }
+  if (wanted.length === 0) return null;
+  const groups = new Map<string, string[]>();
+  for (const r of wanted) {
+    const pg = (pageById.get(r.id) ?? '').trim() || '(未知頁面)';
+    const list = groups.get(pg) ?? [];
+    list.push(r.id);
+    groups.set(pg, list);
+  }
+  const pages = [...groups.entries()]
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([page, ids]) => ({ page, count: ids.length, ids }));
+  return { category, total: wanted.length, pages };
 }
 
 

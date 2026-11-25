@@ -18,7 +18,7 @@ export function uxFeatures(g: Graph, id: string): number[] {
   const kids = g.children.get(id) ?? [];
   const zoneArea = [0, 0, 0];
   const zoneText = [0, 0];
-  let childArea = 0, mediaArea = 0, instArea = 0, texts = 0;
+  let childArea = 0, mediaArea = 0, instArea = 0;
   const hashes: string[] = [];
   for (const kid of kids) {
     const k = g.nodes.get(kid)!;
@@ -39,8 +39,16 @@ export function uxFeatures(g: Graph, id: string): number[] {
   let textsAll = 0;
   for (const sid of sub) if (g.nodes.get(sid)?.type === 'TEXT') textsAll += 1;
   const whitespace = 1 - clamp(childArea / screenArea, 0, 1);
+  let curRun = 1;
   let maxRun = 1;
-  for (let i = 1; i < hashes.length; i += 1) { if (hashes[i] && hashes[i] === hashes[i - 1]) maxRun += 1; }
+  for (let i = 1; i < hashes.length; i += 1) {
+    if (hashes[i] && hashes[i] === hashes[i - 1]) {
+      curRun += 1;
+      if (curRun > maxRun) maxRun = curRun;
+    } else {
+      curRun = 1;
+    }
+  }
   const listRun = kids.length > 0 ? Math.max(0, maxRun - 1) / kids.length : 0;
   const xb = new Map<number, number>();
   for (const kid of kids) { const k = g.nodes.get(kid)!; const px = Math.round((k.bbox_x ?? sx) / 24); xb.set(px, (xb.get(px) ?? 0) + 1); }

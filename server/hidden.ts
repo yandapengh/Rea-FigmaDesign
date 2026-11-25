@@ -1,24 +1,14 @@
 /// <reference lib="es2022" />
 /** List screens hidden via opacity (designer's 22% convention) once opacity is exported. */
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import Database = require('better-sqlite3');
+import { AstGraphDB } from './db';
 
 const ROOT = resolve(__dirname, '..');
-let dbPath = '';
-{
-  let best = ''; let bestTime = 0;
-  for (const d of readdirSync(join(ROOT, 'data'), { withFileTypes: true })) {
-    if (!d.isDirectory()) continue;
-    const p = join(ROOT, 'data', d.name, 'graph.sqlite');
-    if (!existsSync(p)) continue;
-    const t = statSync(p).mtimeMs;
-    if (t > bestTime) { bestTime = t; best = p; }
-  }
-  dbPath = best;
-}
-if (!dbPath) { console.error('no database'); process.exit(1); }
+const dbPath = AstGraphDB.resolveLatestGraphDb(ROOT) ?? '';
+if (!dbPath || !existsSync(dbPath)) { console.error('no database'); process.exit(1); }
 const db = new Database(dbPath, { readonly: true, fileMustExist: true });
 const rows = db.prepare(
   "SELECT id, name, page_name, ROUND(json_extract(style_json, '$.opacity'), 3) AS opacity FROM nodes " +
