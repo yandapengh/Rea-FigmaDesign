@@ -405,12 +405,45 @@ export function topEntries<K>(m: Map<K, number>, n: number): Array<[K, number]> 
   return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
-/** Top-level 390x844 frame/component/instance screen root candidates (non-nested, sorted). */
-export function findScreenRootCandidates(g: Graph): string[] {
+export interface ScreenSpec {
+  widths: number[];
+  widthTolerance: number;
+  minHeight: number;
+  maxHeight: number;
+  minNodes: number;
+}
+
+export const DEFAULT_SCREEN_SPEC: ScreenSpec = {
+  widths: [360, 375, 390, 393, 412, 414, 428, 430],
+  widthTolerance: 6,
+  minHeight: 600,
+  maxHeight: 12000,
+  minNodes: 40,
+};
+
+function matchesWidthSpec(w: number, spec: ScreenSpec): boolean {
+  for (const target of spec.widths) {
+    if (Math.abs(w - target) <= spec.widthTolerance) return true;
+  }
+  return false;
+}
+
+/** Top-level mobile/long-page frame/component/instance screen root candidates (non-nested, sorted). */
+export function findScreenRootCandidates(g: Graph, spec?: Partial<ScreenSpec>): string[] {
+  const s: ScreenSpec = {
+    widths: spec?.widths && spec.widths.length > 0 ? spec.widths : DEFAULT_SCREEN_SPEC.widths,
+    widthTolerance: typeof spec?.widthTolerance === 'number' ? spec.widthTolerance : DEFAULT_SCREEN_SPEC.widthTolerance,
+    minHeight: typeof spec?.minHeight === 'number' ? spec.minHeight : DEFAULT_SCREEN_SPEC.minHeight,
+    maxHeight: typeof spec?.maxHeight === 'number' ? spec.maxHeight : DEFAULT_SCREEN_SPEC.maxHeight,
+    minNodes: typeof spec?.minNodes === 'number' ? spec.minNodes : DEFAULT_SCREEN_SPEC.minNodes,
+  };
   const cand = new Set<string>();
   for (const [id, n] of g.nodes) {
     if (n.type !== 'FRAME' && n.type !== 'COMPONENT' && n.type !== 'INSTANCE') continue;
-    if (Math.abs((n.bbox_w ?? 0) - 390) > 4 || Math.abs((n.bbox_h ?? 0) - 844) > 6) continue;
+    const w = n.bbox_w ?? 0;
+    const h = n.bbox_h ?? 0;
+    if (!matchesWidthSpec(w, s)) continue;
+    if (h < s.minHeight || h > s.maxHeight) continue;
     cand.add(id);
   }
   const roots: string[] = [];
@@ -430,8 +463,12 @@ export function findScreenRootCandidates(g: Graph): string[] {
 }
 
 /** Screen roots filtered by minimum subtree node count (default 40). */
-export function findScreenRoots(g: Graph, minNodes = 40): string[] {
-  return findScreenRootCandidates(g).filter((id) => g.subtree(id).length >= minNodes);
+export function findScreenRoots(g: Graph, minNodesOrSpec: number | Partial<ScreenSpec> = 40): string[] {
+  if (typeof minNodesOrSpec === 'number') {
+    return findScreenRootCandidates(g).filter((id) => g.subtree(id).length >= minNodesOrSpec);
+  }
+  const minNodes = typeof minNodesOrSpec.minNodes === 'number' ? minNodesOrSpec.minNodes : DEFAULT_SCREEN_SPEC.minNodes;
+  return findScreenRootCandidates(g, minNodesOrSpec).filter((id) => g.subtree(id).length >= minNodes);
 }
 
 

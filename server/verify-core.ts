@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import type { NodeRow } from '../shared/protocol';
 import { AstGraphDB } from './db';
 import { Graph, findScreenRootCandidates, findScreenRoots } from './core/graph';
+import { labelsPathForProject } from './core/projects';
 import { uxFeatures } from './core/ux';
 import { onionHashes } from './core/onion';
 import { detachFeature, detachScore } from './core/detach';
@@ -82,6 +83,10 @@ function main(): void {
     rows.push(makeNode({ id: 's2', bbox_w: 390, bbox_h: 844, name: 'Tiny Screen' }));
     rows.push(makeNode({ id: 's2:0', parent_id: 's2', child_index: 0, depth: 1, type: 'TEXT', text_content: 'Hi' }));
 
+    // Long scrolling 390x1800 mobile screen (candidate under DEFAULT_SCREEN_SPEC, excluded if maxHeight=900)
+    rows.push(makeNode({ id: 's3', bbox_w: 390, bbox_h: 1800, name: 'Long Scroll Screen' }));
+    rows.push(makeNode({ id: 's3:0', parent_id: 's3', child_index: 0, depth: 1, type: 'TEXT', text_content: 'Scroll' }));
+
     // Deep linear chain (depth 120) to verify iterative onionHashes never overflows or crashes
     rows.push(makeNode({ id: 'chain:0', parent_id: null, child_index: 0, depth: 0, type: 'FRAME' }));
     for (let d = 1; d <= 120; d += 1) {
@@ -94,11 +99,17 @@ function main(): void {
 
     const g = new Graph(dbPath);
 
-    // 1. findScreenRootCandidates & findScreenRoots
+    // 1. findScreenRootCandidates & findScreenRoots (including long page + custom ScreenSpec)
     const cands = findScreenRootCandidates(g);
-    assert.deepEqual(cands, ['s1', 's2']);
+    assert.deepEqual(cands, ['s1', 's2', 's3']);
+    const strictCands = findScreenRootCandidates(g, { maxHeight: 900 });
+    assert.deepEqual(strictCands, ['s1', 's2']);
     const roots = findScreenRoots(g, 40);
     assert.deepEqual(roots, ['s1']);
+
+    // 1b. project isolation label path resolver
+    assert.ok(labelsPathForProject(dir, 'project-b').endsWith('labels/projects/project-b/screens-v2.json'));
+    assert.ok(labelsPathForProject(join(__dirname, '..'), 'file-1d40063501').endsWith('labels/screens-v2.json'));
 
     // 2. uxFeatures listRun bug fix: maxRun must be 2, not 3 (46 direct kids on s1)
     const ux = uxFeatures(g, 's1');

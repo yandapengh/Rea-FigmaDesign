@@ -33,6 +33,7 @@
     "ux": "tsx server/ux.ts",
     "detach": "tsx server/detach.ts",
     "report:categories": "tsx server/category-report.ts --list",
+    "review:propose": "tsx server/propose-labels.ts",
     "review:board": "tsx server/review-board.ts"
   },
   "dependencies": {

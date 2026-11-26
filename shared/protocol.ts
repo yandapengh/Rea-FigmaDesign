@@ -108,12 +108,14 @@ export interface PageStatusRow {
 
 export interface ResetDatabasePayload {
   confirm: true;
+  file_key?: string;
 }
 
 export type BridgeClientRole = 'figma-plugin' | 'review-ui';
 
 export interface BridgeHelloPayload {
   role: BridgeClientRole;
+  project_id?: string;
   file_key?: string;
   file_name?: string;
 }
@@ -121,6 +123,9 @@ export interface BridgeHelloPayload {
 export interface BridgeFocusRequestPayload {
   request_id: string;
   node_ids: string[];
+  project_id?: string;
+  file_key?: string;
+  file_name?: string;
   page_id?: string;
   page_name?: string;
   page_only?: boolean;
@@ -142,6 +147,7 @@ export interface BridgeStatusPayload {
   figma_connected: boolean;
   figma_file_name?: string;
   figma_file_key?: string;
+  figma_clients?: Array<{ file_key?: string; file_name?: string }>;
   review_clients: number;
 }
 
@@ -164,6 +170,7 @@ export interface BridgeLookupRequestPayload {
   page_id: string;
   page_name: string;
   items: BridgeSelectionItem[];
+  expanded_from_sections?: string[];
 }
 
 export interface BridgeLookupResultPayload {
@@ -172,6 +179,29 @@ export interface BridgeLookupResultPayload {
   total?: number;
   matched_count?: number;
   unrecorded_count?: number;
+  error?: string;
+}
+
+export interface BridgeStageRequestPayload {
+  request_id: string;
+  node_ids: string[];
+  title?: string;
+  project_id?: string;
+  file_key?: string;
+  file_name?: string;
+  target_page_id?: string;
+}
+
+export interface BridgeStageResultPayload {
+  request_id: string;
+  ok: boolean;
+  section_id?: string;
+  section_name?: string;
+  page_id?: string;
+  page_name?: string;
+  staged_count?: number;
+  missing_ids?: string[];
+  skipped_count?: number;
   error?: string;
 }
 
@@ -192,6 +222,8 @@ export type WsMessage =
   | { type: 'BRIDGE_FOCUS_RESULT'; payload: BridgeFocusResultPayload }
   | { type: 'BRIDGE_STATUS'; payload: BridgeStatusPayload }
   | { type: 'BRIDGE_LOOKUP_SELECTION'; payload: BridgeLookupRequestPayload }
-  | { type: 'BRIDGE_LOOKUP_RESULT'; payload: BridgeLookupResultPayload };
+  | { type: 'BRIDGE_LOOKUP_RESULT'; payload: BridgeLookupResultPayload }
+  | { type: 'BRIDGE_STAGE_BOARD'; payload: BridgeStageRequestPayload }
+  | { type: 'BRIDGE_STAGE_RESULT'; payload: BridgeStageResultPayload };
 
 export type WsEnvelopeMessage = WsMessage & { batch_id?: number };

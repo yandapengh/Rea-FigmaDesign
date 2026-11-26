@@ -12,9 +12,15 @@ import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import Database = require('better-sqlite3');
 import { AstGraphDB } from './db';
+import { listProjects, resolveProject } from './core/projects';
 
 const ROOT = resolve(__dirname, '..');
 const SCRATCH = resolve(ROOT, '.scratch');
+const args = process.argv.slice(2);
+let projectFlag = '';
+for (let i = 0; i < args.length; i += 1) {
+  if (args[i] === '--project') projectFlag = args[++i] ?? '';
+}
 let failures = 0;
 let warnings = 0;
 
@@ -73,12 +79,17 @@ function inspectDb(path: string, label: string): { nodes: number; ok: boolean } 
 
 function checkData(): void {
   section('data');
-  const live = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
+  const projects = listProjects(ROOT);
+  const target = projectFlag ? resolveProject(ROOT, { project: projectFlag }) : projects[0];
+  const live = target?.dbPath ?? AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
   if (!existsSync(live)) {
     warn('no live db yet (fresh checkout)', 'run the Figma extraction: npm run start:server, then the plugin');
   } else {
-    const liveResult = inspectDb(live, 'live db');
+    const liveResult = inspectDb(live, 'live db (' + (target?.id ?? 'default') + ')');
     if (liveResult && liveResult.nodes === 0) bad('live db has no nodes', 're-run the extraction');
+  }
+  if (projects.length > 1) {
+    ok('projects detected: ' + projects.map((p) => p.id + ' (' + p.name + ')').join(', '));
   }
 
   const samplesDir = resolve(ROOT, 'data/samples');
@@ -101,9 +112,10 @@ function checkData(): void {
 function checkLabels(): void {
   section('labels');
   let hasV2 = false;
-  const v2Abs = resolve(ROOT, 'labels/screens-v2.json');
+  const resolved = resolveProject(ROOT, { project: projectFlag || undefined });
+  const v2Abs = resolved.labelsPath;
   if (!existsSync(v2Abs)) {
-    warn('screen labels v2 missing (labels/screens-v2.json)', 'run `npm run review:board -- --unlabeled` to start labeling');
+    warn('screen labels v2 missing (' + resolved.labelsRelPath + ')', 'run `npm run review:board -- --project ' + resolved.id + ' --unlabeled` to start labeling');
   } else {
     try {
       const parsed = JSON.parse(readFileSync(v2Abs, 'utf8')) as { version?: unknown; screens?: unknown[] };

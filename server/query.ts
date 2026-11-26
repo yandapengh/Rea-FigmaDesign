@@ -6,6 +6,7 @@ import {
   Graph, profileOf, slotsOf, typeHist, cosine, jaccard, topEntries,
   archetypeOf, headlineOf, isChrome, findScreenRootCandidates,
 } from './core/graph';
+import { resolveProject } from './core/projects';
 import {
   loadLabels, groupStats, classifyWith, decideLabel, deriveFamilyAxes,
   tryLoadScreenLabelsV2,
@@ -41,6 +42,8 @@ const SCRATCH = resolve(ROOT, '.scratch');
 const DEFAULT_DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 const OPT = {
   db: DEFAULT_DB,
+  dbExplicit: false,
+  project: null as string | null,
   json: false,
   help: false,
   out: null as string | null,
@@ -53,6 +56,8 @@ const OPT = {
   k: 10,
   archetype: null as string | null,
   screenLabels: resolve(ROOT, 'labels/screens-v2.json'),
+  screenLabelsExplicit: false,
+  screenSpec: undefined as ReturnType<typeof resolveProject>['config']['screenSpec'] | undefined,
   input: resolve(SCRATCH, 'sheets.jsonl'),
   minMembers: 3,
   floor: 0.55,
@@ -82,7 +87,8 @@ function parseArgs(argv: string[]): { cmd: string; positional: string[] } {
     const a = argv[i];
     if (a === '--json') OPT.json = true;
     else if (a === '--help' || a === '-h') OPT.help = true;
-    else if (a === '--db') OPT.db = resolve(ROOT, argv[++i] ?? fail('--db needs a value'));
+    else if (a === '--project') OPT.project = argv[++i] ?? fail('--project needs a value');
+    else if (a === '--db') { OPT.db = resolve(ROOT, argv[++i] ?? fail('--db needs a value')); OPT.dbExplicit = true; }
     else if (a === '--out') OPT.out = argv[++i] ?? fail('--out needs a value');
     else if (a === '--top') OPT.top = Number(argv[++i] ?? fail('--top needs a value'));
     else if (a === '--page') OPT.page = argv[++i] ?? fail('--page needs a value');
@@ -93,7 +99,7 @@ function parseArgs(argv: string[]): { cmd: string; positional: string[] } {
     else if (a === '--unique') OPT.unique = true;
     else if (a === '--k') OPT.k = Number(argv[++i] ?? fail('--k needs a value'));
     else if (a === '--archetype') OPT.archetype = argv[++i] ?? fail('--archetype needs a value');
-    else if (a === '--screen-labels') OPT.screenLabels = resolve(ROOT, argv[++i] ?? fail('--screen-labels needs a value'));
+    else if (a === '--screen-labels') { OPT.screenLabels = resolve(ROOT, argv[++i] ?? fail('--screen-labels needs a value')); OPT.screenLabelsExplicit = true; }
     else if (a === '--in') OPT.input = resolve(ROOT, argv[++i] ?? fail('--in needs a value'));
     else if (a === '--min-members') OPT.minMembers = Number(argv[++i] ?? fail('--min-members needs a value'));
     else if (a.startsWith('--')) fail('unknown flag ' + a);
@@ -191,6 +197,20 @@ function main(): void {
     }
     emit({ command: 'manifest', tools: TOOLS }, lines.join('\n'));
     return;
+  }
+
+  if (OPT.project || OPT.dbExplicit) {
+    const resolved = resolveProject(ROOT, {
+      project: OPT.project || undefined,
+      dbPath: OPT.dbExplicit ? OPT.db : undefined,
+    });
+    if (!OPT.dbExplicit) OPT.db = resolved.dbPath;
+    if (!OPT.screenLabelsExplicit) OPT.screenLabels = resolved.labelsPath;
+    OPT.screenSpec = resolved.config.screenSpec;
+  } else {
+    const resolved = resolveProject(ROOT, {});
+    OPT.screenLabels = resolved.labelsPath;
+    OPT.screenSpec = resolved.config.screenSpec;
   }
 
   const g = new Graph(OPT.db);
@@ -313,7 +333,7 @@ function main(): void {
   }
 
   if (cmd === 'sheets') {
-    const roots = findScreenRootCandidates(g);
+    const roots = findScreenRootCandidates(g, OPT.screenSpec);
 
     const famCache = new Map<string, DerivedFamily>();
     for (const id of roots) {

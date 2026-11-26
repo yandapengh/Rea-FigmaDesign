@@ -77,10 +77,12 @@ async function main(): Promise<void> {
 
   const list = await rpc(2, 'tools/list', {});
   const tools = list.result?.tools ?? [];
-  check('tools/list advertises 14 tools', tools.length === 14, String(tools.length));
+  check('tools/list advertises 16 tools', tools.length === 16, String(tools.length));
 
   const byName = new Map(tools.map((t) => [t.name, t]));
   for (const required of [
+    'list_projects',
+    'configure_project',
     'list_screens',
     'screen_sheet',
     'screen_family',
@@ -94,6 +96,8 @@ async function main(): Promise<void> {
     check('tool present: ' + required, byName.has(required));
   }
   check('legacy tool removed: review_queue', !byName.has('review_queue'));
+  check('list_projects is read-only', byName.get('list_projects')?.annotations?.readOnlyHint === true);
+  check('configure_project is destructive', byName.get('configure_project')?.annotations?.destructiveHint === true);
 
   const screens = byName.get('list_screens');
   const enumValues = screens?.inputSchema.properties?.archetype?.enum ?? [];
@@ -132,6 +136,14 @@ async function main(): Promise<void> {
 
   const badCat = await rpc(9, 'tools/call', { name: 'category_report', arguments: { category: '__non_existent_cat__' } });
   check('category_report rejects unknown category', badCat.result?.isError === true);
+
+  const projs = await rpc(10, 'tools/call', { name: 'list_projects', arguments: {} });
+  const projsText = projs.result?.content?.[0]?.text ?? '';
+  check('list_projects answers ok', projsText.indexOf('"ok": true') !== -1);
+
+  const cfgNoConfirm = await rpc(11, 'tools/call', { name: 'configure_project', arguments: { project: 'any' } });
+  const cfgNoConfirmText = cfgNoConfirm.result?.content?.[0]?.text ?? '';
+  check('configure_project without confirm is refused', cfgNoConfirmText.indexOf('mutating') !== -1);
 
   child.kill();
 

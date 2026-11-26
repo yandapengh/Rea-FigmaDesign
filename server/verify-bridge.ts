@@ -61,6 +61,9 @@ async function main(): Promise<void> {
     mkdirSync(dirname(reviewPath), { recursive: true });
     writeFileSync(reviewPath, '<!doctype html><html><body>stub</body></html>', 'utf8');
   }
+  const projReviewPath = resolve(ROOT, '.scratch/review-mockproj.html');
+  const hadProjReview = existsSync(projReviewPath);
+  writeFileSync(projReviewPath, '<!doctype html><html><body>mock-project</body></html>', 'utf8');
 
   const dbPath = resolve(ROOT, 'data/test-bridge.sqlite');
   const server = await startIngestServer({ port: PORT, dbPath, quiet: true });
@@ -193,11 +196,41 @@ async function main(): Promise<void> {
     assert.equal((lookupFailRes.payload as { ok: boolean }).ok, false);
     console.log('  ok    offline review-ui guard rejects lookup immediately');
 
-    // Reconnect review-ui for step 5 (plugin disconnect test)
+    // Reconnect review-ui for step 4d & step 5 (plugin disconnect test)
     reviewWs = await connectWs();
     const pRehello = nextMessage(reviewWs, (m) => m.type === 'BRIDGE_STATUS' && (m.payload as { figma_connected: boolean }).figma_connected === true);
     reviewWs.send(JSON.stringify({ type: 'BRIDGE_HELLO', payload: { role: 'review-ui' } }));
     await pRehello;
+
+    // 4d. Cross-project focus mismatch guard rejects targeting a different Figma file
+    const pMismatchRes = nextMessage(reviewWs, (m) => m.type === 'BRIDGE_FOCUS_RESULT');
+    reviewWs.send(JSON.stringify({
+      type: 'BRIDGE_FOCUS_NODES',
+      payload: { request_id: 'req-mismatch', node_ids: ['1:1'], file_key: 'other-key', file_name: 'Other Project' },
+    }));
+    const mismatchRes = await pMismatchRes;
+    assert.equal((mismatchRes.payload as { ok: boolean }).ok, false);
+    assert.ok(String((mismatchRes.payload as { error?: string }).error || '').includes('不符'));
+    console.log('  ok    cross-project focus mismatch rejected cleanly');
+
+    // 4e. Stage board relay: review-ui -> figma-plugin -> review-ui (deduped)
+    const pPluginStage = nextMessage(pluginWs, (m) => m.type === 'BRIDGE_STAGE_BOARD');
+    const pReviewStageRes = nextMessage(reviewWs, (m) => m.type === 'BRIDGE_STAGE_RESULT');
+    reviewWs.send(JSON.stringify({
+      type: 'BRIDGE_STAGE_BOARD',
+      payload: { request_id: 'stg-1', node_ids: ['1:1', '1:2', '1:1'], title: 'NFC 彈窗', target_page_id: '0:1' },
+    }));
+    const fwdStage = await pPluginStage;
+    assert.deepEqual((fwdStage.payload as { node_ids: string[] }).node_ids, ['1:1', '1:2']);
+    assert.equal((fwdStage.payload as { title?: string }).title, 'NFC 彈窗');
+    pluginWs.send(JSON.stringify({
+      type: 'BRIDGE_STAGE_RESULT',
+      payload: { request_id: 'stg-1', ok: true, section_id: '99:1', section_name: '[Rea 臨時預覽 · 可刪除] NFC 彈窗 (2)', page_id: '0:1', page_name: 'Home', staged_count: 2 },
+    }));
+    const stageRes = await pReviewStageRes;
+    assert.equal((stageRes.payload as { ok: boolean }).ok, true);
+    assert.equal((stageRes.payload as { staged_count?: number }).staged_count, 2);
+    console.log('  ok    BRIDGE_STAGE_BOARD -> BRIDGE_STAGE_RESULT relay (deduped)');
 
     // 5. Plugin disconnect updates status and immediately rejects subsequent focus requests
     const pOffline = nextMessage(reviewWs, (m) => m.type === 'BRIDGE_STATUS' && (m.payload as { figma_connected: boolean }).figma_connected === false);
@@ -213,11 +246,28 @@ async function main(): Promise<void> {
     assert.equal((res3.payload as { ok: boolean }).ok, false);
     console.log('  ok    offline plugin guard returns immediate error');
 
-    // 6. HTTP GET /review serves HTML
+    // 6. HTTP GET /review and /review-<project>.html serve 200 HTML
     const httpRes = await fetchHttp('http://127.0.0.1:' + PORT + '/review');
     assert.equal(httpRes.status, 200);
     assert.ok(httpRes.body.includes('<html') || httpRes.body.includes('<!doctype html'));
-    console.log('  ok    HTTP GET /review serves 200 HTML');
+    const projHttpRes = await fetchHttp('http://127.0.0.1:' + PORT + '/review-mockproj.html');
+    assert.equal(projHttpRes.status, 200);
+    assert.ok(projHttpRes.body.includes('mock-project'));
+    console.log('  ok    HTTP GET /review and /review-<id>.html serve 200 HTML');
+
+    // 7. Isolated RESET_DATABASE resets only the active DB (requires socket DB or fixedDb)
+    pluginWs = await connectWs();
+    const pSyncAck = nextMessage(pluginWs, (m) => m.receivedType === 'SYNC_START');
+    pluginWs.send(JSON.stringify({
+      type: 'SYNC_START',
+      payload: { file_key: 'f1', file_name: 'Mock File', extracted_at: new Date().toISOString(), page_count: 1 },
+    }));
+    await pSyncAck;
+    const pResetAck = nextMessage(pluginWs, (m) => m.receivedType === 'RESET_DATABASE');
+    pluginWs.send(JSON.stringify({ type: 'RESET_DATABASE', payload: { confirm: true, file_key: 'f1' } }));
+    const resetAck = await pResetAck;
+    assert.equal(resetAck.status, 'OK');
+    console.log('  ok    RESET_DATABASE scoped to active database');
 
     console.log('');
     console.log('RESULT: OK — Live Bridge relay, status sync and HTTP route verified');
@@ -229,6 +279,7 @@ async function main(): Promise<void> {
     rmSync(dbPath + '-wal', { force: true });
     rmSync(dbPath + '-shm', { force: true });
     if (!hadReview) rmSync(reviewPath, { force: true });
+    if (!hadProjReview) rmSync(projReviewPath, { force: true });
   }
 }
 

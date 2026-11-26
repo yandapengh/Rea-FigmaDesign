@@ -6,6 +6,8 @@ import type {
   BridgeFocusResultPayload,
   BridgeLookupRequestPayload,
   BridgeSelectionItem,
+  BridgeStageRequestPayload,
+  BridgeStageResultPayload,
   ComponentRow,
   FileMetaPayload,
   NodeRow,
@@ -17,6 +19,12 @@ import { dehydrateComponent, dehydrateNode, dehydrateVariableValue, getNodeChild
 const BATCH_SIZE = 250;
 const MAX_BATCH_BYTES = 1024 * 1024;
 const ACK_TIMEOUT_MS = 30000;
+const LOOKUP_ITEM_CAP = 1000;
+const STAGE_BOARD_KEY = 'rea_stage_board';
+const STAGE_SOURCE_ID_KEY = 'rea_source_id';
+const STAGE_SOURCE_PAGE_ID_KEY = 'rea_source_page_id';
+const STAGE_SOURCE_PAGE_NAME_KEY = 'rea_source_page_name';
+const STAGE_ITEM_CAP = 120;
 
 figma.showUI(__html__, { width: 380, height: 640, themeColors: true });
 
@@ -131,7 +139,10 @@ async function exportPage(page: PageNode, index: number, total: number, fileKey:
 
   const stack: Array<{ node: SceneNode; parentId: string | null; depth: number; childIndex: number }> = [];
   const roots = page.children;
-  for (let i = roots.length - 1; i >= 0; i -= 1) stack.push({ node: roots[i], parentId: null, depth: 0, childIndex: i });
+  for (let i = roots.length - 1; i >= 0; i -= 1) {
+    if ('getPluginData' in roots[i] && roots[i].getPluginData(STAGE_BOARD_KEY) === '1') continue;
+    stack.push({ node: roots[i], parentId: null, depth: 0, childIndex: i });
+  }
 
   while (stack.length > 0) {
     const item = stack.pop()!;
@@ -242,6 +253,87 @@ function postSelectionCount(): void {
   figma.ui.postMessage({ type: 'SELECTION_COUNT', count: figma.currentPage.selection.length });
 }
 
+function isLikelyScreenNode(node: SceneNode): boolean {
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE') return false;
+  if (!('width' in node) || !('height' in node)) return false;
+  return node.width >= 320 && node.width <= 460 && node.height >= 500 && node.height <= 14000;
+}
+
+function expandSelectionForLookup(sel: readonly SceneNode[]): { nodes: SceneNode[]; expandedSections: string[] } {
+  const seen = new Set<string>();
+  const out: SceneNode[] = [];
+  const expandedSections: string[] = [];
+
+  for (const root of sel) {
+    const isContainer =
+      root.type === 'SECTION' ||
+      ((root.type === 'GROUP' || root.type === 'FRAME') &&
+        'width' in root &&
+        'height' in root &&
+        (root.width > 480 || root.height > 14000) &&
+        getNodeChildren(root) !== null);
+
+    if (!isContainer) {
+      if (!seen.has(root.id)) {
+        seen.add(root.id);
+        out.push(root);
+      }
+      continue;
+    }
+
+    const found: SceneNode[] = [];
+    const kids = getNodeChildren(root) ?? [];
+    const stack: SceneNode[] = [];
+    for (let i = kids.length - 1; i >= 0; i -= 1) stack.push(kids[i]);
+
+    while (stack.length > 0) {
+      const cur = stack.pop()!;
+      if ('visible' in cur && cur.visible === false) continue;
+      if (isLikelyScreenNode(cur)) {
+        found.push(cur);
+        continue;
+      }
+      const subKids = getNodeChildren(cur);
+      if (subKids !== null) {
+        for (let i = subKids.length - 1; i >= 0; i -= 1) stack.push(subKids[i]);
+      }
+    }
+
+    if (found.length > 0) {
+      expandedSections.push(root.name || 'Section');
+      for (const n of found) {
+        if (!seen.has(n.id)) {
+          seen.add(n.id);
+          out.push(n);
+        }
+      }
+    } else if (!seen.has(root.id)) {
+      seen.add(root.id);
+      out.push(root);
+    }
+  }
+
+  return { nodes: out, expandedSections };
+}
+
+function resolveStagedSource(node: SceneNode): { sourceId: string; pageId: string; pageName: string } | null {
+  let cur: BaseNode | null = node;
+  while (cur !== null && cur.type !== 'PAGE' && cur.type !== 'DOCUMENT') {
+    if ('getPluginData' in cur) {
+      const srcId = cur.getPluginData(STAGE_SOURCE_ID_KEY);
+      if (srcId) {
+        return {
+          sourceId: srcId,
+          pageId: cur.getPluginData(STAGE_SOURCE_PAGE_ID_KEY) || '',
+          pageName: cur.getPluginData(STAGE_SOURCE_PAGE_NAME_KEY) || '',
+        };
+      }
+    }
+    cur = cur.parent;
+  }
+  return null;
+}
+
 function lookupCurrentSelection(): void {
   if (running) {
     figma.ui.postMessage({ type: 'BRIDGE_LOOKUP_ERROR', error: '插件正在匯出資料，請稍候再查找' });
@@ -255,15 +347,27 @@ function lookupCurrentSelection(): void {
   }
   const page = figma.currentPage;
   const meta = fileMeta();
-  const items: BridgeSelectionItem[] = sel.slice(0, 200).map((node) => {
+  const { nodes: expandedNodes, expandedSections } = expandSelectionForLookup(sel);
+  const items: BridgeSelectionItem[] = [];
+  const seenEffectiveIds = new Set<string>();
+  let restoredCount = 0;
+
+  for (const node of expandedNodes) {
+    if (items.length >= LOOKUP_ITEM_CAP) break;
+    const staged = resolveStagedSource(node);
+    const effectiveId = staged ? staged.sourceId : node.id;
+    if (seenEffectiveIds.has(effectiveId)) continue;
+    seenEffectiveIds.add(effectiveId);
+    if (staged) restoredCount += 1;
+
     const item: BridgeSelectionItem = {
-      id: node.id,
+      id: effectiveId,
       name: node.name || '(未命名)',
       type: node.type,
-      page_id: page.id,
-      page_name: page.name,
+      page_id: (staged && staged.pageId) || page.id,
+      page_name: (staged && staged.pageName) || page.name,
       text_preview: extractTextPreview(node),
-      ancestor_ids: collectAncestorIds(node),
+      ancestor_ids: staged ? [] : collectAncestorIds(node),
     };
     if ('width' in node && typeof node.width === 'number' && Number.isFinite(node.width)) {
       item.width = Math.round(node.width);
@@ -271,8 +375,16 @@ function lookupCurrentSelection(): void {
     if ('height' in node && typeof node.height === 'number' && Number.isFinite(node.height)) {
       item.height = Math.round(node.height);
     }
-    return item;
-  });
+    items.push(item);
+  }
+
+  if (expandedNodes.length > LOOKUP_ITEM_CAP) {
+    figma.notify('選中超過 ' + LOOKUP_ITEM_CAP + ' 項，已送出前 ' + LOOKUP_ITEM_CAP + ' 項', { timeout: 3500 });
+  } else if (restoredCount > 0) {
+    figma.notify('已從臨時拼板還原 ' + restoredCount + ' 個原稿 ID 並送至複審台', { timeout: 3200 });
+  } else if (expandedSections.length > 0) {
+    figma.notify('已自動展開 ' + expandedSections.length + ' 個區塊 → 擷取 ' + items.length + ' 個可見畫面送至複審台', { timeout: 3000 });
+  }
   const payload: BridgeLookupRequestPayload = {
     request_id: 'lookup-' + Date.now() + '-' + (++lookupSeq),
     file_key: meta.file_key,
@@ -280,6 +392,7 @@ function lookupCurrentSelection(): void {
     page_id: page.id,
     page_name: page.name,
     items,
+    expanded_from_sections: expandedSections.length > 0 ? expandedSections : undefined,
   };
   figma.ui.postMessage({ type: 'BRIDGE_LOOKUP_SELECTION', payload });
 }
@@ -348,8 +461,8 @@ async function focusBridgeNodes(payload: BridgeFocusRequestPayload): Promise<voi
     }
 
     const resolved: Array<{ id: string; node: BaseNode | null }> = [];
-    for (let i = 0; i < ids.length; i += 10) {
-      const part = ids.slice(i, i + 10);
+    for (let i = 0; i < ids.length; i += 25) {
+      const part = ids.slice(i, i + 25);
       const batch = await Promise.all(part.map(async (id) => ({ id, node: await figma.getNodeByIdAsync(id) })));
       for (const item of batch) resolved.push(item);
     }
@@ -428,6 +541,236 @@ async function focusBridgeNodes(payload: BridgeFocusRequestPayload): Promise<voi
   }
 }
 
+function postStageResult(payload: BridgeStageResultPayload): void {
+  figma.ui.postMessage({ type: 'BRIDGE_STAGE_RESULT', payload });
+}
+
+/** Clone/instantiate selected screens into a temporary preview Section with hidden source-ID pluginData. */
+async function stageBridgeBoard(payload: BridgeStageRequestPayload): Promise<void> {
+  const reqId = typeof payload?.request_id === 'string' ? payload.request_id : '';
+  if (running) {
+    postStageResult({ request_id: reqId, ok: false, error: '插件正在匯出資料，請稍候再生成拼板' });
+    return;
+  }
+  if (focusing) {
+    postStageResult({ request_id: reqId, ok: false, error: '插件正忙於定位或生成拼板，請稍候' });
+    return;
+  }
+  const rawIds = Array.isArray(payload?.node_ids) ? payload.node_ids : [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of rawIds) {
+    if (typeof raw !== 'string') continue;
+    const trimmed = raw.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    ids.push(trimmed);
+    if (ids.length >= STAGE_ITEM_CAP) break;
+  }
+  if (ids.length === 0) {
+    postStageResult({ request_id: reqId, ok: false, error: '沒有可加入臨時拼板的 node_id' });
+    return;
+  }
+
+  focusing = true;
+  try {
+    const resolved: Array<{ scene: SceneNode; sourcePage: PageNode }> = [];
+    const missingIds: string[] = [];
+    const pageSet = new Set<string>();
+
+    for (let i = 0; i < ids.length; i += 20) {
+      const part = ids.slice(i, i + 20);
+      const batch = await Promise.all(part.map(async (id) => ({ id, node: await figma.getNodeByIdAsync(id) })));
+      for (const item of batch) {
+        if (!item.node || item.node.type === 'DOCUMENT' || item.node.type === 'PAGE') {
+          missingIds.push(item.id);
+          continue;
+        }
+        let scene = item.node as SceneNode;
+        if ('getPluginData' in scene) {
+          const unwrappedId = scene.getPluginData(STAGE_SOURCE_ID_KEY);
+          if (unwrappedId) {
+            const origNode = await figma.getNodeByIdAsync(unwrappedId);
+            if (origNode && origNode.type !== 'DOCUMENT' && origNode.type !== 'PAGE') {
+              scene = origNode as SceneNode;
+            }
+          }
+        }
+        const pg = getContainingPage(scene);
+        if (!pg) {
+          missingIds.push(item.id);
+          continue;
+        }
+        resolved.push({ scene, sourcePage: pg });
+        pageSet.add(pg.id);
+      }
+    }
+
+    if (resolved.length === 0) {
+      postStageResult({
+        request_id: reqId,
+        ok: false,
+        missing_ids: missingIds,
+        error: '在目前 Figma 檔案中找不到對應畫面（可能已刪除或未開啟對應檔案）',
+      });
+      return;
+    }
+
+    let targetPage: PageNode = figma.currentPage;
+    if (typeof payload.target_page_id === 'string' && payload.target_page_id.trim()) {
+      const byPid = figma.root.children.find((p) => p.id === payload.target_page_id!.trim());
+      if (byPid) targetPage = byPid;
+    } else if (pageSet.size === 1) {
+      targetPage = resolved[0].sourcePage;
+    }
+    if (figma.currentPage.id !== targetPage.id) {
+      await figma.setCurrentPageAsync(targetPage);
+    }
+
+    let hasExisting = false;
+    let maxRight = 0;
+    let minTop = 0;
+    for (const child of targetPage.children) {
+      if ('x' in child && 'y' in child && 'width' in child) {
+        const right = child.x + child.width;
+        if (!hasExisting) {
+          hasExisting = true;
+          maxRight = right;
+          minTop = child.y;
+        } else {
+          if (right > maxRight) maxRight = right;
+          if (child.y < minTop) minTop = child.y;
+        }
+      }
+    }
+    const originX = hasExisting ? Math.round(maxRight + 240) : 0;
+    const originY = hasExisting ? Math.round(minTop) : 0;
+
+    const section = figma.createSection();
+    section.setPluginData(STAGE_BOARD_KEY, '1');
+    section.fills = [{ type: 'SOLID', color: { r: 0.94, g: 0.96, b: 0.99 } }];
+    targetPage.appendChild(section);
+
+    const COLS = 8;
+    const PAD = 64;
+    const GAP_X = 48;
+    const GAP_Y = 64;
+    let col = 0;
+    let curX = PAD;
+    let curY = PAD;
+    let rowMaxH = 0;
+    let maxContentRight = PAD;
+    let maxContentBottom = PAD;
+    let stagedCount = 0;
+    let skippedCount = 0;
+
+    for (const entry of resolved) {
+      const orig = entry.scene;
+      let copy: SceneNode | null = null;
+      try {
+        copy = orig.type === 'COMPONENT' ? orig.createInstance() : orig.clone();
+      } catch {
+        skippedCount += 1;
+        continue;
+      }
+      try {
+        copy.setPluginData(STAGE_SOURCE_ID_KEY, orig.id);
+        copy.setPluginData(STAGE_SOURCE_PAGE_ID_KEY, entry.sourcePage.id);
+        copy.setPluginData(STAGE_SOURCE_PAGE_NAME_KEY, entry.sourcePage.name);
+        if ('visible' in copy) copy.visible = true;
+        if ('locked' in copy) copy.locked = false;
+        section.appendChild(copy);
+
+        const w = 'width' in copy && typeof copy.width === 'number' && copy.width > 0 ? copy.width : 390;
+        const h = 'height' in copy && typeof copy.height === 'number' && copy.height > 0 ? copy.height : 844;
+        copy.x = curX;
+        copy.y = curY;
+
+        if (curX + w > maxContentRight) maxContentRight = curX + w;
+        if (curY + h > maxContentBottom) maxContentBottom = curY + h;
+        if (h > rowMaxH) rowMaxH = h;
+        stagedCount += 1;
+        col += 1;
+        if (col >= COLS) {
+          col = 0;
+          curX = PAD;
+          curY += rowMaxH + GAP_Y;
+          rowMaxH = 0;
+        } else {
+          curX += w + GAP_X;
+        }
+      } catch {
+        try { copy?.remove(); } catch { /* ignore */ }
+        skippedCount += 1;
+      }
+    }
+
+    if (stagedCount === 0) {
+      section.remove();
+      postStageResult({
+        request_id: reqId,
+        ok: false,
+        missing_ids: missingIds,
+        skipped_count: skippedCount,
+        error: '選中節點無法複製進臨時拼板（可能是受保護或無效節點）',
+      });
+      return;
+    }
+
+    const titleTxt = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : '選中畫面';
+    const sectionName = '[Rea 臨時預覽 · 可刪除] ' + titleTxt + ' (' + stagedCount + ')';
+    section.name = sectionName;
+    section.x = originX;
+    section.y = originY;
+    section.resizeWithoutConstraints(
+      Math.max(480, Math.round(maxContentRight + PAD)),
+      Math.max(480, Math.round(maxContentBottom + PAD)),
+    );
+
+    figma.currentPage.selection = [section];
+    figma.viewport.scrollAndZoomIntoView([section]);
+    figma.notify('Rea-FigmaDesign：已生成臨時拼板（' + stagedCount + ' 個畫面），框選副本後點「查找選中項」即可對應回原稿', { timeout: 4500 });
+
+    postStageResult({
+      request_id: reqId,
+      ok: true,
+      section_id: section.id,
+      section_name: sectionName,
+      page_id: targetPage.id,
+      page_name: targetPage.name,
+      staged_count: stagedCount,
+      missing_ids: missingIds.length > 0 ? missingIds : undefined,
+      skipped_count: skippedCount > 0 ? skippedCount : undefined,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    postStageResult({
+      request_id: reqId,
+      ok: false,
+      error: '生成臨時拼板失敗：' + message,
+    });
+  } finally {
+    focusing = false;
+  }
+}
+
+function clearStageBoardsOnCurrentPage(): void {
+  const toRemove: SceneNode[] = [];
+  for (const child of figma.currentPage.children) {
+    if ('getPluginData' in child && child.getPluginData(STAGE_BOARD_KEY) === '1') {
+      toRemove.push(child);
+    }
+  }
+  for (const node of toRemove) node.remove();
+  figma.notify(
+    toRemove.length > 0
+      ? ('Rea-FigmaDesign：已清理本頁 ' + toRemove.length + ' 個臨時預覽拼板')
+      : 'Rea-FigmaDesign：本頁目前沒有臨時預覽拼板',
+    { timeout: 3000 },
+  );
+  figma.ui.postMessage({ type: 'STAGE_CLEAR_RESULT', removed: toRemove.length });
+}
+
 figma.on('selectionchange', () => {
   postSelectionCount();
 });
@@ -439,12 +782,20 @@ figma.ui.onmessage = (message: unknown): void => {
     lookupCurrentSelection();
     return;
   }
+  if (msg.type === 'CLEAR_STAGE_BOARDS') {
+    clearStageBoardsOnCurrentPage();
+    return;
+  }
   if (msg.type === 'LOOKUP_NOTIFY') {
     figma.notify(String(msg.message || ''), { error: msg.isError === true, timeout: 3000 });
     return;
   }
   if (msg.type === 'BRIDGE_FOCUS_NODES') {
     void focusBridgeNodes(msg.payload as BridgeFocusRequestPayload);
+    return;
+  }
+  if (msg.type === 'BRIDGE_STAGE_BOARD') {
+    void stageBridgeBoard(msg.payload as BridgeStageRequestPayload);
     return;
   }
   if (msg.type === 'ACK') {

@@ -8,8 +8,8 @@
  * Run: npm run mcp
  */
 
-import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Graph, archetypeOf, findScreenRoots, headlineOf, profileOf, slotsOf } from './core/graph';
 import { AstGraphDB } from './db';
@@ -19,12 +19,16 @@ import {
   tryLoadScreenLabelsV2, recomputeV2Counts, summarizeCategoriesV2, categoryReportV2,
   type LabelEntry, type ScreenLabelV2, type ScreenLabelsV2File,
 } from './core/semantics';
+import {
+  listProjects, resolveProject, saveProjectConfig,
+  type ProjectInfo,
+} from './core/projects';
 import { runHealthChecks } from './core/health';
 import { generateReviewBoard } from './review-board';
+import { generateProjectHub } from './review-hub';
 
 const ROOT = resolve(__dirname, '..');
 const SAMPLES = resolve(ROOT, 'data/samples');
-const LIVE_DB = AstGraphDB.resolveLatestGraphDb(ROOT) ?? resolve(ROOT, 'data/rea-figma.sqlite');
 const LABELS = resolve(ROOT, 'labels');
 
 const graphs = new Map<string, Graph>();
@@ -37,26 +41,31 @@ function logCall(tool: string, args: Record<string, unknown>, ms: number, ok: bo
   callCount += 1;
   try {
     const summary: Record<string, unknown> = {};
-    for (const k of ['id', 'a', 'b', 'page', 'sample', 'archetype', 'category']) if (args[k] !== undefined) summary[k] = args[k];
+    for (const k of ['id', 'a', 'b', 'page', 'sample', 'project', 'archetype', 'category']) if (args[k] !== undefined) summary[k] = args[k];
     appendFileSync(CALL_LOG, JSON.stringify({ ts: new Date().toISOString(), pid: process.pid, tool, args: summary, ms, ok }) + '\n', 'utf8');
   } catch {
     // logging must never break a call
   }
 }
 
-function samplePath(sample?: string): string {
+function resolveCtx(sample?: string, project?: string): { dbPath: string; proj: ProjectInfo } {
+  const proj = resolveProject(ROOT, { project: project || undefined });
   if (!sample || sample === 'live') {
-    if (!existsSync(LIVE_DB)) throw new Error('live db not found: run the Figma extraction first');
-    return LIVE_DB;
+    if (!existsSync(proj.dbPath)) throw new Error('live db not found for project ' + proj.id + ': run the Figma extraction first');
+    return { dbPath: proj.dbPath, proj };
   }
   const name = sample.endsWith('.sqlite') ? sample : sample + '.sqlite';
   const path = resolve(SAMPLES, name);
   if (!existsSync(path)) throw new Error('sample not found: ' + sample + ' (call list_samples)');
-  return path;
+  return { dbPath: path, proj };
 }
 
-function graphFor(sample?: string): Graph {
-  const path = samplePath(sample);
+function samplePath(sample?: string, project?: string): string {
+  return resolveCtx(sample, project).dbPath;
+}
+
+function graphFor(sample?: string, project?: string): Graph {
+  const path = samplePath(sample, project);
   const cached = graphs.get(path);
   if (cached) return cached;
   const g = new Graph(path);
@@ -72,19 +81,25 @@ function labelsFile(): LabelEntry[] {
   }
 }
 
-function loadV2LabelsDoc(): ScreenLabelsV2File {
-  const v2Path = resolve(LABELS, 'screens-v2.json');
-  return tryLoadScreenLabelsV2(v2Path) ?? {
-    version: 2,
-    sample: 'live',
-    note: 'created via apply_labels',
-    counts: {},
-    screens: [],
+function loadV2LabelsDoc(project?: string): { v2Path: string; relPath: string; doc: ScreenLabelsV2File } {
+  const proj = resolveProject(ROOT, { project: project || undefined });
+  const v2Path = proj.labelsPath;
+  return {
+    v2Path,
+    relPath: proj.labelsRelPath,
+    doc: tryLoadScreenLabelsV2(v2Path) ?? {
+      version: 2,
+      sample: proj.id,
+      note: 'created via apply_labels',
+      counts: {},
+      screens: [],
+    },
   };
 }
 
-function loadV2LabelsMap(): Map<string, ScreenLabelV2> {
-  const doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
+function loadV2LabelsMap(project?: string): Map<string, ScreenLabelV2> {
+  const proj = resolveProject(ROOT, { project: project || undefined });
+  const doc = tryLoadScreenLabelsV2(proj.labelsPath);
   const map = new Map<string, ScreenLabelV2>();
   if (doc) for (const s of doc.screens) map.set(s.id, s);
   return map;
@@ -128,14 +143,77 @@ const TOOL_DEFS: ToolDef[] = [
     }),
   },
   {
+    name: 'list_projects',
+    description: 'List every isolated Figma project discovered under data/*/graph.sqlite with its labels path, canvas screenSpec, node/page counts, and workbench URL.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    handler: () => ({
+      projects: listProjects(ROOT).map((p) => ({
+        id: p.id,
+        name: p.name,
+        fileKey: p.fileKey,
+        fileName: p.fileName,
+        dbPath: p.dbPath,
+        labelsPath: p.labelsRelPath,
+        reviewHtmlName: p.reviewHtmlName,
+        screenSpec: p.config.screenSpec,
+        pagesDone: p.pagesDone,
+        pagesTotal: p.pagesTotal,
+        nodesCount: p.nodesCount,
+        labeledCount: p.labeledCount,
+        majorCounts: p.majorCounts,
+        updatedAt: p.updatedAt,
+      })),
+    }),
+  },
+  {
+    name: 'configure_project',
+    description: 'MUTATING: configure a project screen detection rules (widths, widthTolerance, minHeight, maxHeight, minNodes), majorOrder, or display name in labels/projects/<id>/project.json. Requires confirm:true.',
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: { type: 'string', description: 'Project ID or name' },
+        name: { type: 'string' },
+        widths: { type: 'array', items: { type: 'number' } },
+        widthTolerance: { type: 'number', minimum: 0, maximum: 50 },
+        minHeight: { type: 'number', minimum: 100 },
+        maxHeight: { type: 'number', minimum: 200 },
+        minNodes: { type: 'number', minimum: 1 },
+        majorOrder: { type: 'array', items: { type: 'string' } },
+        confirm: { type: 'boolean', description: 'must be true to write' },
+      },
+      required: ['project'],
+      additionalProperties: false,
+    },
+    handler: (a) => {
+      if (a.confirm !== true) throw new Error('configure_project is mutating: pass confirm:true');
+      const proj = resolveProject(ROOT, { project: String(a.project) });
+      const next = {
+        ...proj.config,
+        name: typeof a.name === 'string' && a.name.trim() ? a.name.trim() : proj.config.name,
+        screenSpec: {
+          widths: Array.isArray(a.widths) && a.widths.length > 0 ? a.widths.map(Number) : proj.config.screenSpec.widths,
+          widthTolerance: typeof a.widthTolerance === 'number' ? a.widthTolerance : proj.config.screenSpec.widthTolerance,
+          minHeight: typeof a.minHeight === 'number' ? a.minHeight : proj.config.screenSpec.minHeight,
+          maxHeight: typeof a.maxHeight === 'number' ? a.maxHeight : proj.config.screenSpec.maxHeight,
+          minNodes: typeof a.minNodes === 'number' ? Math.floor(a.minNodes) : proj.config.screenSpec.minNodes,
+        },
+        majorOrder: Array.isArray(a.majorOrder) && a.majorOrder.length > 0 ? a.majorOrder.map(String) : proj.config.majorOrder,
+      };
+      const written = saveProjectConfig(ROOT, next);
+      return { project: proj.id, written, config: next };
+    },
+  },
+  {
     name: 'list_samples',
     description: 'List the live database and every frozen sample available to the other tools.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    handler: () => {
-      const out: Array<{ name: string; nodes: number; file: string }> = [];
-      if (existsSync(LIVE_DB)) {
-        const g = graphFor('live');
-        out.push({ name: 'live', nodes: g.nodes.size, file: LIVE_DB });
+    inputSchema: { type: 'object', properties: { project: { type: 'string' } }, additionalProperties: false },
+    handler: (a) => {
+      const out: Array<{ name: string; nodes: number; file: string; projectId?: string }> = [];
+      const proj = resolveProject(ROOT, { project: typeof a.project === 'string' ? a.project : undefined });
+      if (existsSync(proj.dbPath)) {
+        const g = graphFor('live', proj.id);
+        out.push({ name: 'live', nodes: g.nodes.size, file: proj.dbPath, projectId: proj.id });
       }
       if (existsSync(SAMPLES)) {
         for (const f of readdirSync(SAMPLES).filter((x) => x.endsWith('.sqlite')).sort()) {
@@ -151,11 +229,14 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Feature card for one screen: structure hash, style fingerprint, copy, variant axis, generation label, and the list of things the AST cannot judge.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string', description: 'Figma node id, e.g. 33:27783' }, sample: { type: 'string' } },
+      properties: { id: { type: 'string', description: 'Figma node id, e.g. 33:27783' }, sample: { type: 'string' }, project: { type: 'string' } },
       required: ['id'],
       additionalProperties: false,
     },
-    handler: (a) => buildSheetCard(graphFor(a.sample as string), samplePath(a.sample as string), String(a.id), { labels: labelsFile() }),
+    handler: (a) => {
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      return buildSheetCard(graphFor(a.sample as string, projId), samplePath(a.sample as string, projId), String(a.id), { labels: labelsFile() });
+    },
   },
   {
     name: 'list_screens',
@@ -165,6 +246,7 @@ const TOOL_DEFS: ToolDef[] = [
       properties: {
         archetype: { type: 'string', enum: ['page', 'overlay-panel', 'overlay', 'unknown'], description: 'optional filter' },
         sample: { type: 'string' },
+        project: { type: 'string' },
         limit: { type: 'number', minimum: 1, maximum: 2000, description: 'max rows to return (default 500)' },
         unique: { type: 'boolean', description: 'one representative per structural family (default true)' },
       },
@@ -174,10 +256,12 @@ const TOOL_DEFS: ToolDef[] = [
       const want = typeof a.archetype === 'string' ? a.archetype : '';
       const allowed = ['page', 'overlay-panel', 'overlay', 'unknown'];
       if (want && allowed.indexOf(want) === -1) throw new Error('invalid archetype: ' + want + ' (allowed: ' + allowed.join(', ') + ')');
-      const g = graphFor(a.sample as string);
-      const roots = findScreenRoots(g, 40);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const { proj } = resolveCtx(a.sample as string, projId);
+      const g = graphFor(a.sample as string, projId);
+      const roots = findScreenRoots(g, proj.config.screenSpec);
       const unique = a.unique !== false;
-      const v2Map = loadV2LabelsMap();
+      const v2Map = loadV2LabelsMap(proj.id);
       const seen = new Set<string>();
       const counts: Record<string, number> = {};
       const rows: Array<Record<string, unknown>> = [];
@@ -227,12 +311,13 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Exact structural family (Merkle hash over type + ordered children) for a node: every member is structurally identical.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' }, sample: { type: 'string' }, minNodes: { type: 'number' } },
+      properties: { id: { type: 'string' }, sample: { type: 'string' }, project: { type: 'string' }, minNodes: { type: 'number' } },
       required: ['id'],
       additionalProperties: false,
     },
     handler: (a) => {
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const g = graphFor(a.sample as string, projId);
       const id = String(a.id);
       if (!g.nodes.has(id)) throw new Error('node not found: ' + id);
       const minNodes = typeof a.minNodes === 'number' ? a.minNodes : 0;
@@ -248,12 +333,13 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Vocabulary-free variant axes for a node family: which component switches between members, and the copy that differs. No semantic naming is inferred.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' }, sample: { type: 'string' } },
+      properties: { id: { type: 'string' }, sample: { type: 'string' }, project: { type: 'string' } },
       required: ['id'],
       additionalProperties: false,
     },
     handler: (a) => {
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const g = graphFor(a.sample as string, projId);
       const id = String(a.id);
       if (!g.nodes.has(id)) throw new Error('node not found: ' + id);
       const members = g.topLevelMembers(g.hash.get(id)!).filter((m) => g.subtree(m).length >= 120);
@@ -266,22 +352,24 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Quantified style fingerprint (palette, type, radii, effects, token adoption) for a node or a whole page.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' }, page: { type: 'string' }, sample: { type: 'string' } },
+      properties: { id: { type: 'string' }, page: { type: 'string' }, sample: { type: 'string' }, project: { type: 'string' } },
       additionalProperties: false,
     },
     handler: (a) => {
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const dbPath = samplePath(a.sample as string, projId);
+      const g = graphFor(a.sample as string, projId);
       if (a.page) {
         const page = String(a.page);
         const ids: string[] = [];
         for (const [id, n] of g.nodes) if (n.page_name === page) ids.push(id);
         if (ids.length === 0) throw new Error('page not found: ' + page);
-        const p = profileOf(g, samplePath(a.sample as string), ids);
+        const p = profileOf(g, dbPath, ids);
         return { target: 'page:' + page, nodes: p.nodes, palette: [...p.palette.entries()].sort((x, y) => y[1] - x[1]).slice(0, 30), fonts: [...p.fonts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 20), tokens: p.tokens };
       }
       const id = String(a.id ?? '');
       if (!g.nodes.has(id)) throw new Error('node not found: ' + id);
-      const card = buildSheetCard(g, samplePath(a.sample as string), id, { labels: labelsFile() });
+      const card = buildSheetCard(g, dbPath, id, { labels: labelsFile() });
       return { target: id, style: card.style, structure: card.structure, copy: card.copy };
     },
   },
@@ -290,47 +378,56 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Structure + style delta between two screens: isomorphism, type cosine, copy/icon/palette/radius/font overlap, token adoption.',
     inputSchema: {
       type: 'object',
-      properties: { a: { type: 'string' }, b: { type: 'string' }, sample: { type: 'string' } },
+      properties: { a: { type: 'string' }, b: { type: 'string' }, sample: { type: 'string' }, project: { type: 'string' } },
       required: ['a', 'b'],
       additionalProperties: false,
     },
-    handler: (a) => diffScreens(graphFor(a.sample as string), samplePath(a.sample as string), String(a.a), String(a.b)),
+    handler: (a) => {
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      return diffScreens(graphFor(a.sample as string, projId), samplePath(a.sample as string, projId), String(a.a), String(a.b));
+    },
   },
   {
     name: 'find_similar',
     description: 'Layered recall: exact structure (Merkle hash), near structure (type cosine >= 0.9), style-only (palette/font/radius >= 0.45).',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string' }, limit: { type: 'number' }, sample: { type: 'string' } },
+      properties: { id: { type: 'string' }, limit: { type: 'number' }, sample: { type: 'string' }, project: { type: 'string' } },
       required: ['id'],
       additionalProperties: false,
     },
-    handler: (a) => findSimilar(graphFor(a.sample as string), samplePath(a.sample as string), String(a.id), typeof a.limit === 'number' ? a.limit : 8),
+    handler: (a) => {
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      return findSimilar(graphFor(a.sample as string, projId), samplePath(a.sample as string, projId), String(a.id), typeof a.limit === 'number' ? a.limit : 8);
+    },
   },
   {
     name: 'list_categories',
-    description: 'List all major/minor categories in labels/screens-v2.json with screen counts and Figma page counts.',
+    description: 'List all major/minor categories in the project labels file with screen counts and Figma page counts.',
     inputSchema: {
       type: 'object',
-      properties: { sample: { type: 'string' } },
+      properties: { sample: { type: 'string' }, project: { type: 'string' } },
       additionalProperties: false,
     },
     handler: (a) => {
-      const v2Doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
-      if (!v2Doc || v2Doc.screens.length === 0) return { total: 0, majors: [] };
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const proj = resolveProject(ROOT, { project: projId });
+      const v2Doc = tryLoadScreenLabelsV2(proj.labelsPath);
+      if (!v2Doc || v2Doc.screens.length === 0) return { project: proj.id, total: 0, majors: [] };
+      const g = graphFor(a.sample as string, proj.id);
       const majors = summarizeCategoriesV2(v2Doc.screens, pageMapFromGraph(g));
-      return { total: v2Doc.screens.length, majors };
+      return { project: proj.id, total: v2Doc.screens.length, majors };
     },
   },
   {
     name: 'category_report',
-    description: 'List every Figma page and node ID belonging to one category (minor, label, or major) in labels/screens-v2.json.',
+    description: 'List every Figma page and node ID belonging to one category (minor, label, or major) in the project labels file.',
     inputSchema: {
       type: 'object',
       properties: {
         category: { type: 'string', description: 'Minor, label, or major category name' },
         sample: { type: 'string' },
+        project: { type: 'string' },
       },
       required: ['category'],
       additionalProperties: false,
@@ -338,9 +435,11 @@ const TOOL_DEFS: ToolDef[] = [
     handler: (a) => {
       const category = String(a.category ?? '').trim();
       if (!category) throw new Error('category is required');
-      const v2Doc = tryLoadScreenLabelsV2(resolve(LABELS, 'screens-v2.json'));
-      if (!v2Doc || v2Doc.screens.length === 0) throw new Error('no v2 labels yet in labels/screens-v2.json');
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const proj = resolveProject(ROOT, { project: projId });
+      const v2Doc = tryLoadScreenLabelsV2(proj.labelsPath);
+      if (!v2Doc || v2Doc.screens.length === 0) throw new Error('no v2 labels yet in ' + proj.labelsRelPath);
+      const g = graphFor(a.sample as string, proj.id);
       const report = categoryReportV2(v2Doc.screens, category, pageMapFromGraph(g));
       if (!report) throw new Error('no screens found for category: ' + category);
       return report;
@@ -351,18 +450,19 @@ const TOOL_DEFS: ToolDef[] = [
     description: 'Run read-only SQLite graph integrity checks (file_meta, staging, syncing, orphan nodes, page/node counts).',
     inputSchema: {
       type: 'object',
-      properties: { sample: { type: 'string' } },
+      properties: { sample: { type: 'string' }, project: { type: 'string' } },
       additionalProperties: false,
     },
-    handler: (a) => runHealthChecks(samplePath(a.sample as string), false),
+    handler: (a) => runHealthChecks(samplePath(a.sample as string, typeof a.project === 'string' ? a.project : undefined), false),
   },
   {
     name: 'build_review_board',
-    description: 'Generate the visual human-review workbench (.scratch/review.html) with freeform feedback inputs and Copy-as-Prompt export. Supports cold-start AST grouping (unlabeled:true), category audit, stratified sampling, or explicit IDs.',
+    description: 'Generate the visual human-review workbench (.scratch/review-<project>.html + Project Hub .scratch/review.html). Supports cold-start AST grouping (unlabeled:true), category audit, stratified sampling, or explicit IDs.',
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: 'object',
       properties: {
+        project: { type: 'string' },
         category: { type: 'string' },
         unlabeled: { type: 'boolean' },
         sampleCount: { type: 'number', minimum: 1, maximum: 500 },
@@ -374,10 +474,12 @@ const TOOL_DEFS: ToolDef[] = [
       additionalProperties: false,
     },
     handler: (a) => {
-      const db = samplePath(a.sample as string);
-      const g = graphFor(a.sample as string);
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const { dbPath, proj } = resolveCtx(a.sample as string, projId);
+      const g = graphFor(a.sample as string, proj.id);
       const res = generateReviewBoard({
-        dbPath: db,
+        projectId: proj.id,
+        dbPath,
         graph: g,
         category: typeof a.category === 'string' ? a.category : undefined,
         unlabeled: a.unlabeled === true,
@@ -386,7 +488,10 @@ const TOOL_DEFS: ToolDef[] = [
         ids: Array.isArray(a.ids) ? a.ids.map(String) : undefined,
         open: a.open === true,
       });
+      const hub = generateProjectHub(ROOT);
       return {
+        project: proj.id,
+        hubHtml: hub.html,
         html: res.html,
         unique: res.unique,
         screens: res.screens,
@@ -397,11 +502,12 @@ const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: 'apply_labels',
-    description: 'MUTATING: write label/major/minor/generation/note decisions into labels/screens-v2.json. Requires confirm:true. Use dryRun:true to preview.',
+    description: 'MUTATING: write label/major/minor/generation/note decisions into the project labels file (labels/screens-v2.json or labels/projects/<id>/screens-v2.json). Requires confirm:true. Use dryRun:true to preview.',
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: 'object',
       properties: {
+        project: { type: 'string', description: 'Optional project ID (defaults to active primary project)' },
         rows: {
           type: 'array',
           items: {
@@ -427,9 +533,10 @@ const TOOL_DEFS: ToolDef[] = [
     },
     handler: (a) => {
       if (a.confirm !== true && a.dryRun !== true) throw new Error('apply_labels is mutating: pass confirm:true (or dryRun:true)');
-      const v2Path = resolve(LABELS, 'screens-v2.json');
-      const v2Doc = loadV2LabelsDoc();
-      const g = existsSync(LIVE_DB) ? graphFor('live') : null;
+      const projId = typeof a.project === 'string' ? a.project : undefined;
+      const { v2Path, relPath, doc: v2Doc } = loadV2LabelsDoc(projId);
+      const proj = resolveProject(ROOT, { project: projId });
+      const g = existsSync(proj.dbPath) ? graphFor('live', proj.id) : null;
       const byId = new Map(v2Doc.screens.map((s) => [s.id, s]));
       const updates: Array<Record<string, unknown>> = [];
       for (const raw of (a.rows as Array<Record<string, unknown>>) ?? []) {
@@ -444,7 +551,7 @@ const TOOL_DEFS: ToolDef[] = [
         const labelIn = typeof raw.label === 'string' ? raw.label.trim() : '';
         const genIn = typeof raw.generation === 'string' ? raw.generation.trim() : undefined;
         const noteIn = typeof raw.note === 'string' ? raw.note.trim() : '';
-        const inferredMajor = cat ? (/彈窗|dialog|popup|modal|toast/i.test(cat) ? '彈窗類' : '頁面類') : '';
+        const inferredMajor = cat ? (cat.startsWith('系統') ? '系統UI' : '新UI') : '';
         const nextMajor = majorIn || inferredMajor;
         const nextMinor = minorIn || cat;
         const nextLabel = labelIn || nextMinor || nextMajor;
@@ -474,9 +581,10 @@ const TOOL_DEFS: ToolDef[] = [
         updates.push({ id, before, after: { ...existing } });
       }
       v2Doc.counts = recomputeV2Counts(v2Doc.screens);
-      if (a.dryRun === true) return { dryRun: true, target: 'labels/screens-v2.json', counts: v2Doc.counts, updates };
+      if (a.dryRun === true) return { dryRun: true, project: proj.id, target: relPath, counts: v2Doc.counts, updates };
+      mkdirSync(dirname(v2Path), { recursive: true });
       writeFileSync(v2Path, JSON.stringify(v2Doc, null, 2) + '\n', 'utf8');
-      return { dryRun: false, written: v2Path, counts: v2Doc.counts, updates };
+      return { dryRun: false, project: proj.id, written: v2Path, counts: v2Doc.counts, updates };
     },
   },
 ];

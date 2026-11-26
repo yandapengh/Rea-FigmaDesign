@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import Database = require('better-sqlite3');
 import { AstGraphDB } from './db';
+import { resolveProject } from './core/projects';
 import { categoryReportV2, summarizeCategoriesV2, tryLoadScreenLabelsV2 } from './core/semantics';
 
 const ROOT = resolve(__dirname, '..');
@@ -14,6 +15,7 @@ let jsonMode = false;
 let noFile = false;
 let outFlag = '';
 let dbFlag = '';
+let projectFlag = '';
 let category = '';
 
 for (let i = 0; i < args.length; i += 1) {
@@ -23,21 +25,23 @@ for (let i = 0; i < args.length; i += 1) {
   else if (a === '--no-file') noFile = true;
   else if (a === '--out') outFlag = args[++i] ?? '';
   else if (a === '--db') dbFlag = args[++i] ?? '';
+  else if (a === '--project') projectFlag = args[++i] ?? '';
   else if (!a.startsWith('--') && !category) category = a;
 }
 
 if (!listMode && !category) {
-  console.error('usage: tsx server/category-report.ts <分類> [--no-file] [--out path] [--json]  |  --list [--json]');
+  console.error('usage: tsx server/category-report.ts <分類> [--project id] [--no-file] [--out path] [--json]  |  --list [--project id] [--json]');
   process.exit(1);
 }
 
-const dbPath = dbFlag ? resolve(ROOT, dbFlag) : (AstGraphDB.resolveLatestGraphDb(ROOT) ?? '');
+const resolved = resolveProject(ROOT, { project: projectFlag || undefined, dbPath: dbFlag || undefined });
+const dbPath = dbFlag ? resolve(ROOT, dbFlag) : resolved.dbPath;
 if (!dbPath || !existsSync(dbPath)) {
   console.error('no database found; run the Figma extraction first');
   process.exit(1);
 }
 
-const v2Path = join(ROOT, 'labels/screens-v2.json');
+const v2Path = resolved.labelsPath;
 const v2Doc = tryLoadScreenLabelsV2(v2Path);
 if (!v2Doc || v2Doc.screens.length === 0) {
   if (jsonMode) {
@@ -66,7 +70,7 @@ if (listMode) {
   if (jsonMode) {
     console.log(JSON.stringify({ db: dbPath, total: labels.length, majors: data }, null, 2));
   } else {
-    console.log('# 分類清單（labels/screens-v2.json）');
+    console.log('# 分類清單（' + resolved.labelsRelPath + '）');
     console.log('');
     console.log('- 畫面總數：' + labels.length);
     console.log('- 大類：' + data.length);

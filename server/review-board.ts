@@ -18,14 +18,19 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import Database = require('better-sqlite3');
 import { AstGraphDB } from './db';
-import { Graph, archetypeOf, findScreenRootCandidates, headlineOf, parseJson, type StylePayload } from './core/graph';
+import { Graph, archetypeOf, findScreenRootCandidates, headlineOf, parseJson, type ScreenSpec, type StylePayload } from './core/graph';
+import { listProjects, loadProposals, projectReviewHtmlName, resolveProject } from './core/projects';
 import { tryLoadScreenLabelsV2, type ScreenLabelV2 } from './core/semantics';
+import { generateProjectHub } from './review-hub';
 
 const ROOT = resolve(__dirname, '..');
 const SCRATCH = resolve(ROOT, '.scratch');
 
 export interface ReviewBoardOptions {
-  dbPath: string;
+  projectId?: string;
+  dbPath?: string;
+  labelsPath?: string;
+  screenSpec?: Partial<ScreenSpec>;
   graph?: Graph;
   category?: string;
   page?: string;
@@ -37,6 +42,7 @@ export interface ReviewBoardOptions {
 }
 
 export interface ReviewBoardResult {
+  projectId: string;
   html: string;
   unique: number;
   screens: number;
@@ -46,11 +52,12 @@ export interface ReviewBoardResult {
 }
 
 export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult {
-  const dbPath = resolve(ROOT, opts.dbPath);
+  const resolved = resolveProject(ROOT, { project: opts.projectId, dbPath: opts.dbPath });
+  const dbPath = opts.dbPath ? resolve(ROOT, opts.dbPath) : resolved.dbPath;
   if (!dbPath || !existsSync(dbPath)) {
     throw new Error('no database found; run the Figma extraction first');
   }
-  const outPath = opts.outPath ? resolve(ROOT, opts.outPath) : join(SCRATCH, 'review.html');
+  const outPath = opts.outPath ? resolve(ROOT, opts.outPath) : join(SCRATCH, projectReviewHtmlName(resolved.id));
   if (!(outPath === SCRATCH || outPath.startsWith(SCRATCH + sep))) {
     throw new Error('--out must stay inside .scratch/ (got ' + outPath + ')');
   }
@@ -63,17 +70,23 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
 
   const g = opts.graph ?? new Graph(dbPath);
   const db = new Database(dbPath, { readonly: true, fileMustExist: true });
-  let fileKey = '';
-  let fileName = '';
+  let fileKey = resolved.fileKey || '';
+  let fileName = resolved.fileName || '';
   const pageMeta = new Map<string, { name: string; index: number }>();
 
-  const v2Doc = tryLoadScreenLabelsV2(join(ROOT, 'labels/screens-v2.json'));
+  const labelsAbsPath = opts.labelsPath ? resolve(ROOT, opts.labelsPath) : resolved.labelsPath;
+  const v2Doc = tryLoadScreenLabelsV2(labelsAbsPath);
   const labelMap = new Map<string, ScreenLabelV2>();
   if (v2Doc) {
     for (const s of v2Doc.screens) labelMap.set(s.id, s);
   }
 
-  const allRoots = findScreenRootCandidates(g);
+  const screenSpec: ScreenSpec = {
+    ...resolved.config.screenSpec,
+    ...(opts.screenSpec ?? {}),
+    widths: opts.screenSpec?.widths && opts.screenSpec.widths.length > 0 ? opts.screenSpec.widths : resolved.config.screenSpec.widths,
+  };
+  const allRoots = findScreenRootCandidates(g, screenSpec);
   const idSet = new Set(idsFilter);
   const pageNeedle = pageFilter.toLowerCase();
 
@@ -135,7 +148,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
 
     for (const id of allRoots) {
       const sub = g.subtree(id);
-      if (sub.length < 40 && !idSet.has(id)) continue;
+      if (sub.length < screenSpec.minNodes && !idSet.has(id)) continue;
       const n = g.nodes.get(id)!;
       const pgInfo = pageMeta.get(n.page_id);
       const pageName = (pgInfo?.name ?? n.page_name ?? '').trim();
@@ -355,6 +368,73 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     db.close();
   }
 
+  const paletteByHash = new Map<string, string[]>();
+  for (const c of selectedCards) {
+    if (c.palette.length > 0 && !paletteByHash.has(c.hash)) paletteByHash.set(c.hash, c.palette);
+  }
+
+  // Per-page cards (deduplicated strictly within each Figma page & category so Page View / Category View never leak cross-page memberIds)
+  const pageCards: Card[] = [];
+  if (idSet.size > 0) {
+    for (const r of rawScreens) {
+      pageCards.push({
+        id: r.id,
+        name: r.name,
+        page: r.page,
+        pageId: r.pageId,
+        pageIndex: r.pageIndex,
+        archetype: r.archetype,
+        hash: r.hash,
+        shortHash: r.hash.slice(0, 8),
+        nodes: r.nodes,
+        headline: r.headline,
+        copies: 1,
+        memberIds: [r.id],
+        memberPages: r.page ? [r.page] : [],
+        major: r.major,
+        minor: r.minor,
+        label: r.label,
+        generation: r.generation,
+        existingNote: r.note,
+        palette: paletteByHash.get(r.hash) ?? [],
+      });
+    }
+  } else {
+    const byPageKey = new Map<string, Card>();
+    for (const r of rawScreens) {
+      const k = r.pageId + '|' + r.major + '|' + r.minor + '|' + r.hash + '|' + r.headline;
+      const prev = byPageKey.get(k);
+      if (!prev) {
+        const card: Card = {
+          id: r.id,
+          name: r.name,
+          page: r.page,
+          pageId: r.pageId,
+          pageIndex: r.pageIndex,
+          archetype: r.archetype,
+          hash: r.hash,
+          shortHash: r.hash.slice(0, 8),
+          nodes: r.nodes,
+          headline: r.headline,
+          copies: 1,
+          memberIds: [r.id],
+          memberPages: r.page ? [r.page] : [],
+          major: r.major,
+          minor: r.minor,
+          label: r.label,
+          generation: r.generation,
+          existingNote: r.note,
+          palette: paletteByHash.get(r.hash) ?? [],
+        };
+        byPageKey.set(k, card);
+        pageCards.push(card);
+      } else {
+        prev.copies += 1;
+        prev.memberIds.push(r.id);
+      }
+    }
+  }
+
   const famMap = new Map<string, Card[]>();
   let labeledUniqueCount = 0;
   let unlabeledUniqueCount = 0;
@@ -378,7 +458,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   let autoSelectCategory = '';
   let autoSelectMode: 'overview' | 'category' | 'subset' = 'overview';
   if (categoryFilter && selectedCards.length > 0) {
-    const catKeys = new Set(selectedCards.map((c) => (c.major || '未標註') + '::' + (c.minor || '(只到大類)')));
+    const catKeys = new Set(selectedCards.map((c) => (c.major || '未標註') + '::' + (c.minor || '(未細分)')));
     if (catKeys.size === 1) {
       autoSelectCategory = [...catKeys][0];
       autoSelectMode = 'category';
@@ -389,11 +469,26 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     autoSelectMode = 'subset';
   }
 
+  const proposalsDoc = loadProposals(ROOT, resolved.id);
+  const activeProposals = (proposalsDoc?.items ?? []).filter((it) => {
+    const cur = labelMap.get(it.id);
+    if (!cur) return false;
+    return cur.major === it.currentMajor && (cur.minor || '') === (it.currentMinor || '');
+  });
+
   const payloadObj = {
+    projectId: resolved.id,
+    projectName: resolved.name,
+    fileKey,
     db: dbPath,
     fileName,
+    labelsPath: resolved.labelsRelPath,
+    screenSpec,
+    majorOrder: resolved.config.majorOrder ?? ['新UI', '老UI', '系統UI', '未標註'],
+    hubHref: './review.html',
     modeLabel,
     isColdStart,
+    isSampled: sampleCount > 0,
     defaultSidebarMode: (unlabeledOnly || isColdStart) && !categoryFilter ? 'families' : 'categories',
     totalRoots: allRoots.length,
     matchedScreens: rawScreens.length,
@@ -403,59 +498,41 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     unlabeledUniqueCount,
     autoSelectCategory,
     autoSelectMode,
+    proposalsScope: proposalsDoc?.scope || '',
+    proposals: activeProposals,
     cards: selectedCards,
+    pageCards,
   };
   const payload = JSON.stringify(payloadObj).replace(/</g, '\\u003c');
 
   const html = `<!doctype html>
-<html lang="zh-Hant" data-theme="dark">
+<html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rea-FigmaDesign · 數據看板與人工複審</title>
 <style>
   :root {
-    --bg: #0d1117;
-    --bg-elev: #161b22;
-    --bg-soft: #1c222b;
-    --bg-hover: #212834;
-    --border: #30363d;
-    --border-soft: #21262d;
-    --text: #e6edf3;
-    --text-muted: #8b949e;
-    --text-soft: #6e7681;
-    --accent: #388bfd;
-    --accent-bg: rgba(56, 139, 253, 0.14);
-    --green: #3fb950;
-    --green-bg: rgba(63, 185, 80, 0.14);
-    --amber: #d29922;
-    --amber-bg: rgba(210, 153, 34, 0.15);
-    --purple: #bc8cff;
-    --purple-bg: rgba(188, 140, 255, 0.14);
-    --red: #f85149;
-    --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-    --radius: 12px;
-  }
-  html[data-theme="light"] {
-    --bg: #f6f8fa;
+    --bg: #f5f7fa;
     --bg-elev: #ffffff;
-    --bg-soft: #f0f3f6;
-    --bg-hover: #eaeef2;
+    --bg-soft: #eef2f6;
+    --bg-hover: #e5ecf4;
     --border: #d0d7de;
     --border-soft: #e6ebf1;
     --text: #1f2328;
     --text-muted: #59636e;
     --text-soft: #818b98;
     --accent: #0969da;
-    --accent-bg: rgba(9, 105, 218, 0.1);
+    --accent-bg: #e8f1ff;
     --green: #1a7f37;
-    --green-bg: rgba(26, 127, 55, 0.11);
+    --green-bg: #dafbe1;
     --amber: #9a6700;
-    --amber-bg: rgba(154, 103, 0, 0.12);
+    --amber-bg: #fff8c5;
     --purple: #8250df;
-    --purple-bg: rgba(130, 80, 223, 0.1);
+    --purple-bg: #fbefff;
     --red: #cf222e;
-    --shadow: 0 12px 28px rgba(31, 35, 40, 0.12);
+    --shadow: 0 10px 28px rgba(31, 35, 40, 0.12);
+    --radius: 12px;
   }
   * { box-sizing: border-box; }
   body {
@@ -467,8 +544,8 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     min-height: 100vh;
   }
   .sidebar {
-    width: 280px;
-    flex: 0 0 280px;
+    width: 292px;
+    flex: 0 0 292px;
     height: 100vh;
     position: sticky;
     top: 0;
@@ -504,13 +581,14 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     border: none;
     background: transparent;
     color: var(--text-muted);
-    padding: 5px 6px;
+    padding: 5px 10px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
   }
-  .seg button.active { background: var(--accent); color: #fff; }
+  .seg button.active { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(9,105,218,0.22); }
   .sb-search { width: 100%; margin-top: 8px; }
   .sb-scroll { flex: 1; overflow-y: auto; padding: 8px 10px 14px; }
   .sb-foot {
@@ -518,20 +596,41 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     border-top: 1px solid var(--border-soft);
     background: var(--bg-elev);
   }
-  .major-group { margin-bottom: 8px; }
+  .major-group { margin-bottom: 6px; border-radius: 9px; border: 1px solid transparent; }
+  .major-group.open { background: #f7f9fc; border-color: var(--border-soft); }
   .major-hdr {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 8px;
-    font-size: 11px;
+    padding: 7px 9px;
+    font-size: 12.5px;
     font-weight: 700;
     color: var(--text-muted);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     user-select: none;
   }
   .major-hdr:hover { background: var(--bg-hover); color: var(--text); }
+  .major-group.open .major-hdr { color: var(--text); }
+  .major-hdr-left { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+  .major-chev {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--bg-soft);
+    color: var(--text-muted);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .major-group.open .major-chev { background: #dce8fb; color: var(--accent); }
+  .major-children {
+    margin: 2px 6px 6px 14px;
+    padding-left: 10px;
+    border-left: 2px solid #cbd5e1;
+  }
   .cat-item {
     display: flex;
     align-items: center;
@@ -543,33 +642,44 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     cursor: pointer;
     color: var(--text);
     font-size: 12px;
-    border: 1px solid transparent;
+    border: 1.5px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
   }
   .cat-item:hover { background: var(--bg-hover); }
-  .cat-item.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .cat-item.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    box-shadow: inset 3.5px 0 0 var(--accent), 0 1px 3px rgba(9, 105, 218, 0.14);
+    color: #0550ae;
+    font-weight: 700;
+  }
+  .cat-item.active .pill:not(.green):not(.amber) { background: var(--accent); color: #fff; }
   .cat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   .cat-meta { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
   .pill {
     display: inline-flex;
     align-items: center;
-    padding: 1px 6px;
+    padding: 1px 7px;
     border-radius: 99px;
     font-size: 11px;
     font-weight: 600;
     background: var(--bg-soft);
     color: var(--text-muted);
+    white-space: nowrap;
   }
   .pill.green { background: var(--green-bg); color: var(--green); }
   .pill.accent { background: var(--accent-bg); color: var(--accent); }
   .pill.amber { background: var(--amber-bg); color: var(--amber); }
   .pill.purple { background: var(--purple-bg); color: var(--purple); }
-  .pill.red { background: rgba(248,81,73,0.14); color: var(--red); }
+  .pill.red { background: rgba(207, 34, 46, 0.12); color: var(--red); }
+  .pill.solid-blue { background: var(--accent); color: #fff; }
+  .pill.solid-amber { background: #d97706; color: #fff; }
 
   .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .topbar {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 25;
     background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
     padding: 10px 22px;
@@ -595,15 +705,16 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     align-items: center;
     gap: 5px;
   }
-  button.btn:hover { background: var(--bg-hover); }
+  button.btn:hover, .btn:hover { background: var(--bg-hover); }
   button.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
-  button.btn.primary:hover { filter: brightness(1.08); }
+  button.btn.primary:hover { filter: brightness(1.06); }
   button.btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.btn.accent:hover { filter: brightness(1.06); }
   button.btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
   button.btn.ghost:hover { background: var(--bg-hover); color: var(--text); }
-  button.btn.sm { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+  button.btn.sm, .btn.sm { padding: 4px 9px; font-size: 11.5px; border-radius: 6px; }
   input, select, textarea {
-    background: var(--bg);
+    background: var(--bg-elev);
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: 8px;
@@ -611,11 +722,55 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     font-size: 12px;
     font-family: inherit;
   }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(9,105,218,0.12); }
+  .row-chk, .grp-chk {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .menu-wrap { position: relative; display: inline-flex; }
+  .menu-pop {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    min-width: 220px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 5px;
+    box-shadow: var(--shadow);
+    z-index: 48;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .menu-pop.show { display: flex; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+  .menu-item:hover { background: var(--bg-hover); }
+  .menu-item.danger { color: var(--red); }
 
   .hint-bar {
     background: var(--accent-bg);
-    border: 1px solid rgba(56,139,253,0.3);
+    border: 1px solid #b6d4fe;
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 12px;
@@ -694,7 +849,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   .cat-card-title { font-size: 14px; font-weight: 700; line-height: 1.3; word-break: break-word; }
   .cat-card-stat { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .palette-strip { display: flex; gap: 4px; align-items: center; }
-  .sw { display: inline-block; width: 16px; height: 10px; border-radius: 3px; border: 1px solid rgba(128,128,128,0.28); }
+  .sw { display: inline-block; width: 16px; height: 10px; border-radius: 3px; border: 1px solid rgba(31,35,40,0.18); }
 
   .detail-hero {
     background: var(--bg-elev);
@@ -711,6 +866,31 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   .cat-note-box { width: 100%; min-height: 38px; resize: vertical; }
   .cat-note-box.filled, textarea.comment.filled { border-color: var(--green); background: var(--green-bg); }
 
+  .cat-stack-bar {
+    height: 10px;
+    border-radius: 99px;
+    overflow: hidden;
+    display: flex;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+  }
+  .cat-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .cat-chip:hover { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+  .cat-dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; }
+
   .filter-strip {
     display: flex;
     flex-wrap: wrap;
@@ -723,11 +903,13 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 12px;
-    overflow: hidden;
+    overflow: visible;
   }
+  .page-group.has-sel { border-color: #84b6f4; box-shadow: 0 2px 8px rgba(9, 105, 218, 0.08); }
   .page-group-hdr {
     padding: 10px 14px;
     background: var(--bg-soft);
+    border-radius: var(--radius) var(--radius) 0 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -735,21 +917,34 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     cursor: pointer;
     user-select: none;
   }
+  .page-group-hdr.collapsed-hdr { border-radius: var(--radius); }
   .page-group-hdr:hover { background: var(--bg-hover); }
-  .page-group-title { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .page-group-title { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
   .page-group-body.hidden { display: none; }
+  .page-group-body .screen-row:last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
 
   .screen-row {
     display: grid;
-    grid-template-columns: auto 190px minmax(220px, 1fr) minmax(280px, 34%);
+    grid-template-columns: auto 210px minmax(220px, 1fr) minmax(280px, 34%);
     gap: 14px;
     align-items: start;
     padding: 12px 14px;
     border-top: 1px solid var(--border-soft);
+    transition: background 0.1s;
   }
-  .screen-row:hover { background: var(--bg-hover); }
-  .screen-row.has-note { background: rgba(63, 185, 80, 0.06); }
-  .screen-row.selected { background: var(--accent-bg); }
+  .screen-row:hover { background: #f2f6fb; }
+  .screen-row.has-note { background: rgba(26, 127, 55, 0.05); }
+  .screen-row.focused-row {
+    background: #fffbeb;
+    box-shadow: inset 4px 0 0 #d97706;
+    outline: 1.5px solid #f59e0b;
+    outline-offset: -1.5px;
+  }
+  .screen-row.selected {
+    background: #ebf3ff;
+    box-shadow: inset 4px 0 0 var(--accent);
+    border-top-color: #b6d4fe;
+  }
   @media (max-width: 960px) {
     .screen-row { grid-template-columns: auto 1fr; }
   }
@@ -772,6 +967,27 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     overflow: hidden;
   }
   textarea.comment { width: 100%; min-height: 44px; resize: vertical; line-height: 1.45; }
+  .cat-select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 30px;
+    padding: 0 28px 0 9px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background-color: var(--bg-elev);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.25L6 7.75L9.5 4.25' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .cat-select:hover { border-color: #94a3b8; }
+  .cat-select.filled { border-color: var(--accent); background-color: var(--accent-bg); font-weight: 600; color: #0550ae; }
+  .quick-cat-sel { height: 28px; margin-bottom: 6px; background-color: var(--bg-soft); }
+  .direct-hint { margin-top: 4px; font-size: 11px; color: var(--green); font-weight: 600; min-height: 0; }
 
   .unrec-row {
     display: grid;
@@ -781,10 +997,10 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     padding: 12px 14px;
     border-top: 1px solid var(--border-soft);
     border-left: 3px solid var(--amber);
-    background: rgba(210, 153, 34, 0.04);
+    background: rgba(217, 119, 6, 0.04);
   }
   .unrec-row:hover { background: var(--bg-hover); }
-  .unrec-row.has-note { background: rgba(63, 185, 80, 0.06); border-left-color: var(--green); }
+  .unrec-row.has-note { background: rgba(26, 127, 55, 0.05); border-left-color: var(--green); }
   @media (max-width: 960px) {
     .unrec-row { grid-template-columns: 1fr; }
   }
@@ -812,31 +1028,207 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     font-size: 11px;
     color: var(--accent);
   }
-
-  .float-bar {
-    position: fixed;
-    left: 304px;
-    bottom: 16px;
+  .temp-batch-strip {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .temp-batch-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .temp-batch-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .batch-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+  }
+  .batch-pill:hover { border-color: var(--accent); background: var(--bg-hover); }
+  .batch-pill.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .batch-pill-name {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .batch-pill-act {
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 3px;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 4px;
+  }
+  .batch-pill-act:hover { background: rgba(31, 35, 40, 0.08); color: var(--text); }
+  .prop-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .prop-tab {
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 8px 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .prop-tab:hover { border-color: var(--accent); background: #f8fbff; }
+  .prop-tab.active { border-color: var(--accent); background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+  .prop-tab-title { font-size: 12px; font-weight: 700; color: var(--text); }
+  .prop-tab-num { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .prop-row {
+    display: grid;
+    grid-template-columns: 195px minmax(220px, 1fr) minmax(270px, 34%);
+    gap: 14px;
+    align-items: start;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-soft);
+    transition: background 0.1s;
+  }
+  .prop-row:hover { background: #f5f8fc; }
+  .prop-row.dec-accept { background: rgba(26, 127, 55, 0.06); box-shadow: inset 4px 0 0 var(--green); }
+  .prop-row.dec-override { background: rgba(9, 105, 218, 0.06); box-shadow: inset 4px 0 0 var(--accent); }
+  .prop-row.dec-skip { background: var(--bg-soft); opacity: 0.62; }
+  @media (max-width: 960px) {
+    .prop-row { grid-template-columns: 1fr; }
+  }
+  .prop-suggest-box {
+    margin-top: 6px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    font-size: 12px;
+  }
+  .prop-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+  .prop-custom-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-soft);
+  }
+  .prop-custom-major { width: 78px; flex-shrink: 0; height: 28px; padding: 0 22px 0 7px; background-position: right 7px center; }
+  .prop-custom-minor { flex: 1; min-width: 0; height: 28px; padding: 3px 8px; font-size: 12px; border-radius: 6px; }
+  .prop-custom-minor.filled { border-color: var(--accent); background: var(--accent-bg); font-weight: 600; }
+  .prop-divider { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 11.5px; margin: 2px 0; }
+  .prop-divider::before, .prop-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+  .commit-list {
+    max-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg-soft);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .batch-rename-input {
+    height: 28px;
+    padding: 2px 8px;
+    font-size: 12px;
+    border: 1.5px solid var(--accent);
+    border-radius: 99px;
+    min-width: 180px;
+  }
+
+  .float-bar {
+    position: fixed;
+    left: 312px;
+    bottom: 18px;
+    background: var(--bg-elev);
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 8px 14px;
     display: none;
     gap: 8px;
     align-items: center;
     box-shadow: var(--shadow);
-    z-index: 30;
+    z-index: 35;
+    flex-wrap: wrap;
   }
   .float-bar.show { display: flex; }
+  .info-wrap { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+  .info-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: Georgia, serif;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .info-btn:hover, .info-btn.active { border-color: var(--purple); color: var(--purple); background: var(--purple-bg); }
+  .info-pop {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 10px);
+    width: 340px;
+    max-width: calc(100vw - 40px);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    z-index: 60;
+    display: none;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .info-pop.show { display: block; }
+  .info-pop-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: var(--purple); display: flex; align-items: center; justify-content: space-between; }
+  .info-pop ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; }
+  .info-pop code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; background: var(--bg-soft); padding: 1px 4px; border-radius: 4px; }
 
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(15, 23, 42, 0.45);
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 55;
     padding: 20px;
   }
   .modal-backdrop.show { display: flex; }
@@ -864,7 +1256,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     font-weight: 600;
     opacity: 0;
     transition: opacity 0.18s;
-    z-index: 60;
+    z-index: 65;
     pointer-events: none;
   }
   .toast.show { opacity: 1; }
@@ -879,19 +1271,24 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
           <div class="sb-title">Rea-FigmaDesign</div>
           <div class="sb-sub" id="sb-sub"></div>
         </div>
-        <button class="btn sm" id="btn-theme" title="切換深色／淺色模式">淺色</button>
       </div>
       <div class="sb-nav-actions">
+        <a class="btn sm" id="btn-hub" href="./review.html" style="justify-content:center;text-decoration:none" title="返回專案空間切換其他專案">← 專案空間</a>
         <button class="btn sm" style="flex:1;justify-content:center" id="btn-home">總覽看板</button>
       </div>
       <div class="seg">
-        <button id="seg-cats" data-sb="categories">分類清單</button>
-        <button id="seg-fams" data-sb="families">AST 家族歸組</button>
+        <button id="seg-cats" data-sb="categories">分類</button>
+        <button id="seg-pages" data-sb="pages">頁面</button>
+        <button id="seg-fams" data-sb="families">AST</button>
       </div>
-      <input class="sb-search" id="sb-filter" placeholder="篩選分類名稱或 AST...">
+      <input class="sb-search" id="sb-filter" placeholder="篩選分類名稱...">
     </div>
     <div class="sb-scroll" id="sb-list"></div>
     <div class="sb-foot">
+      <div class="cat-item" id="btn-proposals-view" style="margin-bottom:4px">
+        <span class="cat-name">Agent 預分類驗收</span>
+        <span class="pill accent" id="sb-proposals-badge">0</span>
+      </div>
       <div class="cat-item" id="btn-lookup-view" style="margin-bottom:4px">
         <span class="cat-name">Figma 選中查找</span>
         <span class="pill amber" id="sb-lookup-badge">0</span>
@@ -909,29 +1306,55 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
       <span class="muted" id="topbar-sub"></span>
       <span class="pill" id="bridge-pill" title="啟動 npm run start:server 並在 Figma 開啟 Rea-FigmaDesign 插件即可即時聯動">○ 離線模式</span>
       <span class="spacer"></span>
+      <button class="btn accent" id="btn-direct-commit" type="button" style="display:none" title="將已填寫的明確標準分類直接寫入 labels/screens-v2.json，無需貼給 Agent">直接寫入分類 (0)</button>
       <button class="btn primary" id="btn-prompt">複製為 Agent 提示詞 (0)</button>
-      <button class="btn ghost" id="btn-clear" style="color:var(--red)">清空意見</button>
+      <div class="menu-wrap">
+        <button class="btn" id="btn-top-menu" type="button" title="更多設定與操作">⋯</button>
+        <div class="menu-pop" id="top-menu-pop">
+          <button class="menu-item" id="menu-show-spec" type="button">檢視畫布識別規則</button>
+          <button class="menu-item danger" id="menu-clear-all" type="button">清空所有意見</button>
+        </div>
+      </div>
     </header>
     <main class="content" id="content"></main>
   </div>
 
   <div class="float-bar" id="float-bar">
-    <span class="muted" id="sel-stat">已勾選 0 筆</span>
-    <button class="btn sm accent" id="btn-focus-selected">定位選中項到 Figma</button>
-    <button class="btn sm ghost" id="btn-copy-ids">複製選中 ID</button>
+    <span class="pill solid-blue" id="sel-stat">已選 0 筆</span>
+    <button class="btn sm primary" id="btn-batch-selected">批量標註</button>
+    <button class="btn sm accent" id="btn-focus-selected">在 Figma 選中</button>
+    <div class="info-wrap">
+      <button class="btn sm" id="btn-stage-selected" type="button" style="border-color:#8250df;color:#8250df;background:#f5f0ff">生成臨時拼板</button>
+      <button class="info-btn" id="btn-stage-info" type="button" title="什麼是臨時拼板？" aria-label="臨時拼板功能說明">i</button>
+      <div class="info-pop" id="stage-info-pop">
+        <div class="info-pop-title">什麼是「生成臨時拼板」？</div>
+        <ul>
+          <li><strong>整齊預覽：</strong>在 Figma 空白處建一個 <code>[Rea 臨時預覽 · 可刪除]</code> Section，把分散的畫面複製排成整齊網格，方便一次人眼走查。</li>
+          <li><strong>精準對應原稿：</strong>每個副本都寫入隱藏的原稿 ID（不改圖層名、不動原稿）。預覽時框選有問題的副本，按插件「查找選中項」就會自動對應回真正原稿。</li>
+          <li><strong>零殘留：</strong>看完直接刪掉該 Section（或點插件「清理臨時拼板」），對原本設計稿零影響。</li>
+        </ul>
+      </div>
+    </div>
+    <button class="btn sm ghost" id="btn-copy-ids">複製 ID</button>
     <button class="btn sm" id="btn-sel-clear">取消</button>
   </div>
 
   <div class="modal-backdrop" id="modal">
     <div class="modal">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <strong>Agent 提示詞預覽（已嘗試複製到剪貼簿，可直接貼回對話）</strong>
-        <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="include-scope" checked> 附帶已核對範圍摘要
-        </label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer" title="自動排除上次已複製且內容未再改動的舊意見">
+            <input type="checkbox" id="only-unsent" checked> 僅含本次新增／修改意見
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="include-scope" checked> 附帶已核對範圍摘要
+          </label>
+        </div>
       </div>
       <textarea id="modal-text" readonly></textarea>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
+      <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
+        <button class="btn ghost" id="modal-clear-exported" type="button" style="margin-right:auto;display:none">清空已複製舊意見</button>
         <button class="btn accent" id="modal-copy">再次複製</button>
         <button class="btn" id="modal-close">關閉</button>
       </div>
@@ -944,10 +1367,58 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
         <strong id="batch-title">批量標註</strong>
         <span class="muted" id="batch-count" style="font-size:12px">已選中 0 筆</span>
       </div>
-      <textarea id="batch-input" style="height:100px" placeholder="輸入要套用到本頁選中項的標註意見（例：分類應該是 老UI - 交易詳情）"></textarea>
+      <select id="batch-cat-select" class="cat-select" style="width:100%">
+        <option value="">— 下拉選擇標準分類（直接套用，不開新類）—</option>
+      </select>
+      <textarea id="batch-input" style="height:100px" placeholder="輸入或由上方下拉選擇標準分類（例：新UI / 收銀台、老UI / 廢棄、系統UI / 系統彈窗）"></textarea>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button class="btn" id="batch-cancel">取消</button>
-        <button class="btn primary" id="batch-apply">套用標註</button>
+        <button class="btn" id="batch-apply">僅暫存標註</button>
+        <button class="btn primary" id="batch-direct-commit" type="button">直接寫入分類</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="commit-modal">
+    <div class="modal" style="width:min(540px,100%)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <strong>確認寫入正式分類（labels/screens-v2.json）</strong>
+        <span class="pill green" id="commit-count">0 筆</span>
+      </div>
+      <div class="muted">以下為本次你已採納或改選的標準分類統計，確認後將直接更新標註檔並自動重建看板：</div>
+      <div class="commit-list" id="commit-summary"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn ghost" id="commit-copy-fallback" type="button" style="margin-right:auto">複製為 Agent 落盤指令</button>
+        <button class="btn" id="commit-cancel" type="button">取消</button>
+        <button class="btn primary" id="commit-confirm-direct" type="button">確定直接落盤並刷新</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="prop-group-modal">
+    <div class="modal" style="width:min(480px,100%)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <strong id="prop-grp-title">整組改分類</strong>
+        <span class="pill accent" id="prop-grp-count">0 筆</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label class="muted" for="prop-grp-sel">方式一：從現有標準分類下拉選擇</label>
+        <select id="prop-grp-sel" class="cat-select">
+          <option value="">— 請選擇現有標準分類 —</option>
+        </select>
+      </div>
+      <div class="prop-divider">或方式二：輸入自訂新分類（獨立於下拉）</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="prop-grp-custom-major" class="cat-select" style="width:92px;flex-shrink:0">
+          <option value="新UI">新UI</option>
+          <option value="老UI">老UI</option>
+          <option value="系統UI">系統UI</option>
+        </select>
+        <input id="prop-grp-custom-minor" style="flex:1;height:30px" placeholder="輸入新分類名稱（例：錢包頁）">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
+        <button class="btn" id="prop-grp-cancel" type="button">取消</button>
+        <button class="btn primary" id="prop-grp-apply" type="button">套用到本組</button>
       </div>
     </div>
   </div>
@@ -957,30 +1428,65 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
 
 <script>
 const DATA = ${payload};
-const STORAGE_KEY = 'rea-figma-workbench::' + DATA.db + '::' + DATA.modeLabel;
-const THEME_KEY = 'rea-figma-theme';
-const MAJOR_ORDER = ['頁面類', '彈窗類', '廢棄', '系統UI', '新UI', '老UI', '未標註'];
+const STORAGE_KEY = 'rea-figma-workbench::' + (DATA.projectId || DATA.db) + '::' + DATA.modeLabel;
+const MAJOR_ORDER = Array.isArray(DATA.majorOrder) && DATA.majorOrder.length > 0 ? DATA.majorOrder : ['新UI', '老UI', '系統UI', '未標註'];
+const CAT_COLORS = ['#0969da', '#1a7f37', '#8250df', '#d97706', '#cf222e', '#0891b2', '#4f46e5', '#64748b'];
 
 let sbMode = DATA.defaultSidebarMode || 'categories';
-let viewMode = DATA.autoSelectMode || 'overview'; // 'overview' | 'category' | 'family' | 'subset' | 'commented'
+let viewMode = DATA.autoSelectMode || 'overview'; // 'overview' | 'category' | 'page' | 'family' | 'subset' | 'figma-lookup' | 'commented'
 let activeKey = DATA.autoSelectCategory || '';
-const expandedMajors = new Set(['頁面類', '彈窗類', '廢棄', '系統UI', '新UI', '老UI', '未標註']);
-const expandedOverviewMajors = new Set(['頁面類', '彈窗類', '廢棄', '系統UI']);
+const expandedMajors = new Set(MAJOR_ORDER);
+const expandedOverviewMajors = new Set(['新UI', '系統UI']);
 const expandedPages = new Set();
 const selected = new Set();
 let lastClickedId = '';
+let focusedNodeId = '';
 let detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
 let pendingBatch = null;
-let lastLookup = null;
+// Temporary in-memory Figma lookup batches (never persisted to localStorage)
+let lookupBatches = [];
+let activeBatchId = '';
+let lookupBatchSeq = 0;
+let renamingBatchId = '';
+let propFilter = 'all';
+let propGroupBy = 'target';
+let pendingCommitItems = [];
+let pendingCommitContext = { mode: 'proposals', sourceItemKeys: [] };
+let pendingPropGroupKey = '';
+
+function getActiveLookupBatch() {
+  if (activeBatchId) {
+    const found = lookupBatches.find(function(b) { return b.batchId === activeBatchId; });
+    if (found) return found;
+  }
+  return lookupBatches.length > 0 ? lookupBatches[lookupBatches.length - 1] : null;
+}
+
+function emptyExported() {
+  return { categories: {}, families: {}, items: {}, unrecorded: {} };
+}
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { categories: {}, families: {}, items: {}, unrecorded: {} };
+    if (!raw) return { categories: {}, families: {}, items: {}, unrecorded: {}, proposals: {}, exported: emptyExported() };
     const p = JSON.parse(raw);
-    return { categories: p.categories || {}, families: p.families || {}, items: p.items || {}, unrecorded: p.unrecorded || {} };
+    const exp = p.exported || {};
+    return {
+      categories: p.categories || {},
+      families: p.families || {},
+      items: p.items || {},
+      unrecorded: p.unrecorded || {},
+      proposals: p.proposals || {},
+      exported: {
+        categories: exp.categories || {},
+        families: exp.families || {},
+        items: exp.items || {},
+        unrecorded: exp.unrecorded || {}
+      }
+    };
   } catch (e) {
-    return { categories: {}, families: {}, items: {}, unrecorded: {} };
+    return { categories: {}, families: {}, items: {}, unrecorded: {}, proposals: {}, exported: emptyExported() };
   }
 }
 const state = loadState();
@@ -988,20 +1494,6 @@ function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
   updateCommentCounters();
 }
-
-(function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY) || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  document.getElementById('btn-theme').textContent = saved === 'dark' ? '淺色' : '深色';
-})();
-
-document.getElementById('btn-theme').addEventListener('click', function() {
-  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem(THEME_KEY, next);
-  this.textContent = next === 'dark' ? '淺色' : '深色';
-});
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, function(m) {
@@ -1033,6 +1525,19 @@ let bridgeBusy = false;
 let bridgeBusyTimer = null;
 let bridgeSeq = 0;
 
+function isMatchingFigma() {
+  if (!bridgeStatus.figma_connected) return false;
+  const clients = Array.isArray(bridgeStatus.figma_clients) && bridgeStatus.figma_clients.length > 0
+    ? bridgeStatus.figma_clients
+    : [{ file_key: bridgeStatus.figma_file_key, file_name: bridgeStatus.figma_file_name }];
+  return clients.some(function(c) {
+    if (!c) return false;
+    if (c.file_key && c.file_key !== '0:0' && DATA.fileKey && DATA.fileKey !== '0:0' && c.file_key === DATA.fileKey) return true;
+    if (c.file_name && DATA.fileName && c.file_name === DATA.fileName) return true;
+    return false;
+  });
+}
+
 function updateBridgePill() {
   const pill = document.getElementById('bridge-pill');
   if (!pill) return;
@@ -1042,8 +1547,13 @@ function updateBridgePill() {
     return;
   }
   if (bridgeStatus.figma_connected) {
-    pill.className = 'pill green';
-    pill.textContent = '● Figma 已連線' + (bridgeStatus.figma_file_name ? ' · ' + bridgeStatus.figma_file_name : '');
+    if (isMatchingFigma() || !DATA.fileName) {
+      pill.className = 'pill green';
+      pill.textContent = '● Figma 已連線' + (bridgeStatus.figma_file_name ? ' · ' + bridgeStatus.figma_file_name : '');
+    } else {
+      pill.className = 'pill amber';
+      pill.textContent = '⚠ Figma 開啟了「' + (bridgeStatus.figma_file_name || '其他檔案') + '」';
+    }
   } else {
     pill.className = 'pill amber';
     pill.textContent = '○ 等待 Figma 插件連線';
@@ -1063,7 +1573,15 @@ function connectBridge() {
     bridgeWsOpen = true;
     updateBridgePill();
     try {
-      bridgeWs.send(JSON.stringify({ type: 'BRIDGE_HELLO', payload: { role: 'review-ui' } }));
+      bridgeWs.send(JSON.stringify({
+        type: 'BRIDGE_HELLO',
+        payload: {
+          role: 'review-ui',
+          project_id: DATA.projectId || undefined,
+          file_key: DATA.fileKey || undefined,
+          file_name: DATA.fileName || undefined
+        }
+      }));
     } catch (e) {}
   };
   bridgeWs.onclose = function() {
@@ -1104,38 +1622,91 @@ function connectBridge() {
       }
       return;
     }
+    if (msg.type === 'BRIDGE_STAGE_RESULT' && msg.payload) {
+      bridgeBusy = false;
+      if (bridgeBusyTimer) { clearTimeout(bridgeBusyTimer); bridgeBusyTimer = null; }
+      const r = msg.payload;
+      if (r.ok) {
+        const missNote = r.missing_ids && r.missing_ids.length ? '（另有 ' + r.missing_ids.length + ' 筆找不到）' : '';
+        toast('已生成臨時拼板「' + (r.section_name || '') + '」· 共 ' + (r.staged_count || 0) + ' 個畫面' + missNote);
+      } else {
+        toast(r.error || '生成臨時拼板失敗');
+      }
+      return;
+    }
     if (msg.type === 'BRIDGE_LOOKUP_SELECTION' && msg.payload) {
       const p = msg.payload;
       const items = Array.isArray(p.items) ? p.items : [];
-      const matchedByCard = new Map();
+      const matchedList = [];
+      const seenMatchedIds = new Set();
       const unrecordedList = [];
+      selected.clear();
+
       items.forEach(function(it) {
         if (!it || !it.id) return;
-        let card = byMemberId[it.id] || null;
-        let matchVia = '';
-        if (card) {
-          matchVia = it.id === card.id ? 'exact' : 'copy';
-        } else if (Array.isArray(it.ancestor_ids)) {
+        const base = byMemberId[it.id] || null;
+        if (base) {
+          if (seenMatchedIds.has(it.id)) return;
+          seenMatchedIds.add(it.id);
+          const matchVia = it.id === base.id ? 'exact' : 'copy';
+          const pgName = it.page_name || p.page_name || base.page || '';
+          const pgId = it.page_id || p.page_id || base.pageId || '';
+          const rowCard = {
+            id: it.id,
+            name: it.name || base.name || '(未命名)',
+            page: pgName,
+            pageId: pgId,
+            pageIndex: base.pageIndex,
+            archetype: base.archetype,
+            hash: base.hash,
+            shortHash: base.shortHash,
+            nodes: base.nodes,
+            headline: it.text_preview || base.headline || '',
+            copies: 1,
+            memberIds: [it.id],
+            memberPages: pgName ? [pgName] : [],
+            major: base.major,
+            minor: base.minor,
+            label: base.label,
+            generation: base.generation,
+            palette: base.palette || [],
+            repId: base.id
+          };
+          lookupCardById[rowCard.id] = rowCard;
+          matchedList.push({
+            card: rowCard,
+            matchVia: matchVia,
+            matchedSelectedIds: [it.id],
+            selectedName: it.name || ''
+          });
+          return;
+        }
+
+        let ancCard = null;
+        if (Array.isArray(it.ancestor_ids)) {
           for (let i = 0; i < it.ancestor_ids.length; i += 1) {
             const hit = byMemberId[it.ancestor_ids[i]];
             if (hit) {
-              card = hit;
-              matchVia = 'ancestor';
+              ancCard = hit;
               break;
             }
           }
         }
-        if (card) {
-          if (!matchedByCard.has(card.id)) {
-            matchedByCard.set(card.id, {
-              card: card,
-              matchVia: matchVia,
+        if (ancCard) {
+          if (!seenMatchedIds.has(ancCard.id)) {
+            seenMatchedIds.add(ancCard.id);
+            lookupCardById[ancCard.id] = ancCard;
+            matchedList.push({
+              card: ancCard,
+              matchVia: 'ancestor',
               matchedSelectedIds: [it.id],
               selectedName: it.name || ''
             });
           } else {
-            const entry = matchedByCard.get(card.id);
-            if (entry.matchedSelectedIds.indexOf(it.id) === -1) entry.matchedSelectedIds.push(it.id);
+            const prevEntry = matchedList.find(function(x) { return x.card.id === ancCard.id; });
+            if (prevEntry && prevEntry.matchedSelectedIds.indexOf(it.id) === -1) {
+              prevEntry.matchedSelectedIds.push(it.id);
+            }
           }
         } else {
           const prev = state.unrecorded[it.id] || {};
@@ -1156,16 +1727,30 @@ function connectBridge() {
           unrecordedList.push(rec);
         }
       });
+
+      matchedList.forEach(function(m) { selected.add(m.card.id); });
       if (unrecordedList.length > 0) saveState();
-      const matchedList = Array.from(matchedByCard.values());
-      lastLookup = {
+      const seqNum = ++lookupBatchSeq;
+      const expSections = Array.isArray(p.expanded_from_sections) ? p.expanded_from_sections : [];
+      const batchName = expSections.length > 0
+        ? ('批次 #' + seqNum + ' · ' + expSections.slice(0, 2).join(' + ') + (expSections.length > 2 ? ' 等' : ''))
+        : ('批次 #' + seqNum + ' · ' + (p.page_name || 'Figma 選區'));
+      const newBatch = {
+        batchId: 'batch-' + seqNum,
+        name: batchName,
         pageId: p.page_id || '',
         pageName: p.page_name || '',
+        expandedSections: expSections,
         receivedAt: new Date().toISOString(),
         total: items.length,
         matched: matchedList,
-        unrecorded: unrecordedList
+        unrecorded: unrecordedList,
+        allNodeIds: items.map(function(it) { return it.id; })
       };
+      lookupBatches.push(newBatch);
+      if (lookupBatches.length > 30) lookupBatches.shift();
+      activeBatchId = newBatch.batchId;
+      renamingBatchId = '';
       try {
         if (bridgeWs && bridgeWs.readyState === 1) {
           bridgeWs.send(JSON.stringify({
@@ -1183,7 +1768,7 @@ function connectBridge() {
       viewMode = 'figma-lookup';
       renderAll();
       window.scrollTo(0, 0);
-      toast('收到 Figma 選中項（' + items.length + ' 筆）：已收錄 ' + matchedList.length + ' · 未收錄 ' + unrecordedList.length);
+      toast('已建立臨時「' + newBatch.name + '」（' + items.length + ' 筆）：已收錄 ' + matchedList.length + ' · 未收錄 ' + unrecordedList.length);
     }
   };
 }
@@ -1197,6 +1782,10 @@ function requestFigmaFocus(nodeIds, label, opts) {
   }
   if (!bridgeWsOpen || !bridgeWs || bridgeWs.readyState !== 1 || !bridgeStatus.figma_connected) {
     toast('Figma 尚未連線：請先啟動 npm run start:server 並開啟 Figma 插件（或改用複製 ID）');
+    return;
+  }
+  if (DATA.fileName && !isMatchingFigma()) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前專案「' + DATA.fileName + '」不符');
     return;
   }
   if (bridgeBusy) {
@@ -1216,6 +1805,9 @@ function requestFigmaFocus(nodeIds, label, opts) {
     payload: {
       request_id: reqId,
       node_ids: nodeIds || [],
+      project_id: DATA.projectId || undefined,
+      file_key: DATA.fileKey || undefined,
+      file_name: DATA.fileName || undefined,
       page_id: o.pageId || undefined,
       page_name: label || undefined,
       page_only: pageOnly ? true : undefined
@@ -1223,22 +1815,112 @@ function requestFigmaFocus(nodeIds, label, opts) {
   }));
 }
 
+function requestFigmaStageBoard(nodeIds, title, opts) {
+  const o = opts || {};
+  const list = Array.isArray(nodeIds) ? nodeIds : [];
+  if (list.length === 0) {
+    toast('沒有可加入臨時拼板的 node_id');
+    return;
+  }
+  if (!bridgeWsOpen || !bridgeWs || bridgeWs.readyState !== 1 || !bridgeStatus.figma_connected) {
+    toast('Figma 尚未連線：請先啟動 npm run start:server 並開啟 Figma 插件');
+    return;
+  }
+  if (DATA.fileName && !isMatchingFigma()) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前專案「' + DATA.fileName + '」不符');
+    return;
+  }
+  if (bridgeBusy) {
+    toast('上一次 Figma 操作仍在執行，請稍候');
+    return;
+  }
+  let sendIds = list;
+  if (sendIds.length > 120) {
+    if (!confirm('目前已選 ' + sendIds.length + ' 個畫面，臨時拼板單次最多複製前 120 個畫面，是否繼續生成？')) return;
+    sendIds = sendIds.slice(0, 120);
+  } else if (sendIds.length > 60) {
+    if (!confirm('將在 Figma 空白處生成包含 ' + sendIds.length + ' 個畫面副本的臨時預覽拼板，是否繼續？')) return;
+  }
+  const reqId = 'stage-' + Date.now() + '-' + (++bridgeSeq);
+  bridgeBusy = true;
+  if (bridgeBusyTimer) clearTimeout(bridgeBusyTimer);
+  bridgeBusyTimer = setTimeout(function() {
+    bridgeBusy = false;
+    bridgeBusyTimer = null;
+  }, 30000);
+  toast('正在 Figma 生成臨時拼板（' + sendIds.length + ' 個畫面）…');
+  bridgeWs.send(JSON.stringify({
+    type: 'BRIDGE_STAGE_BOARD',
+    payload: {
+      request_id: reqId,
+      node_ids: sendIds,
+      title: title || '選中畫面',
+      project_id: DATA.projectId || undefined,
+      file_key: DATA.fileKey || undefined,
+      file_name: DATA.fileName || undefined,
+      target_page_id: o.targetPageId || undefined
+    }
+  }));
+}
+
 const byId = {};
 const byMemberId = {};
-DATA.cards.forEach(function(c) {
+let lookupCardById = {};
+
+(DATA.pageCards || DATA.cards || []).forEach(function(c) {
   byId[c.id] = c;
   byMemberId[c.id] = c;
   (c.memberIds || []).forEach(function(mid) { byMemberId[mid] = c; });
 });
+if (DATA.isSampled) {
+  DATA.cards.forEach(function(c) {
+    if (!byId[c.id]) byId[c.id] = c;
+    if (!byMemberId[c.id]) byMemberId[c.id] = c;
+    (c.memberIds || []).forEach(function(mid) { if (!byMemberId[mid]) byMemberId[mid] = c; });
+  });
+}
 
-// Aggregate Categories and AST Families
+function resolveCardForId(id) {
+  if (lookupCardById[id]) return lookupCardById[id];
+  if (byId[id]) return byId[id];
+  const base = byMemberId[id];
+  if (!base) return null;
+  const synth = {
+    id: id,
+    name: base.name,
+    page: base.page,
+    pageId: base.pageId,
+    pageIndex: base.pageIndex,
+    archetype: base.archetype,
+    hash: base.hash,
+    shortHash: base.shortHash,
+    nodes: base.nodes,
+    headline: base.headline,
+    copies: 1,
+    memberIds: [id],
+    memberPages: base.page ? [base.page] : [],
+    major: base.major,
+    minor: base.minor,
+    label: base.label,
+    generation: base.generation,
+    palette: base.palette || [],
+    repId: base.id
+  };
+  lookupCardById[id] = synth;
+  return synth;
+}
+
+const workCards = (!DATA.isSampled && Array.isArray(DATA.pageCards) && DATA.pageCards.length > 0) ? DATA.pageCards : DATA.cards;
+
+// Aggregate Categories, AST Families, and Figma Pages from strictly single-page cards
 const catMap = new Map();
 const majorAgg = new Map();
 const famMap = new Map();
+const figmaPageMap = new Map();
 
-DATA.cards.forEach(function(c) {
+workCards.forEach(function(c) {
   const maj = c.major || '未標註';
-  const min = c.major ? (c.minor || '(只到大類)') : 'AST 待歸類';
+  const min = c.major ? (c.minor || '(未細分)') : 'AST 待歸類';
   const key = maj + '::' + min;
 
   if (!catMap.has(key)) {
@@ -1281,6 +1963,36 @@ DATA.cards.forEach(function(c) {
   (c.palette || []).forEach(function(hx) { fRec.paletteCount.set(hx, (fRec.paletteCount.get(hx) || 0) + 1); });
 });
 
+(DATA.pageCards || DATA.cards).forEach(function(c) {
+  const pg = c.page || '(未知頁面)';
+  if (!figmaPageMap.has(pg)) {
+    figmaPageMap.set(pg, {
+      page: pg,
+      pageId: c.pageId || '',
+      pageIndex: typeof c.pageIndex === 'number' ? c.pageIndex : 9999,
+      cards: [],
+      totalScreens: 0,
+      labeledScreens: 0,
+      unlabeledScreens: 0,
+      catCount: new Map(),
+      paletteCount: new Map()
+    });
+  }
+  const pRec = figmaPageMap.get(pg);
+  pRec.cards.push(c);
+  pRec.totalScreens += c.copies;
+  if (c.major) pRec.labeledScreens += c.copies;
+  else pRec.unlabeledScreens += c.copies;
+  const cLabel = c.major ? (c.major + (c.minor ? ' / ' + c.minor : '')) : '未標註';
+  pRec.catCount.set(cLabel, (pRec.catCount.get(cLabel) || 0) + c.copies);
+  (c.palette || []).forEach(function(hx) { pRec.paletteCount.set(hx, (pRec.paletteCount.get(hx) || 0) + 1); });
+});
+
+const sortedFigmaPages = Array.from(figmaPageMap.values()).sort(function(a, b) {
+  if (a.pageIndex !== b.pageIndex) return a.pageIndex - b.pageIndex;
+  return b.totalScreens - a.totalScreens;
+});
+
 function topPalette(palMap, n) {
   return Array.from(palMap.entries()).sort(function(a, b) { return b[1] - a[1]; }).slice(0, n).map(function(x) { return x[0]; });
 }
@@ -1302,20 +2014,141 @@ document.getElementById('sb-sub').textContent = (DATA.fileName || 'Figma AST') +
 
 (function populateCatDatalist() {
   const dl = document.getElementById('all-cat-options');
-  if (!dl) return;
-  const opts = [];
-  Array.from(catMap.values()).forEach(function(r) {
-    if (r.major === '未標註') return;
-    const label = r.major + (r.minor && r.minor !== '(只到大類)' ? ' / ' + r.minor : '');
-    if (opts.indexOf(label) === -1) opts.push(label);
+  const sel = document.getElementById('batch-cat-select');
+  const coreDefaults = [
+    '新UI', '新UI / 廢棄',
+    '老UI', '老UI / 廢棄',
+    '系統UI', '系統UI / 系統彈窗', '系統UI / 系統短信'
+  ];
+  const byMajor = new Map();
+  const seen = new Set();
+  function addOpt(label, maj) {
+    if (!label || seen.has(label)) return;
+    seen.add(label);
+    const m = maj || label.split(' / ')[0];
+    if (!byMajor.has(m)) byMajor.set(m, []);
+    byMajor.get(m).push(label);
+  }
+  coreDefaults.forEach(function(lbl) { addOpt(lbl); });
+  sortedMajors.forEach(function(mRec) {
+    if (mRec.major === '未標註') return;
+    addOpt(mRec.major, mRec.major);
+    const minors = Array.from(mRec.minors.values()).sort(function(a, b) { return b.totalScreens - a.totalScreens; });
+    minors.forEach(function(r) {
+      const lbl = (r.minor && r.minor !== '(未細分)') ? (r.major + ' / ' + r.minor) : r.major;
+      addOpt(lbl, r.major);
+    });
   });
-  dl.innerHTML = opts.map(function(o) { return '<option value="' + esc(o) + '"></option>'; }).join('');
+  window.__canonicalCatSet = seen;
+  const allOpts = Array.from(seen);
+  if (dl) {
+    dl.innerHTML = allOpts.map(function(o) { return '<option value="' + esc(o) + '"></option>'; }).join('');
+  }
+  const order = Array.from(byMajor.keys()).sort(function(a, b) {
+    const ia = MAJOR_ORDER.indexOf(a);
+    const ib = MAJOR_ORDER.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
+  let groupsHtml = '';
+  order.forEach(function(maj) {
+    const list = byMajor.get(maj) || [];
+    groupsHtml += '<optgroup label="' + esc(maj) + '">' +
+      list.map(function(o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') +
+      '</optgroup>';
+  });
+  window.__catSelectGroupsHtml = groupsHtml;
+  if (sel) {
+    sel.innerHTML = '<option value="">— 下拉選擇標準分類（直接套用，不開新類）—</option>' + groupsHtml;
+  }
+  const propGrpSel = document.getElementById('prop-grp-sel');
+  if (propGrpSel) {
+    propGrpSel.innerHTML = '<option value="">— 請選擇現有標準分類 —</option>' + groupsHtml;
+  }
 })();
 
+function buildCatSelectOptions(selectedVal, placeholder) {
+  let html = '<option value="">' + esc(placeholder || '請選擇標準分類…') + '</option>' + (window.__catSelectGroupsHtml || '');
+  if (selectedVal && window.__canonicalCatSet && window.__canonicalCatSet.has(selectedVal)) {
+    const needle = 'value="' + esc(selectedVal) + '"';
+    html = html.replace(needle, needle + ' selected');
+  }
+  return html;
+}
+
+function buildCustomCategoryTarget(majorVal, rawMinor) {
+  const maj = (majorVal || '新UI').trim() || '新UI';
+  let min = (rawMinor || '').trim();
+  if (!min) return '';
+  min = min.replace(/^(新UI|老UI|系統UI)\\s*[/／]\\s*/, '').trim();
+  if (!min) return '';
+  return maj + ' / ' + min;
+}
+
+function parseDirectCategoryNote(rawText) {
+  const s = (rawText || '').trim();
+  if (!s || s.length > 48) return null;
+  if (/[\\r\\n,，。？?!！;；:：、]/.test(s)) return null;
+  const norm = s.replace(/\\s*[/／]\\s*/, ' / ');
+  if (norm.indexOf('/') !== norm.lastIndexOf('/') || norm.indexOf('／') !== -1) return null;
+  if (window.__canonicalCatSet && window.__canonicalCatSet.has(norm)) {
+    const p = parseCanonicalTarget(norm);
+    return { major: p.major, minor: p.minor, generation: p.generation, target: norm, isCustom: false };
+  }
+  const m = /^(新UI|老UI|系統UI) [/] ([^/／\\r\\n]{1,32})$/.exec(norm);
+  if (!m) return null;
+  const major = m[1];
+  const minor = m[2].trim();
+  if (!minor) return null;
+  const generation = major === '老UI' ? 'old' : (major === '系統UI' ? '' : 'new');
+  return { major: major, minor: minor, generation: generation, target: major + ' / ' + minor, isCustom: true };
+}
+
+function collectDirectLabelCommits(explicitIds, overrideText) {
+  const rawPairs = [];
+  if (Array.isArray(explicitIds)) {
+    const parsed = parseDirectCategoryNote(overrideText);
+    if (!parsed) return { commits: [], sourceItemKeys: [], invalidText: true };
+    explicitIds.forEach(function(id) {
+      if (id) rawPairs.push({ keyId: id, parsed: parsed });
+    });
+  } else {
+    Object.keys(state.items || {}).forEach(function(id) {
+      const parsed = parseDirectCategoryNote(state.items[id]);
+      if (parsed && resolveCardForId(id)) rawPairs.push({ keyId: id, parsed: parsed });
+    });
+  }
+  const byNodeId = new Map();
+  const sourceItemKeys = [];
+  rawPairs.forEach(function(entry) {
+    sourceItemKeys.push(entry.keyId);
+    const card = resolveCardForId(entry.keyId);
+    const targetIds = (card && card.copies > 1 && Array.isArray(card.memberIds) && card.memberIds.length > 0)
+      ? card.memberIds
+      : [entry.keyId];
+    targetIds.forEach(function(nid) {
+      byNodeId.set(nid, {
+        id: nid,
+        major: entry.parsed.major,
+        minor: entry.parsed.minor,
+        generation: entry.parsed.generation
+      });
+    });
+  });
+  return { commits: Array.from(byNodeId.values()), sourceItemKeys: sourceItemKeys, invalidText: false };
+}
+
 function countCommentsInCards(cards) {
-  let n = 0;
-  cards.forEach(function(c) { if ((state.items[c.id] || '').trim()) n += 1; });
-  return n;
+  const counted = new Set();
+  cards.forEach(function(c) {
+    const ids = (c.memberIds && c.memberIds.length > 0) ? c.memberIds : [c.id];
+    ids.forEach(function(mid) {
+      if ((state.items[mid] || '').trim()) counted.add(mid);
+    });
+  });
+  return counted.size;
 }
 
 function activeUnrecordedIds() {
@@ -1333,23 +2166,150 @@ function totalCommentCount() {
   return c1 + c2 + c3 + c4;
 }
 
+function unrecSig(u) {
+  return u ? ((u.category || '').trim() + '||' + (u.note || '').trim()) : '';
+}
+
+function isExportedUnchanged(kind, key, val) {
+  const bucket = state.exported && state.exported[kind];
+  if (!bucket || !Object.prototype.hasOwnProperty.call(bucket, key)) return false;
+  return bucket[key] === val;
+}
+
+function collectCommentSets(onlyUnsent) {
+  const catEntries = Object.keys(state.categories).filter(function(k) {
+    const val = (state.categories[k] || '').trim();
+    if (!val) return false;
+    return !onlyUnsent || !isExportedUnchanged('categories', k, val);
+  });
+  const famEntries = Object.keys(state.families).filter(function(h) {
+    const val = (state.families[h] || '').trim();
+    if (!val) return false;
+    return !onlyUnsent || !isExportedUnchanged('families', h, val);
+  });
+  const itemIds = Object.keys(state.items).filter(function(id) {
+    const val = (state.items[id] || '').trim();
+    if (!val || !resolveCardForId(id)) return false;
+    return !onlyUnsent || !isExportedUnchanged('items', id, val);
+  });
+  const unrecIds = activeUnrecordedIds().filter(function(id) {
+    const sig = unrecSig(state.unrecorded[id]);
+    return !onlyUnsent || !isExportedUnchanged('unrecorded', id, sig);
+  });
+  return { catEntries: catEntries, famEntries: famEntries, itemIds: itemIds, unrecIds: unrecIds };
+}
+
+function countSets(sets) {
+  return sets.catEntries.length + sets.famEntries.length + sets.itemIds.length + sets.unrecIds.length;
+}
+
+function countUnsentComments() {
+  return countSets(collectCommentSets(true));
+}
+
+function markSetsAsExported(sets) {
+  if (!state.exported) state.exported = emptyExported();
+  sets.catEntries.forEach(function(k) { state.exported.categories[k] = (state.categories[k] || '').trim(); });
+  sets.famEntries.forEach(function(h) { state.exported.families[h] = (state.families[h] || '').trim(); });
+  sets.itemIds.forEach(function(id) { state.exported.items[id] = (state.items[id] || '').trim(); });
+  sets.unrecIds.forEach(function(id) { state.exported.unrecorded[id] = unrecSig(state.unrecorded[id]); });
+  saveState();
+}
+
+function clearExportedOldComments() {
+  let removed = 0;
+  Object.keys(state.categories).forEach(function(k) {
+    const v = (state.categories[k] || '').trim();
+    if (v && isExportedUnchanged('categories', k, v)) { delete state.categories[k]; removed += 1; }
+  });
+  Object.keys(state.families).forEach(function(h) {
+    const v = (state.families[h] || '').trim();
+    if (v && isExportedUnchanged('families', h, v)) { delete state.families[h]; removed += 1; }
+  });
+  Object.keys(state.items).forEach(function(id) {
+    const v = (state.items[id] || '').trim();
+    if (v && isExportedUnchanged('items', id, v)) { delete state.items[id]; removed += 1; }
+  });
+  Object.keys(state.unrecorded || {}).forEach(function(id) {
+    const sig = unrecSig(state.unrecorded[id]);
+    if (sig && isExportedUnchanged('unrecorded', id, sig)) {
+      state.unrecorded[id].category = '';
+      state.unrecorded[id].note = '';
+      removed += 1;
+    }
+  });
+  state.exported = emptyExported();
+  saveState();
+  renderAll();
+  return removed;
+}
+
 function updateLookupBadge() {
   const el = document.getElementById('sb-lookup-badge');
   if (!el) return;
-  const cnt = lastLookup ? lastLookup.total : activeUnrecordedIds().length;
-  el.textContent = String(cnt);
+  if (lookupBatches.length > 0) {
+    el.textContent = lookupBatches.length + ' 批';
+  } else {
+    el.textContent = String(activeUnrecordedIds().length);
+  }
+}
+
+function getProposalReadyCount() {
+  const list = Array.isArray(DATA.proposals) ? DATA.proposals : [];
+  let ready = 0;
+  list.forEach(function(it) {
+    const dec = (state.proposals && state.proposals[it.id]) || null;
+    if (dec && dec.decision === 'accept' && it.suggestedMajor) ready += 1;
+    else if (dec && dec.decision === 'override' && dec.target) ready += 1;
+  });
+  return { total: list.length, ready: ready };
 }
 
 function updateCommentCounters() {
   const total = totalCommentCount();
-  document.getElementById('btn-prompt').textContent = '複製為 Agent 提示詞 (' + total + ')';
-  document.getElementById('sb-comment-badge').textContent = String(total);
+  const unsent = countUnsentComments();
+  const exportedCnt = Math.max(0, total - unsent);
+  document.getElementById('btn-prompt').textContent =
+    (exportedCnt > 0 && unsent > 0)
+      ? ('複製為 Agent 提示詞 (' + unsent + ' 新)')
+      : ('複製為 Agent 提示詞 (' + total + ')');
+  document.getElementById('sb-comment-badge').textContent =
+    (exportedCnt > 0 && unsent > 0)
+      ? (unsent + '/' + total)
+      : String(total);
+  const propStat = getProposalReadyCount();
+  const pb = document.getElementById('sb-proposals-badge');
+  if (pb) {
+    pb.textContent = propStat.ready > 0 ? (propStat.ready + '/' + propStat.total) : String(propStat.total);
+  }
+  const directBtn = document.getElementById('btn-direct-commit');
+  if (directBtn) {
+    const directRes = collectDirectLabelCommits();
+    if (directRes.commits.length > 0) {
+      directBtn.style.display = '';
+      directBtn.textContent = '直接寫入分類 (' + directRes.commits.length + ')';
+    } else {
+      directBtn.style.display = 'none';
+    }
+  }
   updateLookupBadge();
+}
+
+function getSelectedPagesSummary() {
+  const pages = new Set();
+  selected.forEach(function(id) {
+    const c = resolveCardForId(id);
+    if (c) pages.add(c.page || '(未知頁面)');
+  });
+  return Array.from(pages);
 }
 
 function updateFloatBar() {
   const bar = document.getElementById('float-bar');
-  document.getElementById('sel-stat').textContent = '已勾選 ' + selected.size + ' 筆';
+  const pages = getSelectedPagesSummary();
+  const stat = document.getElementById('sel-stat');
+  stat.textContent = '已選 ' + selected.size + ' 筆' + (pages.length > 1 ? '（跨 ' + pages.length + ' 頁）' : (pages.length === 1 ? ' · ' + pages[0] : ''));
+  stat.className = pages.length > 1 ? 'pill solid-amber' : 'pill solid-blue';
   bar.classList.toggle('show', selected.size > 0);
 }
 
@@ -1362,11 +2322,16 @@ function swatchesHtml(palette) {
 
 function renderSidebar() {
   document.getElementById('seg-cats').classList.toggle('active', sbMode === 'categories');
+  document.getElementById('seg-pages').classList.toggle('active', sbMode === 'pages');
   document.getElementById('seg-fams').classList.toggle('active', sbMode === 'families');
+  const propBtn = document.getElementById('btn-proposals-view');
+  if (propBtn) propBtn.classList.toggle('active', viewMode === 'proposals');
   document.getElementById('btn-lookup-view').classList.toggle('active', viewMode === 'figma-lookup');
   document.getElementById('btn-commented-view').classList.toggle('active', viewMode === 'commented');
 
-  const q = document.getElementById('sb-filter').value.trim().toLowerCase();
+  const filterInput = document.getElementById('sb-filter');
+  filterInput.placeholder = sbMode === 'categories' ? '篩選分類名稱...' : (sbMode === 'pages' ? '篩選 Figma 頁面...' : '篩選 AST 家族...');
+  const q = filterInput.value.trim().toLowerCase();
   const container = document.getElementById('sb-list');
 
   if (sbMode === 'categories') {
@@ -1379,12 +2344,13 @@ function renderSidebar() {
       if (q && filteredMinors.length === 0) return;
 
       const isOpen = q ? true : expandedMajors.has(mRec.major);
-      html += '<div class="major-group">' +
+      html += '<div class="major-group' + (isOpen ? ' open' : '') + '">' +
         '<div class="major-hdr" data-toggle-major="' + esc(mRec.major) + '">' +
-        '<span>' + (isOpen ? '▾ ' : '▸ ') + esc(mRec.major) + '</span>' +
-        '<span>' + mRec.screens + '</span>' +
+        '<span class="major-hdr-left"><span class="major-chev">' + (isOpen ? '▾' : '▸') + '</span><span>' + esc(mRec.major) + '</span></span>' +
+        '<span class="pill">' + mRec.screens + '</span>' +
         '</div>';
       if (isOpen) {
+        html += '<div class="major-children">';
         filteredMinors.forEach(function(r) {
           const noteCnt = ((state.categories[r.key] || '').trim() ? 1 : 0) + countCommentsInCards(r.cards);
           const isAct = viewMode === 'category' && activeKey === r.key;
@@ -1395,10 +2361,31 @@ function renderSidebar() {
             '<span class="pill">' + r.totalScreens + '</span>' +
             '</span></div>';
         });
+        html += '</div>';
       }
       html += '</div>';
     });
     container.innerHTML = html || '<div class="muted" style="padding:10px">找不到符合的分類</div>';
+    return;
+  }
+
+  if (sbMode === 'pages') {
+    const filteredPages = q ? sortedFigmaPages.filter(function(p) {
+      return p.page.toLowerCase().indexOf(q) !== -1;
+    }) : sortedFigmaPages;
+    let html = '';
+    filteredPages.forEach(function(p) {
+      const noteCnt = countCommentsInCards(p.cards);
+      const isAct = viewMode === 'page' && activeKey === p.page;
+      html += '<div class="cat-item' + (isAct ? ' active' : '') + '" data-open-page="' + esc(p.page) + '" title="' + esc(p.page) + '（' + p.catCount.size + ' 個分類）">' +
+        '<span class="cat-name">' + esc(p.page) + '</span>' +
+        '<span class="cat-meta">' +
+        (noteCnt > 0 ? '<span class="pill green">✎' + noteCnt + '</span>' : '') +
+        (p.unlabeledScreens > 0 && !isAct ? '<span class="pill amber" title="未標註數量">?' + p.unlabeledScreens + '</span>' : '') +
+        '<span class="pill">' + p.totalScreens + '</span>' +
+        '</span></div>';
+    });
+    container.innerHTML = html || '<div class="muted" style="padding:10px">找不到符合的 Figma 頁面</div>';
     return;
   }
 
@@ -1436,10 +2423,16 @@ function renderOverview() {
   const commentTotal = totalCommentCount();
   const maxMajorScreens = sortedMajors.length ? Math.max.apply(null, sortedMajors.map(function(m) { return m.screens; })) : 1;
 
+  const spec = DATA.screenSpec || {};
+  const specLabel = Array.isArray(spec.widths) && spec.widths.length > 0
+    ? ('寬 ' + (spec.widths.length > 3 ? (Math.min.apply(null, spec.widths) + '–' + Math.max.apply(null, spec.widths)) : spec.widths.join('/')) + ' · 高 ' + (spec.minHeight || 600) + '–' + (spec.maxHeight || 12000) + 'px')
+    : '';
+
   let html = '<div class="hint-bar">' +
     (DATA.isColdStart
       ? '目前為 <strong>純 AST 冷啟動視圖</strong>：機器已依結構自動分出 ' + DATA.familyCount + ' 組家族。點擊下方任一家族或左側清單開始歸類；<strong>沒問題直接留空</strong>，有意見請直接描述並複製為 Agent 提示詞。'
       : '點選任一分類卡片進入詳情頁檢視（已按 Figma 頁面分組）；<strong>沒問題的畫面直接留空</strong>，只需針對有偏差的地方寫意見，完成後點擊右上角「複製為 Agent 提示詞」。') +
+    (specLabel ? ' <span class="pill" style="margin-left:6px">畫布規則：' + esc(specLabel) + '</span>' : '') +
     '</div>';
 
   html += '<div class="kpi-grid">' +
@@ -1530,15 +2523,22 @@ function buildFigmaScript(cards) {
 
 function renderScreenRow(c) {
   const comment = state.items[c.id] || '';
+  const directMeta = parseDirectCategoryNote(comment);
   const isSel = selected.has(c.id);
-  const cls = ['screen-row', comment.trim() ? 'has-note' : '', isSel ? 'selected' : ''].filter(Boolean).join(' ');
+  const isFocused = focusedNodeId === c.id;
+  const cls = ['screen-row', comment.trim() ? 'has-note' : '', isFocused ? 'focused-row' : '', isSel ? 'selected' : ''].filter(Boolean).join(' ');
   const archCls = c.archetype === 'overlay' ? 'purple' : (c.archetype === 'overlay-panel' ? 'accent' : '');
   const genCls = c.generation === 'new' ? 'green' : (c.generation === 'old' ? 'red' : '');
 
   return '<div class="' + cls + '" data-id="' + esc(c.id) + '">' +
     '<div style="padding-top:3px"><input type="checkbox" class="row-chk" data-id="' + esc(c.id) + '"' + (isSel ? ' checked' : '') + '></div>' +
     '<div>' +
-    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="id-link" data-copy="' + esc(c.id) + '" title="點擊複製 node_id">' + esc(c.id) + '</span><button class="btn sm focus-node-btn" data-focus-id="' + esc(c.id) + '" title="在 Figma 中切換頁面並聚焦到此畫面">定位</button></div>' +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
+    '<span class="id-link" data-copy="' + esc(c.id) + '" title="點擊複製 node_id">' + esc(c.id) + '</span>' +
+    '<button class="btn sm focus-node-btn" data-focus-id="' + esc(c.id) + '" title="在 Figma 中切換頁面並聚焦到此畫面">定位</button>' +
+    (isSel ? '<span class="pill solid-blue sel-badge">✓ 已選中</span>' : '') +
+    (isFocused ? '<span class="pill solid-amber focus-badge">◉ 當前定位</span>' : '') +
+    '</div>' +
     '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">' +
     '<span class="pill ' + archCls + '">' + esc(c.archetype) + '</span>' +
     (c.generation ? '<span class="pill ' + genCls + '">' + esc(c.generation) + '</span>' : '') +
@@ -1549,12 +2549,91 @@ function renderScreenRow(c) {
     '<div>' +
     '<div class="layer-name">' + esc(c.name || '(無名)') + '</div>' +
     '<div class="headline-txt" title="' + esc(c.headline) + '">' + esc(c.headline || '(無文案)') + '</div>' +
-    (c.major ? '<div class="muted" style="margin-top:4px">' + esc(c.major + (c.minor ? ' / ' + c.minor : '')) + ' · #' + esc(c.shortHash) + '</div>' : '<div class="muted" style="margin-top:4px">AST #' + esc(c.shortHash) + '</div>') +
+    (c.major ? '<div class="muted" style="margin-top:4px">' + esc(c.major + (c.minor ? ' / ' + c.minor : '')) + ' · #' + esc(c.shortHash) + '</div>' : '<div class="muted" style="margin-top:4px">未標註 · AST #' + esc(c.shortHash) + '</div>') +
     '</div>' +
     '<div>' +
-    '<textarea class="comment item-comment' + (comment.trim() ? ' filled' : '') + '" data-id="' + esc(c.id) + '" placeholder="沒問題留空；有問題請描述（如：應歸入交易詳情 / 老UI / 廢棄）">' + esc(comment) + '</textarea>' +
+    '<select class="cat-select quick-cat-sel" data-quick-cat-id="' + esc(c.id) + '">' + buildCatSelectOptions('', '下拉快選標準分類（不開新類）…') + '</select>' +
+    '<textarea class="comment item-comment' + (comment.trim() ? ' filled' : '') + '" data-id="' + esc(c.id) + '" placeholder="沒問題留空；或於上方下拉快選，也可手寫補充說明">' + esc(comment) + '</textarea>' +
+    '<div class="direct-hint" data-direct-hint-id="' + esc(c.id) + '">' + (directMeta ? ('✓ 確定分類（' + esc(directMeta.target) + '）· 可直接入庫') : '') + '</div>' +
     '</div>' +
     '</div>';
+}
+
+function collectMemberIds(cards, onlyPageId) {
+  const seen = new Set();
+  const out = [];
+  cards.forEach(function(c) {
+    if (onlyPageId && c.pageId && c.pageId !== onlyPageId) return;
+    const ids = (c.memberIds && c.memberIds.length > 0) ? c.memberIds : [c.id];
+    ids.forEach(function(id) {
+      if (onlyPageId) {
+        const owner = byMemberId[id];
+        if (owner && owner.pageId && owner.pageId !== onlyPageId) return;
+      }
+      if (!seen.has(id)) { seen.add(id); out.push(id); }
+    });
+  });
+  return out;
+}
+
+function renderGroupHeaderHtml(opts) {
+  const list = opts.cards;
+  let selCnt = 0;
+  list.forEach(function(c) { if (selected.has(c.id)) selCnt += 1; });
+  const allMemberIds = collectMemberIds(list, opts.pageId || '');
+
+  return '<div class="page-group' + (selCnt > 0 ? ' has-sel' : '') + '" id="' + esc(opts.domId || '') + '" data-grp-wrap="' + esc(opts.groupKey) + '">' +
+    '<div class="page-group-hdr' + (opts.isOpen ? '' : ' collapsed-hdr') + '" data-toggle-page="' + esc(opts.toggleKey) + '">' +
+    '<div class="page-group-title">' +
+    '<input type="checkbox" class="grp-chk" data-grp-key="' + esc(opts.groupKey) + '"' + (selCnt > 0 && selCnt === list.length ? ' checked' : '') + ' title="全選／取消全選本組">' +
+    '<span>' + (opts.isOpen ? '▾' : '▸') + '</span>' +
+    '<span>' + esc(opts.title) + '</span>' +
+    '<span class="pill">' + (list.length === opts.totalScreens ? (opts.totalScreens + ' 畫面') : (list.length + ' 組 / ' + opts.totalScreens + ' 畫面')) + '</span>' +
+    (selCnt > 0 ? '<span class="pill solid-blue grp-sel-pill">已選 ' + selCnt + '/' + list.length + '</span>' : '') +
+    (opts.noteCnt > 0 ? '<span class="pill green">✎ ' + opts.noteCnt + '</span>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:6px;align-items:center">' +
+    '<button class="btn sm ' + opts.primaryBtnClass + '" data-grp-key="' + esc(opts.groupKey) + '" data-page-key="' + esc(opts.pageKey || opts.groupKey) + '" data-page-id="' + esc(opts.pageId || '') + '" title="' + esc(opts.primaryBtnTitle || '') + '">' + esc(opts.primaryBtnText) + '</button>' +
+    '<div class="menu-wrap">' +
+    '<button class="btn sm menu-toggle-btn" type="button" title="更多群組操作">⋯</button>' +
+    '<div class="menu-pop">' +
+    (opts.focusAllItem ? '<button class="menu-item focus-group-all-figma" type="button" data-grp-key="' + esc(opts.groupKey) + '" data-page-key="' + esc(opts.pageKey || opts.groupKey) + '" data-page-id="' + esc(opts.pageId || '') + '">在 Figma 選中本組全部 (' + allMemberIds.length + ')</button>' : '') +
+    (opts.focusAllItem ? '<button class="menu-item stage-group-figma" type="button" data-grp-key="' + esc(opts.groupKey) + '" data-page-key="' + esc(opts.pageKey || opts.groupKey) + '" data-page-id="' + esc(opts.pageId || '') + '">生成本組臨時拼板 (' + allMemberIds.length + ')</button>' : '') +
+    '<button class="menu-item copy-group-ids-btn" type="button" data-grp-key="' + esc(opts.groupKey) + '">複製本組 ID (' + list.length + ')</button>' +
+    (opts.extraMenuHtml || '') +
+    '</div></div>' +
+    '</div></div>' +
+    '<div class="page-group-body' + (opts.isOpen ? '' : ' hidden') + '">';
+}
+
+function syncGroupCheckboxes() {
+  if (!window.__currentGroups) return;
+  document.querySelectorAll('.grp-chk').forEach(function(chk) {
+    const gk = chk.getAttribute('data-grp-key');
+    const list = window.__currentGroups.get(gk) || [];
+    let cnt = 0;
+    list.forEach(function(c) { if (selected.has(c.id)) cnt += 1; });
+    chk.checked = list.length > 0 && cnt === list.length;
+    chk.indeterminate = cnt > 0 && cnt < list.length;
+    const wrap = chk.closest('.page-group');
+    if (wrap) {
+      wrap.classList.toggle('has-sel', cnt > 0);
+      const titleEl = wrap.querySelector('.page-group-title');
+      if (titleEl) {
+        let badge = titleEl.querySelector('.grp-sel-pill');
+        if (cnt > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'pill solid-blue grp-sel-pill';
+            titleEl.appendChild(badge);
+          }
+          badge.textContent = '已選 ' + cnt + '/' + list.length;
+        } else if (badge) {
+          badge.remove();
+        }
+      }
+    }
+  });
 }
 
 function renderDetailView(opts) {
@@ -1573,27 +2652,29 @@ function renderDetailView(opts) {
     '<div><div class="detail-title">' + esc(title) + '</div><div class="muted" style="margin-top:2px">' + esc(sub) + '</div></div>' +
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
     swatchesHtml(pal) +
-    '<button class="btn sm ghost" id="btn-copy-group-ids">複製全部 ID (' + cards.length + ')</button>' +
+    '<div class="menu-wrap">' +
+    '<button class="btn sm menu-toggle-btn" type="button">⋯ 更多</button>' +
+    '<div class="menu-pop">' +
+    '<button class="menu-item" id="btn-copy-group-ids" type="button">複製全部 ID (' + cards.length + ')</button>' +
+    '<button class="menu-item" id="btn-expand-pages" type="button">展開全部頁面</button>' +
+    '<button class="menu-item" id="btn-collapse-pages" type="button">收合全部頁面</button>' +
+    '</div></div>' +
     '</div></div>';
 
   if (groupKind === 'category' || groupKind === 'family') {
     const val = groupKind === 'category' ? (state.categories[groupKey] || '') : (state.families[groupKey] || '');
     const ph = groupKind === 'category'
       ? '對整個「' + title + '」分類有整體意見請寫這裡（沒問題留空；例如：這個分類底下有混入彈窗，請拆出）'
-      : '對整個 AST 家族 #' + groupKey.slice(0, 8) + ' 有整體歸類意見請寫這裡（沒問題留空；例如：整組歸為 頁面類 / 收銀台）';
+      : '對整個 AST 家族 #' + groupKey.slice(0, 8) + ' 有整體歸類意見請寫這裡（沒問題留空；例如：整組歸為 新UI / 收銀台）';
     html += '<textarea class="cat-note-box' + (val.trim() ? ' filled' : '') + '" id="group-comment-box" data-kind="' + groupKind + '" data-key="' + esc(groupKey) + '" placeholder="' + esc(ph) + '">' + esc(val) + '</textarea>';
   }
   html += '</div>';
 
-  // Lightweight detail filters
   html += '<div class="filter-strip">' +
-    '<input id="dt-q" style="width:230px" value="' + esc(detailFilter.q) + '" placeholder="搜尋頁面 / 圖層 / 文案 / ID">' +
+    '<input id="dt-q" style="width:240px" value="' + esc(detailFilter.q) + '" placeholder="搜尋頁面 / 圖層 / 文案 / ID">' +
     '<select id="dt-arch"><option value="">全部原型</option><option value="page"' + (detailFilter.arch === 'page' ? ' selected' : '') + '>page</option><option value="overlay-panel"' + (detailFilter.arch === 'overlay-panel' ? ' selected' : '') + '>overlay-panel</option><option value="overlay"' + (detailFilter.arch === 'overlay' ? ' selected' : '') + '>overlay</option></select>' +
     '<select id="dt-gen"><option value="">全部世代</option><option value="new"' + (detailFilter.gen === 'new' ? ' selected' : '') + '>new</option><option value="old"' + (detailFilter.gen === 'old' ? ' selected' : '') + '>old</option></select>' +
     '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="dt-only-comment"' + (detailFilter.onlyCommented ? ' checked' : '') + '> 只看已填意見</label>' +
-    '<span class="spacer"></span>' +
-    '<button class="btn sm" id="btn-expand-pages">展開全部頁面</button>' +
-    '<button class="btn sm" id="btn-collapse-pages">收合全部頁面</button>' +
     '</div>';
 
   const filtered = cards.filter(function(c) {
@@ -1608,12 +2689,12 @@ function renderDetailView(opts) {
   });
 
   if (filtered.length === 0) {
-    html += '<div class="panel"><div class="muted">目前篩選條件下沒有畫面。</div></div>';
-    document.getElementById('content').innerHTML = html;
+    window.__currentGroupCards = [];
+    window.__currentGroups = new Map();
+    document.getElementById('content').innerHTML = html + '<div class="panel"><div class="muted">目前篩選條件下沒有畫面。</div></div>';
     return;
   }
 
-  // Group by Figma Page
   const byPage = new Map();
   filtered.forEach(function(c) {
     const pg = c.page || '(未知頁面)';
@@ -1622,7 +2703,6 @@ function renderDetailView(opts) {
   });
   const sortedPages = Array.from(byPage.entries()).sort(function(a, b) { return b[1].length - a[1].length; });
 
-  // Auto-expand first 3 pages on fresh view
   const scopePrefix = groupKind + ':' + groupKey + ':';
   const anyExplicit = sortedPages.some(function(e) { return expandedPages.has(scopePrefix + e[0]) || expandedPages.has('COLLAPSED::' + scopePrefix + e[0]); });
   if (!anyExplicit) {
@@ -1636,22 +2716,24 @@ function renderDetailView(opts) {
     const isOpen = detailFilter.q || detailFilter.onlyCommented ? true : expandedPages.has(pKey);
     const totalInPage = list.reduce(function(s, x) { return s + x.copies; }, 0);
     const noteCnt = countCommentsInCards(list);
+    const first = list[0];
 
-    html += '<div class="page-group">' +
-      '<div class="page-group-hdr" data-toggle-page="' + esc(pKey) + '">' +
-      '<div class="page-group-title"><span>' + (isOpen ? '▾' : '▸') + '</span><span>' + esc(pg) + '</span>' +
-      '<span class="pill">' + list.length + ' 組 / ' + totalInPage + ' 畫面</span>' +
-      (noteCnt > 0 ? '<span class="pill green">✎ ' + noteCnt + '</span>' : '') +
-      '</div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
-      '<button class="btn sm batch-label-page" data-page-key="' + esc(pg) + '">批量標註</button>' +
-      '<button class="btn sm accent focus-page-figma" data-page-key="' + esc(pg) + '" title="僅切換 Figma 到此頁面（不一次全選全部節點）">定位到 Figma</button>' +
-      '<button class="btn sm select-page-all" data-page-key="' + esc(pg) + '">全選</button>' +
-      '<button class="btn sm select-page-none" data-page-key="' + esc(pg) + '">取消全選</button>' +
-      '<button class="btn sm ghost copy-page-ids" data-page-key="' + esc(pg) + '">複製 ID</button>' +
-      '</div></div>';
-
-    html += '<div class="page-group-body' + (isOpen ? '' : ' hidden') + '">';
+    html += renderGroupHeaderHtml({
+      groupKey: pg,
+      toggleKey: pKey,
+      isOpen: isOpen,
+      title: pg,
+      cards: list,
+      totalScreens: totalInPage,
+      noteCnt: noteCnt,
+      pageKey: pg,
+      pageId: first ? first.pageId : '',
+      primaryBtnClass: 'accent focus-page-figma',
+      primaryBtnText: '定位到 Figma',
+      primaryBtnTitle: '僅切換 Figma 到此頁面（不一次全選全部節點）',
+      focusAllItem: true,
+      extraMenuHtml: '<button class="menu-item" type="button" data-open-page="' + esc(pg) + '">切換到整頁視角（' + esc(pg) + '）</button>'
+    });
     if (isOpen) {
       list.forEach(function(c) { html += renderScreenRow(c); });
     }
@@ -1660,8 +2742,137 @@ function renderDetailView(opts) {
 
   document.getElementById('content').innerHTML = html;
   window.__currentGroupCards = filtered;
-  window.__currentByPage = byPage;
+  window.__currentGroups = byPage;
   window.__currentScopePrefix = scopePrefix;
+  syncGroupCheckboxes();
+}
+
+function renderPageView(pageName) {
+  const pRec = figmaPageMap.get(pageName);
+  if (!pRec) { viewMode = 'overview'; renderOverview(); return; }
+
+  const total = pRec.totalScreens;
+  const pct = total > 0 ? Math.round((100 * pRec.labeledScreens) / total) : 0;
+  const sub = '已收錄 ' + total + ' 個畫面（同頁去重 ' + pRec.cards.length + ' 組） · 分佈於 ' + pRec.catCount.size + ' 個分類 · 已標註 ' + pct + '%';
+
+  document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> <span>頁面 · ' + esc(pRec.page) + '</span>';
+  document.getElementById('topbar-sub').textContent = sub;
+
+  const sortedCatSummary = Array.from(pRec.catCount.entries()).sort(function(a, b) { return b[1] - a[1]; });
+  let stackHtml = '<div class="cat-stack-bar">';
+  let chipHtml = '<div class="cat-chip-row">';
+  sortedCatSummary.forEach(function(pair, idx) {
+    const label = pair[0];
+    const cnt = pair[1];
+    const w = total > 0 ? ((100 * cnt) / total).toFixed(2) : '0';
+    const color = label === '未標註' ? '#d97706' : CAT_COLORS[idx % CAT_COLORS.length];
+    stackHtml += '<div style="width:' + w + '%;background:' + color + '" title="' + esc(label) + ': ' + cnt + '"></div>';
+    chipHtml += '<button class="cat-chip" type="button" data-jump-cat-group="' + esc(label) + '"><i class="cat-dot" style="background:' + color + '"></i><span>' + esc(label) + '</span><span class="pill">' + cnt + '</span></button>';
+  });
+  stackHtml += '</div>';
+  chipHtml += '</div>';
+
+  let html = '<div class="detail-hero">' +
+    '<div class="detail-hero-row">' +
+    '<div><div class="detail-title">' + esc(pRec.page) + '</div><div class="muted" style="margin-top:2px">' + esc(sub) + '</div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+    '<button class="btn sm accent" id="btn-jump-this-page" data-page-key="' + esc(pRec.page) + '" data-page-id="' + esc(pRec.pageId) + '">跳轉到 Figma 頁面</button>' +
+    '<div class="menu-wrap">' +
+    '<button class="btn sm menu-toggle-btn" type="button">⋯ 更多</button>' +
+    '<div class="menu-pop">' +
+    '<button class="menu-item" id="btn-focus-page-all-recorded" type="button" data-page-key="' + esc(pRec.page) + '" data-page-id="' + esc(pRec.pageId) + '">在 Figma 選中本頁全部已收錄 (' + total + ')</button>' +
+    '<button class="menu-item" id="btn-copy-group-ids" type="button">複製本頁全部 ID (' + total + ')</button>' +
+    '<button class="menu-item" id="btn-expand-pages" type="button">展開全部分類</button>' +
+    '<button class="menu-item" id="btn-collapse-pages" type="button">收合全部分類</button>' +
+    '</div></div>' +
+    '</div></div>' +
+    stackHtml + chipHtml +
+    '</div>';
+
+  html += '<div class="filter-strip">' +
+    '<input id="dt-q" style="width:240px" value="' + esc(detailFilter.q) + '" placeholder="搜尋分類 / 圖層 / 文案 / ID">' +
+    '<select id="dt-arch"><option value="">全部原型</option><option value="page"' + (detailFilter.arch === 'page' ? ' selected' : '') + '>page</option><option value="overlay-panel"' + (detailFilter.arch === 'overlay-panel' ? ' selected' : '') + '>overlay-panel</option><option value="overlay"' + (detailFilter.arch === 'overlay' ? ' selected' : '') + '>overlay</option></select>' +
+    '<select id="dt-gen"><option value="">全部世代</option><option value="new"' + (detailFilter.gen === 'new' ? ' selected' : '') + '>new</option><option value="old"' + (detailFilter.gen === 'old' ? ' selected' : '') + '>old</option></select>' +
+    '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="dt-only-comment"' + (detailFilter.onlyCommented ? ' checked' : '') + '> 只看已填意見</label>' +
+    '</div>';
+
+  const filtered = pRec.cards.filter(function(c) {
+    if (detailFilter.arch && c.archetype !== detailFilter.arch) return false;
+    if (detailFilter.gen && c.generation !== detailFilter.gen) return false;
+    if (detailFilter.onlyCommented && !(state.items[c.id] || '').trim()) return false;
+    if (detailFilter.q) {
+      const catStr = c.major ? (c.major + ' ' + c.minor) : '未標註';
+      const hay = (c.id + ' ' + catStr + ' ' + c.name + ' ' + c.headline + ' ' + c.shortHash).toLowerCase();
+      if (hay.indexOf(detailFilter.q.toLowerCase()) === -1) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    window.__currentGroupCards = [];
+    window.__currentGroups = new Map();
+    document.getElementById('content').innerHTML = html + '<div class="panel"><div class="muted">目前篩選條件下沒有畫面。</div></div>';
+    return;
+  }
+
+  const byCat = new Map();
+  filtered.forEach(function(c) {
+    const catLabel = c.major ? (c.major + (c.minor ? ' / ' + c.minor : '')) : '未標註';
+    if (!byCat.has(catLabel)) byCat.set(catLabel, []);
+    byCat.get(catLabel).push(c);
+  });
+  const sortedCats = Array.from(byCat.entries()).sort(function(a, b) {
+    const sa = a[1].reduce(function(s, x) { return s + x.copies; }, 0);
+    const sb = b[1].reduce(function(s, x) { return s + x.copies; }, 0);
+    return sb - sa;
+  });
+
+  const scopePrefix = 'page:' + pRec.page + ':';
+  const anyExplicit = sortedCats.some(function(e) { return expandedPages.has(scopePrefix + e[0]) || expandedPages.has('COLLAPSED::' + scopePrefix + e[0]); });
+  if (!anyExplicit) {
+    sortedCats.slice(0, 3).forEach(function(e) { expandedPages.add(scopePrefix + e[0]); });
+  }
+
+  sortedCats.forEach(function(entry, idx) {
+    const catLabel = entry[0];
+    const list = entry[1];
+    const pKey = scopePrefix + catLabel;
+    const isOpen = detailFilter.q || detailFilter.onlyCommented ? true : expandedPages.has(pKey);
+    const totalInCat = list.reduce(function(s, x) { return s + x.copies; }, 0);
+    const noteCnt = countCommentsInCards(list);
+    const first = list[0];
+    const openCatKey = first.major ? (first.major + '::' + (first.minor || '(未細分)')) : '未標註::AST 待歸類';
+    const memberCount = collectMemberIds(list).length;
+
+    html += renderGroupHeaderHtml({
+      domId: 'pg-cat-grp-' + idx,
+      groupKey: catLabel,
+      toggleKey: pKey,
+      isOpen: isOpen,
+      title: catLabel,
+      cards: list,
+      totalScreens: totalInCat,
+      noteCnt: noteCnt,
+      pageKey: pRec.page,
+      pageId: pRec.pageId,
+      primaryBtnClass: 'accent focus-group-all-figma',
+      primaryBtnText: '在 Figma 選中 (' + memberCount + ')',
+      primaryBtnTitle: '在 Figma 中同時選中本頁屬於此分類的設計稿',
+      focusAllItem: false,
+      extraMenuHtml: catMap.has(openCatKey) ? '<button class="menu-item" type="button" data-open-cat="' + esc(openCatKey) + '">查看「' + esc(catLabel) + '」全檔分佈</button>' : ''
+    });
+    if (isOpen) {
+      list.forEach(function(c) { html += renderScreenRow(c); });
+    }
+    html += '</div></div>';
+  });
+
+  document.getElementById('content').innerHTML = html;
+  window.__currentGroupCards = filtered;
+  window.__currentGroups = byCat;
+  window.__currentScopePrefix = scopePrefix;
+  window.__currentPageRec = pRec;
+  syncGroupCheckboxes();
 }
 
 function renderUnrecordedRow(it) {
@@ -1688,7 +2899,7 @@ function renderUnrecordedRow(it) {
     '<div class="muted" style="margin-top:4px">Figma 頁面：' + esc(u.pageName || '-') + '</div>' +
     '</div>' +
     '<div class="unrec-controls">' +
-    '<input class="unrec-cat' + (catVal.trim() ? ' filled' : '') + '" list="all-cat-options" data-unrec-id="' + esc(u.id) + '" value="' + esc(catVal) + '" placeholder="人工填寫／選擇分類（例：頁面類 / 交易詳情，留空交由 Agent 判斷）">' +
+    '<input class="unrec-cat' + (catVal.trim() ? ' filled' : '') + '" list="all-cat-options" data-unrec-id="' + esc(u.id) + '" value="' + esc(catVal) + '" placeholder="人工填寫／選擇分類（例：新UI / 交易詳情，留空交由 Agent 判斷）">' +
     '<textarea class="comment unrec-note' + (noteVal.trim() ? ' filled' : '') + '" data-unrec-id="' + esc(u.id) + '" placeholder="備註說明，或直接留給 Agent 歸類意見...">' + esc(noteVal) + '</textarea>' +
     '<div class="unrec-actions">' +
     '<button class="btn sm unrec-ask-agent" data-unrec-id="' + esc(u.id) + '">交給 Agent 分類</button>' +
@@ -1699,34 +2910,82 @@ function renderUnrecordedRow(it) {
 }
 
 function renderLookupView() {
+  const activeBatch = getActiveLookupBatch();
   document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> <span>Figma 選中查找</span>';
-  document.getElementById('topbar-sub').textContent = lastLookup ? ('來自「' + (lastLookup.pageName || 'Figma') + '」· 共 ' + lastLookup.total + ' 筆') : '在 Figma 中選中單個或多個設計稿後，於插件點擊「查找選中項 → 複審台」';
+  document.getElementById('topbar-sub').textContent = activeBatch
+    ? (activeBatch.name + ' · 來自「' + (activeBatch.pageName || 'Figma') + '」· 共 ' + activeBatch.total + ' 筆（共暫存 ' + lookupBatches.length + ' 批）')
+    : '在 Figma 中選中設計稿或整個 Section 區塊後，於插件點擊「查找選中項 → 複審台」';
 
-  if (!lastLookup) {
+  if (!activeBatch) {
     window.__currentGroupCards = [];
-    window.__currentByPage = new Map();
+    window.__currentGroups = new Map();
     document.getElementById('content').innerHTML = '<div class="panel">' +
-      '<div class="panel-title"><span>等待接收 Figma 選中項</span></div>' +
-      '<div class="muted" style="line-height:1.8">1. 確認已啟動 <code>npm run start:server</code> 並在 Figma Desktop 開啟「Rea-FigmaDesign AST 探針」插件。<br>2. 在 Figma 畫布中單選或多選設計稿節點。<br>3. 點擊插件內的 <strong>「查找選中項 → 複審台」</strong> 按鈕，工作台會自動區分「已收錄」與「未收錄（新畫面）」。</div>' +
+      '<div class="panel-title"><span>等待接收 Figma 選中項（支援臨時分批）</span></div>' +
+      '<div class="muted" style="line-height:1.8">1. 確認已啟動 <code>npm run start:server</code> 並在 Figma Desktop 開啟「Rea-FigmaDesign AST 探針」插件。<br>2. 在 Figma 畫布中選中設計稿（也可直接框選或點選整個 <strong>Section 區塊</strong>，插件會自動展開其中的可見畫面，忽略已隱藏圖層）。<br>3. 點擊插件內的 <strong>「查找選中項 → 複審台」</strong> 按鈕，每次送過來的選區會自動建立獨立臨時批次並支援命名，重整頁面即清空，不會污染任何持久資料。</div>' +
       '</div>';
     return;
   }
 
-  const matched = lastLookup.matched || [];
-  const unrecorded = lastLookup.unrecorded || [];
+  const matched = activeBatch.matched || [];
+  const unrecorded = activeBatch.unrecorded || [];
   const matchedCards = matched.map(function(m) { return m.card; });
-  const pgKey = lastLookup.pageName || '查找結果';
+  const pgKey = activeBatch.pageName || '查找結果';
   window.__currentGroupCards = matchedCards;
-  window.__currentByPage = matchedCards.length > 0 ? new Map([[pgKey, matchedCards]]) : new Map();
+  window.__currentGroups = matchedCards.length > 0 ? new Map([[pgKey, matchedCards]]) : new Map();
 
-  let html = '<div class="detail-hero">' +
+  let stripHtml = '<div class="temp-batch-strip">' +
+    '<div class="temp-batch-hdr">' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+    '<strong>臨時選取批次 (' + lookupBatches.length + ')</strong>' +
+    '<span class="pill" title="批次清單僅暫存於本次分頁記憶體，重整頁面後自動清空；你填寫的意見仍會保留">僅本次暫存 · 重整頁面清空</span>' +
+    '</div>' +
+    '<button class="btn sm ghost" id="btn-clear-lookup-batches" type="button">清空全部臨時批次</button>' +
+    '</div>' +
+    '<div class="temp-batch-pills">';
+
+  lookupBatches.forEach(function(b) {
+    if (renamingBatchId === b.batchId) {
+      stripHtml += '<input class="batch-rename-input" id="active-batch-rename-input" data-rename-batch-id="' + esc(b.batchId) + '" value="' + esc(b.name) + '" placeholder="輸入批次名稱，按 Enter 確認">';
+    } else {
+      const isAct = b.batchId === activeBatch.batchId;
+      stripHtml += '<div class="batch-pill' + (isAct ? ' active' : '') + '" data-switch-batch="' + esc(b.batchId) + '" title="' + esc(b.name + ' (' + b.pageName + ' · ' + b.total + ' 筆)') + '">' +
+        '<span class="batch-pill-name">' + esc(b.name) + '</span>' +
+        '<span class="pill">' + b.total + '</span>' +
+        '<button class="batch-pill-act batch-rename-btn" type="button" data-batch-id="' + esc(b.batchId) + '" title="重新命名此臨時批次">✎</button>' +
+        '<button class="batch-pill-act batch-del-btn" type="button" data-batch-id="' + esc(b.batchId) + '" title="刪除此臨時批次">×</button>' +
+        '</div>';
+    }
+  });
+  stripHtml += '</div></div>';
+
+  const catBreakdown = new Map();
+  matchedCards.forEach(function(c) {
+    const lbl = c.major ? (c.major + (c.minor ? ' / ' + c.minor : '')) : '未標註';
+    catBreakdown.set(lbl, (catBreakdown.get(lbl) || 0) + 1);
+  });
+  const catSummaryPills = Array.from(catBreakdown.entries())
+    .sort(function(a, b) { return b[1] - a[1]; })
+    .map(function(pair) {
+      return '<span class="pill" title="目前標註分類">' + esc(pair[0]) + ' ' + pair[1] + '</span>';
+    }).join('');
+
+  const secPill = activeBatch.expandedSections && activeBatch.expandedSections.length > 0
+    ? '<span class="pill accent">由 Section 展開：' + esc(activeBatch.expandedSections.join(', ')) + '</span>'
+    : '';
+
+  let html = stripHtml +
+    '<div class="detail-hero">' +
     '<div class="detail-hero-row">' +
-    '<div><div class="detail-title">Figma 畫布選中查找 · ' + esc(pgKey) + '</div>' +
-    '<div class="muted" style="margin-top:2px">本次選中 ' + lastLookup.total + ' 個節點 · 已收錄 ' + matched.length + ' 組 · 未收錄（新畫面）' + unrecorded.length + ' 筆</div></div>' +
+    '<div><div class="detail-title">' + esc(activeBatch.name) + ' · ' + esc(pgKey) + '</div>' +
+    '<div class="muted" style="margin-top:2px">本批選中 ' + activeBatch.total + ' 個節點 · 已收錄 ' + matched.length + ' 筆（1:1 對應 Figma 畫布） · 未收錄（新畫面）' + unrecorded.length + ' 筆</div></div>' +
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+    (matched.length > 0 ? '<button class="btn sm primary" id="btn-lookup-batch-matched" type="button">批量標註本批已收錄 (' + matched.length + ')</button>' : '') +
+    (activeBatch.allNodeIds && activeBatch.allNodeIds.length > 0 ? '<button class="btn sm accent" id="btn-lookup-refocus-all" type="button" title="即使剛剛取消隱藏並清除了畫布選區，也能一鍵在 Figma 重新選中本批全部節點">在 Figma 重新選中本批全部 (' + activeBatch.allNodeIds.length + ')</button>' : '') +
     '<span class="pill green">已收錄 ' + matched.length + ' 筆</span>' +
     '<span class="pill amber">未收錄（新） ' + unrecorded.length + ' 筆</span>' +
-    '</div></div></div>';
+    '</div></div>' +
+    ((catSummaryPills || secPill) ? '<div class="cat-chip-row">' + secPill + (catSummaryPills ? '<span class="muted" style="font-size:11.5px;align-self:center">目前標註分佈：</span>' + catSummaryPills : '') + '</div>' : '') +
+    '</div>';
 
   if (unrecorded.length > 0) {
     html += '<div class="panel" style="padding:0;overflow:hidden">' +
@@ -1736,7 +2995,7 @@ function renderLookupView() {
       '</div>';
     if (unrecorded.length > 1) {
       html += '<div class="lookup-batch-bar">' +
-        '<input id="unrec-batch-cat" list="all-cat-options" style="min-width:210px;flex:1" placeholder="批量指定分類（選填，例：頁面類 / 交易詳情）">' +
+        '<input id="unrec-batch-cat" list="all-cat-options" style="min-width:210px;flex:1" placeholder="批量指定分類（選填，例：新UI / 交易詳情）">' +
         '<input id="unrec-batch-note" style="min-width:220px;flex:1" placeholder="批量備註給 Agent（選填）">' +
         '<button class="btn sm accent" id="btn-unrec-batch-apply">套用到本批未收錄 (' + unrecorded.length + ')</button>' +
         '</div>';
@@ -1747,29 +3006,30 @@ function renderLookupView() {
 
   if (matched.length > 0) {
     const first = matchedCards[0];
-    html += '<div class="page-group">' +
-      '<div class="page-group-hdr">' +
-      '<div class="page-group-title"><span>▾</span><span>二、已收錄畫面 · ' + esc(pgKey) + '</span><span class="pill green">' + matched.length + ' 組</span></div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
-      '<button class="btn sm batch-label-page" data-page-key="' + esc(pgKey) + '">批量標註</button>' +
-      '<button class="btn sm accent focus-page-figma" data-page-key="' + esc(pgKey) + '" data-page-id="' + esc(lastLookup.pageId || (first ? first.pageId : '')) + '" title="僅切換 Figma 到此頁面（不一次全選全部節點）">定位到 Figma</button>' +
-      '<button class="btn sm select-page-all" data-page-key="' + esc(pgKey) + '">全選</button>' +
-      '<button class="btn sm select-page-none" data-page-key="' + esc(pgKey) + '">取消全選</button>' +
-      '<button class="btn sm ghost copy-page-ids" data-page-key="' + esc(pgKey) + '">複製 ID</button>' +
-      '</div></div>' +
-      '<div class="page-group-body">';
+    const pgId = activeBatch.pageId || (first ? first.pageId : '');
+    html += renderGroupHeaderHtml({
+      groupKey: pgKey,
+      toggleKey: 'lookup::' + activeBatch.batchId + '::' + pgKey,
+      isOpen: true,
+      title: '二、已收錄畫面 · ' + pgKey,
+      cards: matchedCards,
+      totalScreens: matchedCards.length,
+      noteCnt: countCommentsInCards(matchedCards),
+      pageKey: pgKey,
+      pageId: pgId,
+      primaryBtnClass: 'accent focus-group-all-figma',
+      primaryBtnText: '在 Figma 選中 (' + matchedCards.length + ')',
+      primaryBtnTitle: '在 Figma 中同時選中本批已收錄的設計稿',
+      focusAllItem: false,
+      extraMenuHtml: '<button class="menu-item focus-page-figma" type="button" data-page-key="' + esc(pgKey) + '" data-page-id="' + esc(pgId) + '">跳轉到 Figma 頁面</button>'
+    });
 
     matched.forEach(function(m) {
       const c = m.card;
-      const catKey = (c.major || '未標註') + '::' + (c.major ? (c.minor || '(只到大類)') : 'AST 待歸類');
-      if (m.matchVia !== 'exact' || c.major) {
-        const reason = m.matchVia === 'copy'
-          ? ('由 Figma 選中 ' + m.matchedSelectedIds.join(', ') + ' 匹配（同構複本 → 代表節點 ' + c.id + '）')
-          : (m.matchVia === 'ancestor'
-            ? ('由子節點 ' + m.matchedSelectedIds.join(', ') + ' 匹配到所屬畫面 ' + c.id)
-            : ('目前收錄分類：' + (c.major ? (c.major + (c.minor ? ' / ' + c.minor : '')) : '未標註')));
+      const catKey = (c.major || '未標註') + '::' + (c.major ? (c.minor || '(未細分)') : 'AST 待歸類');
+      if (m.matchVia === 'ancestor') {
         html += '<div class="match-banner">' +
-          '<span>' + esc(reason) + '</span>' +
+          '<span>由子節點 ' + esc(m.matchedSelectedIds.join(', ')) + ' 匹配到所屬畫面 ' + esc(c.id) + '（' + esc(c.major ? (c.major + (c.minor ? ' / ' + c.minor : '')) : '未標註') + '）</span>' +
           (catMap.has(catKey) ? '<button class="btn sm" data-open-cat="' + esc(catKey) + '">前往分類</button>' : '') +
           '</div>';
       }
@@ -1779,6 +3039,11 @@ function renderLookupView() {
   }
 
   document.getElementById('content').innerHTML = html;
+  syncGroupCheckboxes();
+  if (renamingBatchId) {
+    const renInp = document.getElementById('active-batch-rename-input');
+    if (renInp) { renInp.focus(); renInp.select(); }
+  }
 }
 
 function renderCommentedView() {
@@ -1787,7 +3052,7 @@ function renderCommentedView() {
 
   const catKeys = Object.keys(state.categories).filter(function(k) { return (state.categories[k] || '').trim(); });
   const famKeys = Object.keys(state.families).filter(function(k) { return (state.families[k] || '').trim(); });
-  const itemIds = Object.keys(state.items).filter(function(k) { return (state.items[k] || '').trim() && byId[k]; });
+  const itemIds = Object.keys(state.items).filter(function(k) { return (state.items[k] || '').trim() && resolveCardForId(k); });
   const unrecIds = activeUnrecordedIds();
 
   if (catKeys.length === 0 && famKeys.length === 0 && itemIds.length === 0 && unrecIds.length === 0) {
@@ -1796,6 +3061,13 @@ function renderCommentedView() {
   }
 
   let html = '';
+  const exportedOldCnt = Math.max(0, totalCommentCount() - countUnsentComments());
+  if (exportedOldCnt > 0) {
+    html += '<div class="hint-bar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+      '<span>其中 <strong>' + exportedOldCnt + '</strong> 筆意見在上次「複製為 Agent 提示詞」時已經送出（後續新增或修改會自動只複製新內容）。</span>' +
+      '<button class="btn sm" id="btn-clear-exported-list" type="button">清空已複製舊意見 (' + exportedOldCnt + ')</button>' +
+      '</div>';
+  }
   if (catKeys.length > 0) {
     html += '<div class="panel"><div class="panel-title"><span>一、分類整體意見 (' + catKeys.length + ')</span></div>';
     catKeys.forEach(function(k) {
@@ -1825,7 +3097,7 @@ function renderCommentedView() {
 
   if (itemIds.length > 0) {
     html += '<div class="panel" style="padding:0;overflow:hidden"><div class="panel-title" style="padding:14px 16px 6px"><span>三、單筆畫面意見 (' + itemIds.length + ')</span></div>';
-    itemIds.forEach(function(id) { html += renderScreenRow(byId[id]); });
+    itemIds.forEach(function(id) { html += renderScreenRow(resolveCardForId(id)); });
     html += '</div>';
   }
 
@@ -1838,9 +3110,222 @@ function renderCommentedView() {
   document.getElementById('content').innerHTML = html;
 }
 
+function parseCanonicalTarget(targetStr) {
+  const s = (targetStr || '').trim();
+  if (!s) return { major: '', minor: '', generation: '' };
+  const idx = s.indexOf(' / ');
+  const major = idx === -1 ? s : s.slice(0, idx).trim();
+  const minor = idx === -1 ? '' : s.slice(idx + 3).trim();
+  const generation = major === '老UI' ? 'old' : (major === '系統UI' ? '' : 'new');
+  return { major: major, minor: minor, generation: generation };
+}
+
+function collectReadyProposalCommits() {
+  const list = Array.isArray(DATA.proposals) ? DATA.proposals : [];
+  const out = [];
+  list.forEach(function(it) {
+    const dec = (state.proposals && state.proposals[it.id]) || null;
+    if (!dec) return;
+    if (dec.decision === 'accept' && it.suggestedMajor) {
+      out.push({
+        id: it.id,
+        major: it.suggestedMajor,
+        minor: it.suggestedMinor || '',
+        generation: it.suggestedGeneration != null ? it.suggestedGeneration : (it.suggestedMajor === '系統UI' ? '' : 'new')
+      });
+    } else if (dec.decision === 'override' && dec.target) {
+      const parsed = parseCanonicalTarget(dec.target);
+      if (parsed.major) {
+        out.push({
+          id: it.id,
+          major: parsed.major,
+          minor: parsed.minor,
+          generation: parsed.generation
+        });
+      }
+    }
+  });
+  return out;
+}
+
+function buildProposalFallbackPrompt(commits) {
+  const BT = String.fromCharCode(96);
+  const NL = String.fromCharCode(10);
+  const targetLabels = DATA.labelsPath || 'labels/screens-v2.json';
+  const lines = [];
+  lines.push('請將以下我在複審台「Agent 預分類驗收」確認好的 ' + commits.length + ' 筆分類寫入 ' + BT + targetLabels + BT + '（專案：' + (DATA.projectId || 'default') + '）：');
+  lines.push('');
+  const byTarget = new Map();
+  commits.forEach(function(c) {
+    const k = c.major + (c.minor ? ' / ' + c.minor : '');
+    if (!byTarget.has(k)) byTarget.set(k, []);
+    byTarget.get(k).push(c.id);
+  });
+  Array.from(byTarget.entries()).forEach(function(pair, idx) {
+    lines.push((idx + 1) + '. **' + pair[0] + '**（' + pair[1].length + ' 筆）：' + BT + pair[1].join(', ') + BT);
+  });
+  return lines.join(NL);
+}
+
+function renderProposalsView() {
+  const all = Array.isArray(DATA.proposals) ? DATA.proposals : [];
+  document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> <span>Agent 預分類驗收</span>';
+  document.getElementById('topbar-sub').textContent = (DATA.proposalsScope || '細分分類建議') + ' · 共 ' + all.length + ' 筆待驗收';
+
+  if (all.length === 0) {
+    window.__propGroups = new Map();
+    document.getElementById('content').innerHTML = '<div class="panel">' +
+      '<div class="panel-title"><span>目前沒有待驗收的 Agent 預分類草稿</span></div>' +
+      '<div class="muted" style="line-height:1.8">所有項目都已完成分類並落盤，或尚未產生草稿。<br>你可以在終端機執行 <code>npm run review:propose</code> 針對「新UI / (未細分)」生成最新一批建議草稿。</div>' +
+      '</div>';
+    return;
+  }
+
+  let highCnt = 0, medCnt = 0, lowCnt = 0, acceptCnt = 0, overCnt = 0, skipCnt = 0;
+  all.forEach(function(it) {
+    if (it.confidence === 'high') highCnt += 1;
+    else if (it.confidence === 'medium') medCnt += 1;
+    else lowCnt += 1;
+    const dec = (state.proposals && state.proposals[it.id]) || null;
+    if (dec) {
+      if (dec.decision === 'accept' && it.suggestedMajor) acceptCnt += 1;
+      else if (dec.decision === 'override' && dec.target) overCnt += 1;
+      else if (dec.decision === 'skip') skipCnt += 1;
+    }
+  });
+  const readyCnt = acceptCnt + overCnt;
+
+  let html = '<div class="detail-hero">' +
+    '<div class="detail-hero-row">' +
+    '<div><div class="detail-title">Agent 預分類驗收 · ' + esc(DATA.proposalsScope || '未細分整理') + '</div>' +
+    '<div class="muted" style="margin-top:2px">待驗收 ' + all.length + ' 筆 · 已準備落盤 <strong>' + readyCnt + '</strong> 筆（採納 ' + acceptCnt + ' · 改選 ' + overCnt + '） · 略過 ' + skipCnt + ' 筆</div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+    (highCnt > 0 ? '<button class="btn sm" id="btn-accept-all-high" type="button">一鍵採納高把握 (' + highCnt + ')</button>' : '') +
+    '<button class="btn sm primary" id="btn-open-commit-proposals" type="button">確認並落盤已驗收 (' + readyCnt + ')</button>' +
+    '</div></div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+    '<div class="seg" style="margin:0">' +
+    '<button type="button" class="' + (propGroupBy === 'target' ? 'active' : '') + '" data-prop-group="target">按建議分類</button>' +
+    '<button type="button" class="' + (propGroupBy === 'page' ? 'active' : '') + '" data-prop-group="page">按 Figma 頁面</button>' +
+    '</div>' +
+    '<span class="muted">先抽查／整組採納、改選標準分類或自訂新分類，最後點「確認並落盤」才會真正寫入 ' + esc(DATA.labelsPath || 'labels/screens-v2.json') + '</span>' +
+    '</div></div>';
+
+  html += '<div class="prop-tabs">' +
+    '<button type="button" class="prop-tab' + (propFilter === 'all' ? ' active' : '') + '" data-prop-filter="all"><div class="prop-tab-title">全部待驗收</div><div class="prop-tab-num">' + all.length + '</div></button>' +
+    '<button type="button" class="prop-tab' + (propFilter === 'high' ? ' active' : '') + '" data-prop-filter="high"><div class="prop-tab-title">🟢 高把握 · AST 同構</div><div class="prop-tab-num" style="color:var(--green)">' + highCnt + '</div></button>' +
+    '<button type="button" class="prop-tab' + (propFilter === 'medium' ? ' active' : '') + '" data-prop-filter="medium"><div class="prop-tab-title">🟡 中把握 · 語意推斷</div><div class="prop-tab-num" style="color:var(--amber)">' + medCnt + '</div></button>' +
+    '<button type="button" class="prop-tab' + (propFilter === 'low' ? ' active' : '') + '" data-prop-filter="low"><div class="prop-tab-title">🔴 需人工拍板</div><div class="prop-tab-num" style="color:var(--red)">' + lowCnt + '</div></button>' +
+    '</div>';
+
+  const visible = all.filter(function(it) {
+    return propFilter === 'all' || it.confidence === propFilter;
+  });
+  const groups = new Map();
+  visible.forEach(function(it) {
+    const card = resolveCardForId(it.id);
+    const gk = propGroupBy === 'page'
+      ? ((card && card.page) || '(未知頁面)')
+      : (it.suggestedMajor ? (it.suggestedMajor + (it.suggestedMinor ? ' / ' + it.suggestedMinor : '')) : '🔴 待人工從下拉拍板');
+    if (!groups.has(gk)) groups.set(gk, []);
+    groups.get(gk).push({ prop: it, card: card });
+  });
+  window.__propGroups = groups;
+
+  const sortedGroups = Array.from(groups.entries()).sort(function(a, b) { return b[1].length - a[1].length; });
+  sortedGroups.forEach(function(entry, idx) {
+    const gk = entry[0];
+    const pairs = entry[1];
+    const hasSuggest = pairs.some(function(x) { return Boolean(x.prop.suggestedMajor); });
+    let decidedCnt = 0;
+    pairs.forEach(function(x) {
+      const dec = state.proposals && state.proposals[x.prop.id];
+      if (dec && (dec.decision === 'accept' || dec.decision === 'override')) decidedCnt += 1;
+    });
+    const firstCard = pairs[0] && pairs[0].card;
+    const pgId = (propGroupBy === 'page' && firstCard) ? (firstCard.pageId || '') : '';
+
+    html += '<div class="page-group">' +
+      '<div class="page-group-hdr" style="cursor:default">' +
+      '<div class="page-group-title">' +
+      '<span>' + esc(gk) + '</span>' +
+      '<span class="pill">' + pairs.length + ' 筆</span>' +
+      (decidedCnt > 0 ? '<span class="pill green">已確認 ' + decidedCnt + '/' + pairs.length + '</span>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+      (propGroupBy === 'page' ? '<button class="btn sm accent prop-focus-group" type="button" data-prop-gk="' + esc(gk) + '" data-page-id="' + esc(pgId) + '">在 Figma 選中本頁 (' + pairs.length + ')</button>' : '') +
+      (hasSuggest ? '<button class="btn sm primary prop-accept-group" type="button" data-prop-gk="' + esc(gk) + '">✓ 整組採納</button>' : '') +
+      '<button class="btn sm prop-override-group" type="button" data-prop-gk="' + esc(gk) + '">✎ 整組改分類</button>' +
+      '<button class="btn sm ghost prop-skip-group" type="button" data-prop-gk="' + esc(gk) + '">✕ 整組略過</button>' +
+      '</div></div>' +
+      '<div class="page-group-body">';
+
+    pairs.forEach(function(x) {
+      const it = x.prop;
+      const c = x.card;
+      const dec = (state.proposals && state.proposals[it.id]) || null;
+      const decType = dec ? dec.decision : '';
+      const rowCls = ['prop-row', decType === 'accept' ? 'dec-accept' : (decType === 'override' ? 'dec-override' : (decType === 'skip' ? 'dec-skip' : ''))].filter(Boolean).join(' ');
+      const confBadge = it.confidence === 'high'
+        ? '<span class="pill green">🟢 高把握</span>'
+        : (it.confidence === 'medium' ? '<span class="pill amber">🟡 中把握</span>' : '<span class="pill red">🔴 待拍板</span>');
+      const suggestTxt = it.suggestedMajor ? (it.suggestedMajor + (it.suggestedMinor ? ' / ' + it.suggestedMinor : '')) : '（無預設建議，請從右側改選）';
+      const overrideVal = decType === 'override' ? (dec.target || '') : '';
+      const isCanonicalOverride = Boolean(overrideVal && window.__canonicalCatSet && window.__canonicalCatSet.has(overrideVal));
+      const isCustomOverride = Boolean(overrideVal && !isCanonicalOverride);
+      const customParsed = isCustomOverride ? parseCanonicalTarget(overrideVal) : { major: '新UI', minor: '' };
+      const customMajor = (customParsed.major === '新UI' || customParsed.major === '老UI' || customParsed.major === '系統UI') ? customParsed.major : '新UI';
+
+      html += '<div class="' + rowCls + '" data-prop-id="' + esc(it.id) + '">' +
+        '<div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
+        '<span class="id-link" data-copy="' + esc(it.id) + '" title="點擊複製 node_id">' + esc(it.id) + '</span>' +
+        '<button class="btn sm focus-node-btn" data-focus-id="' + esc(it.id) + '" data-focus-page="' + esc((c && c.page) || '') + '" title="在 Figma 中切換頁面並聚焦到此畫面">定位</button>' +
+        '</div>' +
+        '<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">' +
+        confBadge +
+        (c && c.archetype ? '<span class="pill">' + esc(c.archetype) + '</span>' : '') +
+        '</div>' +
+        '<div class="muted" style="margin-top:5px">' + esc((c && c.page) || '-') + '</div>' +
+        '</div>' +
+        '<div>' +
+        '<div class="layer-name">' + esc((c && c.name) || '(無名)') + '</div>' +
+        '<div class="headline-txt" title="' + esc((c && c.headline) || '') + '">' + esc((c && c.headline) || '(無文案)') + '</div>' +
+        '<div class="prop-suggest-box"><strong>Agent 建議：</strong>' + esc(suggestTxt) + '<div class="muted" style="margin-top:2px">' + esc(it.reason || '') + '</div></div>' +
+        '</div>' +
+        '<div>' +
+        '<div class="prop-actions">' +
+        (it.suggestedMajor ? '<button class="btn sm' + (decType === 'accept' ? ' primary' : '') + ' prop-btn-accept" type="button" data-prop-id="' + esc(it.id) + '">' + (decType === 'accept' ? '✓ 已採納' : '✓ 採納建議') + '</button>' : '') +
+        '<button class="btn sm' + (decType === 'skip' ? ' accent' : ' ghost') + ' prop-btn-skip" type="button" data-prop-id="' + esc(it.id) + '">' + (decType === 'skip' ? '已略過（點此復原）' : '✕ 略過') + '</button>' +
+        (isCustomOverride ? '<span class="pill solid-blue">★ 新分類：' + esc(overrideVal) + '</span>' : '') +
+        '</div>' +
+        '<select class="cat-select prop-override-sel' + (isCanonicalOverride ? ' filled' : '') + '" data-prop-override-id="' + esc(it.id) + '">' +
+        buildCatSelectOptions(isCanonicalOverride ? overrideVal : '', '改選現有標準分類…') +
+        '</select>' +
+        '<div class="prop-custom-row">' +
+        '<select class="cat-select prop-custom-major" data-prop-id="' + esc(it.id) + '" title="選擇自訂新分類的大類">' +
+        '<option value="新UI"' + (customMajor === '新UI' ? ' selected' : '') + '>新UI</option>' +
+        '<option value="老UI"' + (customMajor === '老UI' ? ' selected' : '') + '>老UI</option>' +
+        '<option value="系統UI"' + (customMajor === '系統UI' ? ' selected' : '') + '>系統UI</option>' +
+        '</select>' +
+        '<input class="prop-custom-minor' + (isCustomOverride ? ' filled' : '') + '" data-prop-id="' + esc(it.id) + '" value="' + esc(isCustomOverride ? customParsed.minor : '') + '" placeholder="或輸入自訂新分類名（例：錢包頁）">' +
+        '<button class="btn sm prop-custom-apply" type="button" data-prop-id="' + esc(it.id) + '">套用</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  document.getElementById('content').innerHTML = html;
+}
+
 function renderMain() {
   if (viewMode === 'overview') {
     renderOverview();
+  } else if (viewMode === 'proposals') {
+    renderProposalsView();
   } else if (viewMode === 'category') {
     const rec = catMap.get(activeKey);
     if (!rec) { viewMode = 'overview'; renderOverview(); return; }
@@ -1852,6 +3337,8 @@ function renderMain() {
       groupKey: rec.key,
       palette: topPalette(rec.paletteCount, 6)
     });
+  } else if (viewMode === 'page') {
+    renderPageView(activeKey);
   } else if (viewMode === 'family') {
     const f = famMap.get(activeKey);
     if (!f) { viewMode = 'overview'; renderOverview(); return; }
@@ -1867,15 +3354,15 @@ function renderMain() {
     const pages = new Set();
     const pal = new Map();
     let total = 0;
-    DATA.cards.forEach(function(c) {
+    workCards.forEach(function(c) {
       total += c.copies;
       c.memberPages.forEach(function(p) { pages.add(p); });
       (c.palette || []).forEach(function(hx) { pal.set(hx, (pal.get(hx) || 0) + 1); });
     });
     renderDetailView({
       title: DATA.modeLabel,
-      sub: '去重 ' + DATA.cards.length + ' 組 · 共 ' + total + ' 個畫面 · ' + pages.size + ' 個 Figma 頁面',
-      cards: DATA.cards,
+      sub: '共 ' + total + ' 個畫面（分 ' + workCards.length + ' 組） · ' + pages.size + ' 個 Figma 頁面',
+      cards: workCards,
       groupKind: 'subset',
       groupKey: 'subset',
       palette: topPalette(pal, 6)
@@ -1902,6 +3389,14 @@ function openCategory(key) {
   window.scrollTo(0, 0);
 }
 
+function openPage(pageName) {
+  viewMode = 'page';
+  activeKey = pageName;
+  detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
+  renderAll();
+  window.scrollTo(0, 0);
+}
+
 function openFamily(hash) {
   viewMode = 'family';
   activeKey = hash;
@@ -1909,6 +3404,60 @@ function openFamily(hash) {
   renderAll();
   window.scrollTo(0, 0);
 }
+
+function closeAllMenus() {
+  document.querySelectorAll('.menu-pop.show').forEach(function(m) { m.classList.remove('show'); });
+  document.querySelectorAll('.info-pop.show').forEach(function(p) { p.classList.remove('show'); });
+  document.querySelectorAll('.info-btn.active').forEach(function(b) { b.classList.remove('active'); });
+}
+
+function updateFocusHighlightInDom() {
+  document.querySelectorAll('#content .screen-row').forEach(function(row) {
+    const id = row.getAttribute('data-id');
+    const on = Boolean(focusedNodeId && id === focusedNodeId);
+    row.classList.toggle('focused-row', on);
+    const idRow = row.querySelector('.id-link') ? row.querySelector('.id-link').parentNode : null;
+    if (!idRow) return;
+    let badge = idRow.querySelector('.focus-badge');
+    if (on && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'pill solid-amber focus-badge';
+      badge.textContent = '◉ 當前定位';
+      idRow.appendChild(badge);
+    } else if (!on && badge) {
+      badge.remove();
+    }
+  });
+}
+
+function toggleRowSelDom(id, isChecked) {
+  document.querySelectorAll('#content .screen-row[data-id="' + CSS.escape(id) + '"]').forEach(function(row) {
+    row.classList.toggle('selected', isChecked);
+    const chk = row.querySelector('.row-chk');
+    if (chk) chk.checked = isChecked;
+    const idRow = row.querySelector('.id-link') ? row.querySelector('.id-link').parentNode : null;
+    if (!idRow) return;
+    let badge = idRow.querySelector('.sel-badge');
+    if (isChecked && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'pill solid-blue sel-badge';
+      badge.textContent = '✓ 已選中';
+      const focusBadge = idRow.querySelector('.focus-badge');
+      if (focusBadge) idRow.insertBefore(badge, focusBadge);
+      else idRow.appendChild(badge);
+    } else if (!isChecked && badge) {
+      badge.remove();
+    }
+  });
+}
+
+// Global menu dismiss
+document.addEventListener('click', function(ev) {
+  if (!ev.target.closest('.menu-wrap') && !ev.target.closest('.info-wrap')) closeAllMenus();
+});
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') closeAllMenus();
+});
 
 // Sidebar events
 document.getElementById('btn-home').addEventListener('click', function() {
@@ -1918,8 +3467,14 @@ document.getElementById('btn-home').addEventListener('click', function() {
   window.scrollTo(0, 0);
 });
 document.getElementById('seg-cats').addEventListener('click', function() { sbMode = 'categories'; renderSidebar(); });
+document.getElementById('seg-pages').addEventListener('click', function() { sbMode = 'pages'; renderSidebar(); });
 document.getElementById('seg-fams').addEventListener('click', function() { sbMode = 'families'; renderSidebar(); });
 document.getElementById('sb-filter').addEventListener('input', renderSidebar);
+document.getElementById('btn-proposals-view').addEventListener('click', function() {
+  viewMode = 'proposals';
+  renderAll();
+  window.scrollTo(0, 0);
+});
 document.getElementById('btn-lookup-view').addEventListener('click', function() {
   viewMode = 'figma-lookup';
   renderAll();
@@ -1942,6 +3497,8 @@ document.getElementById('sb-list').addEventListener('click', function(ev) {
   }
   const catEl = ev.target.closest('[data-open-cat]');
   if (catEl) { openCategory(catEl.getAttribute('data-open-cat')); return; }
+  const pgEl = ev.target.closest('[data-open-page]');
+  if (pgEl) { openPage(pgEl.getAttribute('data-open-page')); return; }
   const famEl = ev.target.closest('[data-open-fam]');
   if (famEl) { openFamily(famEl.getAttribute('data-open-fam')); return; }
 });
@@ -1949,8 +3506,135 @@ document.getElementById('sb-list').addEventListener('click', function(ev) {
 // Content delegation
 document.getElementById('content').addEventListener('click', function(ev) {
   const t = ev.target;
+  if (t.classList.contains('menu-toggle-btn')) {
+    ev.stopPropagation();
+    const wrap = t.closest('.menu-wrap');
+    const pop = wrap ? wrap.querySelector('.menu-pop') : null;
+    const wasOpen = pop && pop.classList.contains('show');
+    closeAllMenus();
+    if (pop && !wasOpen) pop.classList.add('show');
+    return;
+  }
+
   if (t.id === 'btn-back') { viewMode = 'overview'; activeKey = ''; renderAll(); return; }
   if (t.id === 'kpi-comments' || t.closest('#kpi-comments')) { viewMode = 'commented'; renderAll(); return; }
+
+  const propFilterBtn = t.closest('[data-prop-filter]');
+  if (propFilterBtn) {
+    propFilter = propFilterBtn.getAttribute('data-prop-filter') || 'all';
+    renderMain();
+    return;
+  }
+  const propGroupBtn = t.closest('[data-prop-group]');
+  if (propGroupBtn) {
+    propGroupBy = propGroupBtn.getAttribute('data-prop-group') || 'target';
+    renderMain();
+    return;
+  }
+  if (t.id === 'btn-accept-all-high') {
+    const list = Array.isArray(DATA.proposals) ? DATA.proposals : [];
+    let cnt = 0;
+    if (!state.proposals) state.proposals = {};
+    list.forEach(function(it) {
+      if (it.confidence === 'high' && it.suggestedMajor) {
+        state.proposals[it.id] = { decision: 'accept' };
+        cnt += 1;
+      }
+    });
+    saveState();
+    renderAll();
+    toast('已採納全部 ' + cnt + ' 筆高把握建議');
+    return;
+  }
+  if (t.classList.contains('prop-accept-group') && window.__propGroups) {
+    const gk = t.getAttribute('data-prop-gk') || '';
+    const pairs = window.__propGroups.get(gk) || [];
+    let cnt = 0;
+    if (!state.proposals) state.proposals = {};
+    pairs.forEach(function(x) {
+      if (x.prop && x.prop.suggestedMajor) {
+        state.proposals[x.prop.id] = { decision: 'accept' };
+        cnt += 1;
+      }
+    });
+    saveState();
+    renderAll();
+    toast('已整組採納「' + gk + '」共 ' + cnt + ' 筆');
+    return;
+  }
+  if (t.classList.contains('prop-override-group') && window.__propGroups) {
+    const gk = t.getAttribute('data-prop-gk') || '';
+    const pairs = window.__propGroups.get(gk) || [];
+    if (pairs.length === 0) return;
+    pendingPropGroupKey = gk;
+    document.getElementById('prop-grp-title').textContent = '整組改分類 · ' + gk;
+    document.getElementById('prop-grp-count').textContent = pairs.length + ' 筆';
+    document.getElementById('prop-grp-sel').value = '';
+    document.getElementById('prop-grp-custom-major').value = '新UI';
+    const minInp = document.getElementById('prop-grp-custom-minor');
+    minInp.value = '';
+    document.getElementById('prop-group-modal').classList.add('show');
+    setTimeout(function() { document.getElementById('prop-grp-sel').focus(); }, 0);
+    return;
+  }
+  if (t.classList.contains('prop-custom-apply')) {
+    const id = t.getAttribute('data-prop-id');
+    applyRowCustomCategory(id, t.closest('.prop-row'));
+    return;
+  }
+  if (t.classList.contains('prop-skip-group') && window.__propGroups) {
+    const gk = t.getAttribute('data-prop-gk') || '';
+    const pairs = window.__propGroups.get(gk) || [];
+    if (!state.proposals) state.proposals = {};
+    pairs.forEach(function(x) {
+      if (x.prop) state.proposals[x.prop.id] = { decision: 'skip' };
+    });
+    saveState();
+    renderAll();
+    toast('已整組略過「' + gk + '」共 ' + pairs.length + ' 筆');
+    return;
+  }
+  if (t.classList.contains('prop-focus-group') && window.__propGroups) {
+    const gk = t.getAttribute('data-prop-gk') || '';
+    const pgId = t.getAttribute('data-page-id') || '';
+    const pairs = window.__propGroups.get(gk) || [];
+    const ids = pairs.map(function(x) { return x.prop.id; });
+    if (ids.length > 0) requestFigmaFocus(ids, gk, { pageId: pgId });
+    return;
+  }
+  if (t.classList.contains('prop-btn-accept')) {
+    const id = t.getAttribute('data-prop-id');
+    if (id) {
+      if (!state.proposals) state.proposals = {};
+      const cur = state.proposals[id];
+      if (cur && cur.decision === 'accept') delete state.proposals[id];
+      else state.proposals[id] = { decision: 'accept' };
+      saveState();
+      renderAll();
+    }
+    return;
+  }
+  if (t.classList.contains('prop-btn-skip')) {
+    const id = t.getAttribute('data-prop-id');
+    if (id) {
+      if (!state.proposals) state.proposals = {};
+      const cur = state.proposals[id];
+      if (cur && cur.decision === 'skip') delete state.proposals[id];
+      else state.proposals[id] = { decision: 'skip' };
+      saveState();
+      renderAll();
+    }
+    return;
+  }
+  if (t.id === 'btn-open-commit-proposals') {
+    const commits = collectReadyProposalCommits();
+    if (commits.length === 0) {
+      toast('請先至少「採納」或「改選」1 筆分類後再落盤');
+      return;
+    }
+    openCommitModal(commits, { mode: 'proposals' });
+    return;
+  }
 
   const jumpMaj = t.closest('[data-jump-major]');
   if (jumpMaj) {
@@ -1972,9 +3656,24 @@ document.getElementById('content').addEventListener('click', function(ev) {
   }
 
   const catEl = t.closest('[data-open-cat]');
-  if (catEl) { openCategory(catEl.getAttribute('data-open-cat')); return; }
+  if (catEl) { closeAllMenus(); openCategory(catEl.getAttribute('data-open-cat')); return; }
+  const pgLinkEl = t.closest('[data-open-page]');
+  if (pgLinkEl) { closeAllMenus(); openPage(pgLinkEl.getAttribute('data-open-page')); return; }
   const famEl = t.closest('[data-open-fam]');
-  if (famEl) { openFamily(famEl.getAttribute('data-open-fam')); return; }
+  if (famEl) { closeAllMenus(); openFamily(famEl.getAttribute('data-open-fam')); return; }
+
+  const jumpCatChip = t.closest('[data-jump-cat-group]');
+  if (jumpCatChip && window.__currentGroups) {
+    const label = jumpCatChip.getAttribute('data-jump-cat-group');
+    const k = window.__currentScopePrefix + label;
+    expandedPages.add(k);
+    expandedPages.delete('COLLAPSED::' + k);
+    renderMain();
+    const wraps = Array.from(document.querySelectorAll('[data-grp-wrap]'));
+    const targetWrap = wraps.find(function(w) { return w.getAttribute('data-grp-wrap') === label; });
+    if (targetWrap) targetWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
 
   if (t.classList.contains('id-link')) {
     const id = t.getAttribute('data-copy');
@@ -1985,18 +3684,97 @@ document.getElementById('content').addEventListener('click', function(ev) {
   if (t.classList.contains('focus-node-btn')) {
     ev.stopPropagation();
     const id = t.getAttribute('data-focus-id');
-    const c = byId[id];
+    focusedNodeId = id;
+    updateFocusHighlightInDom();
+    const c = resolveCardForId(id);
     const u = state.unrecorded && state.unrecorded[id];
     const label = (c && c.page) || t.getAttribute('data-focus-page') || (u && u.pageName) || id;
     requestFigmaFocus([id], label);
     return;
   }
 
+  if (t.classList.contains('batch-rename-btn')) {
+    ev.stopPropagation();
+    renamingBatchId = t.getAttribute('data-batch-id') || '';
+    renderMain();
+    return;
+  }
+
+  if (t.classList.contains('batch-del-btn')) {
+    ev.stopPropagation();
+    const bid = t.getAttribute('data-batch-id') || '';
+    lookupBatches = lookupBatches.filter(function(b) { return b.batchId !== bid; });
+    if (activeBatchId === bid) {
+      const nextB = lookupBatches[lookupBatches.length - 1] || null;
+      activeBatchId = nextB ? nextB.batchId : '';
+      selected.clear();
+      if (nextB) nextB.matched.forEach(function(m) { selected.add(m.card.id); });
+    }
+    if (renamingBatchId === bid) renamingBatchId = '';
+    renderAll();
+    return;
+  }
+
+  const switchBatchEl = t.closest('[data-switch-batch]');
+  if (switchBatchEl) {
+    const bid = switchBatchEl.getAttribute('data-switch-batch') || '';
+    const b = lookupBatches.find(function(x) { return x.batchId === bid; });
+    if (b) {
+      activeBatchId = b.batchId;
+      renamingBatchId = '';
+      selected.clear();
+      b.matched.forEach(function(m) { selected.add(m.card.id); });
+      renderAll();
+    }
+    return;
+  }
+
+  if (t.id === 'btn-clear-lookup-batches') {
+    lookupBatches = [];
+    activeBatchId = '';
+    renamingBatchId = '';
+    selected.clear();
+    renderAll();
+    toast('已清空全部臨時批次（已填寫意見不受影響）');
+    return;
+  }
+
+  if (t.id === 'btn-clear-exported-list') {
+    const removed = clearExportedOldComments();
+    toast(removed > 0 ? ('已清空 ' + removed + ' 筆已複製的舊意見') : '沒有可清空的已複製舊意見');
+    return;
+  }
+
+  if (t.id === 'btn-lookup-refocus-all') {
+    const curB = getActiveLookupBatch();
+    if (!curB || !curB.allNodeIds || curB.allNodeIds.length === 0) return;
+    requestFigmaFocus(curB.allNodeIds, curB.name, { pageId: curB.pageId });
+    return;
+  }
+
+  if (t.id === 'btn-lookup-batch-matched') {
+    const curB = getActiveLookupBatch();
+    const matched = (curB && curB.matched) || [];
+    if (matched.length === 0) return;
+    const pg = (curB && curB.pageName) || 'Figma 選中項';
+    pendingBatch = { page: pg, ids: matched.map(function(m) { return m.card.id; }) };
+    document.getElementById('batch-title').textContent = '批量標註 · ' + pg;
+    document.getElementById('batch-count').textContent = '已選中 ' + matched.length + ' 筆';
+    const inp = document.getElementById('batch-input');
+    inp.value = '';
+    const bSel = document.getElementById('batch-cat-select');
+    if (bSel) bSel.value = '';
+    document.getElementById('batch-modal').classList.add('show');
+    setTimeout(function() { inp.focus(); }, 0);
+    return;
+  }
+
   if (t.classList.contains('unrec-ask-agent')) {
     ev.stopPropagation();
     const id = t.getAttribute('data-unrec-id');
-    if (!state.unrecorded[id] && lastLookup && lastLookup.unrecorded) {
-      const found = lastLookup.unrecorded.find(function(x) { return x.id === id; });
+    const curB = getActiveLookupBatch();
+    if (!state.unrecorded[id] && curB && curB.unrecorded) {
+      const found = curB.unrecorded.find(function(x) { return x.id === id; });
       if (found) state.unrecorded[id] = Object.assign({}, found);
     }
     if (state.unrecorded[id]) {
@@ -2021,7 +3799,8 @@ document.getElementById('content').addEventListener('click', function(ev) {
   }
 
   if (t.id === 'btn-unrec-all-agent') {
-    const list = (lastLookup && lastLookup.unrecorded) || [];
+    const curB = getActiveLookupBatch();
+    const list = (curB && curB.unrecorded) || [];
     let count = 0;
     list.forEach(function(it) {
       const cur = state.unrecorded[it.id] || it;
@@ -2047,7 +3826,8 @@ document.getElementById('content').addEventListener('click', function(ev) {
       toast('請至少填寫批量分類或批量備註');
       return;
     }
-    const list = (lastLookup && lastLookup.unrecorded) || [];
+    const curB = getActiveLookupBatch();
+    const list = (curB && curB.unrecorded) || [];
     list.forEach(function(it) {
       const cur = state.unrecorded[it.id] || Object.assign({}, it);
       if (cat) cur.category = cat;
@@ -2060,67 +3840,103 @@ document.getElementById('content').addEventListener('click', function(ev) {
     return;
   }
 
-  if (t.classList.contains('copy-page-ids')) {
+  if (t.classList.contains('grp-chk')) {
     ev.stopPropagation();
-    const pg = t.getAttribute('data-page-key');
-    const list = (window.__currentByPage && window.__currentByPage.get(pg)) || [];
-    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製本頁 ' + list.length + ' 個 ID');
-    return;
-  }
-  if (t.classList.contains('batch-label-page')) {
-    ev.stopPropagation();
-    const pg = t.getAttribute('data-page-key');
-    const list = (window.__currentByPage && window.__currentByPage.get(pg)) || [];
-    const pageIdSet = new Set(list.map(function(c) { return c.id; }));
-    let hasOtherPage = false;
-    selected.forEach(function(id) {
-      if (!pageIdSet.has(id)) hasOtherPage = true;
+    const gk = t.getAttribute('data-grp-key');
+    const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
+    const want = t.checked;
+    list.forEach(function(c) {
+      if (want) selected.add(c.id);
+      else selected.delete(c.id);
+      toggleRowSelDom(c.id, want);
     });
-    if (hasOtherPage) {
-      toast('不支援跨頁批量標註，請先取消其他頁面的勾選後再對本頁操作');
-      return;
-    }
-    const targets = list.filter(function(c) { return selected.has(c.id); });
-    if (targets.length === 0) {
-      toast('請先勾選本頁要批量標註的畫面（可點右側「全選」）');
-      return;
-    }
-    pendingBatch = { page: pg, ids: targets.map(function(c) { return c.id; }) };
-    document.getElementById('batch-title').textContent = '批量標註 · ' + pg;
-    document.getElementById('batch-count').textContent = '已選中 ' + targets.length + ' 筆';
-    const inp = document.getElementById('batch-input');
-    inp.value = '';
-    document.getElementById('batch-modal').classList.add('show');
-    setTimeout(function() { inp.focus(); }, 0);
+    syncGroupCheckboxes();
+    updateFloatBar();
+    toast((want ? '已選中「' : '已取消「') + gk + '」共 ' + list.length + ' 筆');
     return;
   }
-  if (t.classList.contains('focus-page-figma')) {
+
+  if (t.classList.contains('focus-page-figma') || t.id === 'btn-jump-this-page') {
     ev.stopPropagation();
     const pg = t.getAttribute('data-page-key');
-    const list = (window.__currentByPage && window.__currentByPage.get(pg)) || [];
+    const list = (window.__currentGroups && window.__currentGroups.get(pg)) || window.__currentGroupCards || [];
     const first = list[0];
     const pgId = t.getAttribute('data-page-id') || (first ? first.pageId : '');
     requestFigmaFocus(first ? [first.id] : [], pg, { pageOnly: true, pageId: pgId });
     return;
   }
-  if (t.classList.contains('select-page-all')) {
+
+  if (t.classList.contains('focus-group-all-figma')) {
     ev.stopPropagation();
-    const pg = t.getAttribute('data-page-key');
-    const list = (window.__currentByPage && window.__currentByPage.get(pg)) || [];
-    list.forEach(function(c) { selected.add(c.id); });
-    renderMain();
-    updateFloatBar();
-    toast('已全選本頁 ' + list.length + ' 筆');
+    closeAllMenus();
+    const gk = t.getAttribute('data-grp-key');
+    const pg = t.getAttribute('data-page-key') || gk;
+    const pgId = t.getAttribute('data-page-id') || '';
+    const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
+    const ids = collectMemberIds(list, pgId);
+    if (ids.length > 200 && !confirm('這組共有 ' + ids.length + ' 個 Figma 節點，確定要一次全部在 Figma 中選中嗎？')) return;
+    requestFigmaFocus(ids, pg + ' · ' + gk, { pageId: pgId });
     return;
   }
-  if (t.classList.contains('select-page-none')) {
+
+  if (t.classList.contains('stage-group-figma')) {
     ev.stopPropagation();
+    closeAllMenus();
+    const gk = t.getAttribute('data-grp-key');
+    const pg = t.getAttribute('data-page-key') || gk;
+    const pgId = t.getAttribute('data-page-id') || '';
+    const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
+    const ids = collectMemberIds(list, pgId);
+    requestFigmaStageBoard(ids, pg + ' · ' + gk, { targetPageId: pgId });
+    return;
+  }
+
+  if (t.id === 'btn-focus-page-all-recorded') {
+    ev.stopPropagation();
+    closeAllMenus();
     const pg = t.getAttribute('data-page-key');
-    const list = (window.__currentByPage && window.__currentByPage.get(pg)) || [];
-    list.forEach(function(c) { selected.delete(c.id); });
+    const pgId = t.getAttribute('data-page-id') || '';
+    const pRec = figmaPageMap.get(pg);
+    const ids = pRec ? collectMemberIds(pRec.cards, pRec.pageId || pgId) : collectMemberIds(window.__currentGroupCards || [], pgId);
+    if (ids.length === 0) { toast('本頁目前沒有已收錄的設計稿'); return; }
+    if (ids.length > 200 && !confirm('本頁共有 ' + ids.length + ' 個已收錄畫面，一次在 Figma 全選可能會短暫卡頓，確定要全部選中用來對照畫布查漏嗎？')) return;
+    requestFigmaFocus(ids, pg + '（全部已收錄）', { pageId: pgId });
+    return;
+  }
+
+  if (t.classList.contains('copy-group-ids-btn')) {
+    ev.stopPropagation();
+    closeAllMenus();
+    const gk = t.getAttribute('data-grp-key');
+    const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
+    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製「' + gk + '」' + list.length + ' 個 ID');
+    return;
+  }
+
+  if (t.id === 'btn-expand-pages' && window.__currentGroups) {
+    closeAllMenus();
+    window.__currentGroups.forEach(function(_, k) {
+      const key = window.__currentScopePrefix + k;
+      expandedPages.add(key);
+      expandedPages.delete('COLLAPSED::' + key);
+    });
     renderMain();
-    updateFloatBar();
-    toast('已取消本頁勾選');
+    return;
+  }
+  if (t.id === 'btn-collapse-pages' && window.__currentGroups) {
+    closeAllMenus();
+    window.__currentGroups.forEach(function(_, k) {
+      const key = window.__currentScopePrefix + k;
+      expandedPages.delete(key);
+      expandedPages.add('COLLAPSED::' + key);
+    });
+    renderMain();
+    return;
+  }
+  if (t.id === 'btn-copy-group-ids') {
+    closeAllMenus();
+    const list = window.__currentGroupCards || [];
+    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製 ' + list.length + ' 個 ID');
     return;
   }
 
@@ -2138,31 +3954,6 @@ document.getElementById('content').addEventListener('click', function(ev) {
     return;
   }
 
-  if (t.id === 'btn-expand-pages' && window.__currentByPage) {
-    window.__currentByPage.forEach(function(_, pg) {
-      const k = window.__currentScopePrefix + pg;
-      expandedPages.add(k);
-      expandedPages.delete('COLLAPSED::' + k);
-    });
-    renderMain();
-    return;
-  }
-  if (t.id === 'btn-collapse-pages' && window.__currentByPage) {
-    window.__currentByPage.forEach(function(_, pg) {
-      const k = window.__currentScopePrefix + pg;
-      expandedPages.delete(k);
-      expandedPages.add('COLLAPSED::' + k);
-    });
-    renderMain();
-    return;
-  }
-
-  if (t.id === 'btn-copy-group-ids') {
-    const list = window.__currentGroupCards || [];
-    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製 ' + list.length + ' 個 ID');
-    return;
-  }
-
   if (t.classList.contains('row-chk')) {
     const id = t.getAttribute('data-id');
     const boxes = Array.from(document.querySelectorAll('#content .row-chk'));
@@ -2175,21 +3966,76 @@ document.getElementById('content').addEventListener('click', function(ev) {
         for (let i = lo; i <= hi; i += 1) {
           if (t.checked) selected.add(ids[i]);
           else selected.delete(ids[i]);
-          boxes[i].checked = t.checked;
-          const row = boxes[i].closest('.screen-row');
-          if (row) row.classList.toggle('selected', t.checked);
+          toggleRowSelDom(ids[i], t.checked);
         }
       }
     } else {
       if (t.checked) selected.add(id);
       else selected.delete(id);
-      const row = t.closest('.screen-row');
-      if (row) row.classList.toggle('selected', t.checked);
+      toggleRowSelDom(id, t.checked);
     }
     lastClickedId = id;
+    syncGroupCheckboxes();
     updateFloatBar();
+    return;
+  }
+
+  // Clicking non-interactive area of a screen row marks it as the active focus bookmark
+  const rowEl = t.closest('.screen-row');
+  if (rowEl && !t.closest('input, select, textarea, button, a, .id-link')) {
+    focusedNodeId = rowEl.getAttribute('data-id') || '';
+    updateFocusHighlightInDom();
   }
 });
+
+function updateRowDirectHint(row, text) {
+  if (!row) return;
+  const hint = row.querySelector('.direct-hint');
+  if (!hint) return;
+  const meta = parseDirectCategoryNote(text);
+  hint.textContent = meta ? ('✓ 確定分類（' + meta.target + '）· 可直接入庫') : '';
+}
+
+function applyQuickCat(inp) {
+  if (!inp) return;
+  const id = inp.getAttribute('data-quick-cat-id');
+  const val = (inp.value || '').trim();
+  if (!id || !val) return;
+  state.items[id] = val;
+  const row = inp.closest('.screen-row');
+  if (row) {
+    row.classList.add('has-note');
+    const ta = row.querySelector('.item-comment');
+    if (ta) {
+      ta.value = val;
+      ta.classList.add('filled');
+    }
+    updateRowDirectHint(row, val);
+  }
+  inp.value = '';
+  saveState();
+  renderSidebar();
+  toast('已套用標準分類：' + val);
+}
+
+function applyRowCustomCategory(propId, rowEl) {
+  if (!propId || !rowEl) return;
+  const majSel = rowEl.querySelector('.prop-custom-major');
+  const minInp = rowEl.querySelector('.prop-custom-minor');
+  const maj = majSel ? majSel.value : '新UI';
+  const rawMin = minInp ? minInp.value : '';
+  const target = buildCustomCategoryTarget(maj, rawMin);
+  if (!target) {
+    toast('請先輸入新分類名稱（例如：錢包頁）');
+    if (minInp) minInp.focus();
+    return;
+  }
+  if (!state.proposals) state.proposals = {};
+  state.proposals[propId] = { decision: 'override', target: target, isCustom: true };
+  saveState();
+  renderAll();
+  toast('已套用自訂新分類：' + target);
+}
 
 document.getElementById('content').addEventListener('input', function(ev) {
   const t = ev.target;
@@ -2199,7 +4045,10 @@ document.getElementById('content').addEventListener('input', function(ev) {
     state.items[id] = t.value;
     t.classList.toggle('filled', t.value.trim().length > 0);
     const row = t.closest('.screen-row');
-    if (row) row.classList.toggle('has-note', t.value.trim().length > 0);
+    if (row) {
+      row.classList.toggle('has-note', t.value.trim().length > 0);
+      updateRowDirectHint(row, t.value);
+    }
     saveState();
     renderSidebar();
     return;
@@ -2247,9 +4096,70 @@ document.getElementById('content').addEventListener('input', function(ev) {
 
 document.getElementById('content').addEventListener('change', function(ev) {
   const t = ev.target;
+  if (t.classList.contains('quick-cat-sel')) {
+    applyQuickCat(t);
+    return;
+  }
+  if (t.classList.contains('prop-override-sel')) {
+    const id = t.getAttribute('data-prop-override-id');
+    const val = (t.value || '').trim();
+    if (!id) return;
+    if (!state.proposals) state.proposals = {};
+    if (!val) {
+      const cur = state.proposals[id];
+      if (cur && cur.decision === 'override' && !cur.isCustom && window.__canonicalCatSet && window.__canonicalCatSet.has(cur.target || '')) {
+        delete state.proposals[id];
+        saveState();
+        renderAll();
+      }
+      return;
+    }
+    state.proposals[id] = { decision: 'override', target: val };
+    saveState();
+    renderAll();
+    toast('已改選標準分類：' + val);
+    return;
+  }
   if (t.id === 'dt-arch') { detailFilter.arch = t.value; renderMain(); }
   else if (t.id === 'dt-gen') { detailFilter.gen = t.value; renderMain(); }
   else if (t.id === 'dt-only-comment') { detailFilter.onlyCommented = t.checked; renderMain(); }
+});
+
+function commitBatchRename(inp) {
+  if (!inp || !renamingBatchId) return;
+  const bid = inp.getAttribute('data-rename-batch-id');
+  if (bid !== renamingBatchId) return;
+  const b = lookupBatches.find(function(x) { return x.batchId === bid; });
+  const nextName = (inp.value || '').trim();
+  if (b && nextName) b.name = nextName;
+  renamingBatchId = '';
+  renderAll();
+}
+
+document.getElementById('content').addEventListener('keydown', function(ev) {
+  const t = ev.target;
+  if (!t || !t.classList) return;
+  if (t.classList.contains('prop-custom-minor') && ev.key === 'Enter') {
+    ev.preventDefault();
+    applyRowCustomCategory(t.getAttribute('data-prop-id'), t.closest('.prop-row'));
+    return;
+  }
+  if (!t.classList.contains('batch-rename-input')) return;
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    commitBatchRename(t);
+  } else if (ev.key === 'Escape') {
+    ev.preventDefault();
+    renamingBatchId = '';
+    renderAll();
+  }
+});
+
+document.getElementById('content').addEventListener('focusout', function(ev) {
+  const t = ev.target;
+  if (t && t.classList && t.classList.contains('batch-rename-input')) {
+    commitBatchRename(t);
+  }
 });
 
 // Topbar & float bar actions
@@ -2261,19 +4171,86 @@ document.getElementById('topbar-title').addEventListener('click', function(ev) {
   }
 });
 
+document.getElementById('btn-top-menu').addEventListener('click', function(ev) {
+  ev.stopPropagation();
+  const pop = document.getElementById('top-menu-pop');
+  const was = pop.classList.contains('show');
+  closeAllMenus();
+  if (!was) pop.classList.add('show');
+});
+document.getElementById('menu-show-spec').addEventListener('click', function() {
+  closeAllMenus();
+  const s = DATA.screenSpec || {};
+  toast('畫布識別規則：寬 ' + (s.widths || []).join('/') + ' (±' + (s.widthTolerance || 6) + 'px)，高 ' + (s.minHeight || 600) + '–' + (s.maxHeight || 12000) + 'px，最小節點 ' + (s.minNodes || 40));
+});
+document.getElementById('menu-clear-all').addEventListener('click', function() {
+  closeAllMenus();
+  if (!confirm('確定要清空本專案所有已填寫的意見嗎？此操作無法復原。')) return;
+  state.categories = {};
+  state.families = {};
+  state.items = {};
+  state.unrecorded = {};
+  state.proposals = {};
+  state.exported = emptyExported();
+  saveState();
+  renderAll();
+  toast('已清空所有意見');
+});
+
 document.getElementById('btn-copy-ids').addEventListener('click', function() {
   const ids = Array.from(selected);
   copyText(ids.join(String.fromCharCode(10)), '已複製 ' + ids.length + ' 個 ID');
 });
+document.getElementById('btn-batch-selected').addEventListener('click', function() {
+  const list = Array.from(selected).map(function(id) { return resolveCardForId(id); }).filter(Boolean);
+  if (list.length === 0) return;
+  const pages = Array.from(new Set(list.map(function(c) { return c.page || '(未知頁面)'; })));
+  if (pages.length > 1) {
+    toast('不支援跨頁批量標註，請先取消其他頁面的勾選後再操作（目前跨 ' + pages.length + ' 頁）');
+    return;
+  }
+  const pg = pages[0];
+  pendingBatch = { page: pg, ids: list.map(function(c) { return c.id; }) };
+  document.getElementById('batch-title').textContent = '批量標註 · ' + pg;
+  document.getElementById('batch-count').textContent = '已選中 ' + list.length + ' 筆';
+  const inp = document.getElementById('batch-input');
+  inp.value = '';
+  const bSel = document.getElementById('batch-cat-select');
+  if (bSel) bSel.value = '';
+  document.getElementById('batch-modal').classList.add('show');
+  setTimeout(function() { (bSel || inp).focus(); }, 0);
+});
 document.getElementById('btn-focus-selected').addEventListener('click', function() {
-  const list = Array.from(selected).map(function(id) { return byId[id]; }).filter(Boolean);
+  const list = Array.from(selected).map(function(id) { return resolveCardForId(id); }).filter(Boolean);
   if (list.length === 0) return;
   const pages = Array.from(new Set(list.map(function(c) { return c.pageId || c.page || '?'; })));
   if (pages.length > 1) {
-    toast('已選項目跨 ' + pages.length + ' 個頁面，請改點各頁標題的「定位到 Figma」逐頁選中');
+    toast('已選項目跨 ' + pages.length + ' 個頁面，Figma 不支援跨頁同時選中，請單頁勾選後再定位');
     return;
   }
-  requestFigmaFocus(list.map(function(c) { return c.id; }), list[0].page || list[0].id);
+  const pgId = list[0].pageId || '';
+  requestFigmaFocus(collectMemberIds(list, pgId), list[0].page || list[0].id, { pageId: pgId });
+});
+document.getElementById('btn-stage-selected').addEventListener('click', function() {
+  const list = Array.from(selected).map(function(id) { return resolveCardForId(id); }).filter(Boolean);
+  if (list.length === 0) return;
+  const pages = Array.from(new Set(list.map(function(c) { return c.pageId || c.page || '?'; })));
+  const singlePageId = pages.length === 1 ? (list[0].pageId || '') : '';
+  const titleTxt = pages.length === 1
+    ? ((list[0].page || '選中畫面'))
+    : ('跨 ' + pages.length + ' 頁選中 (' + list.length + ' 組)');
+  const ids = collectMemberIds(list, singlePageId);
+  requestFigmaStageBoard(ids, titleTxt, { targetPageId: singlePageId || undefined });
+});
+document.getElementById('btn-stage-info').addEventListener('click', function(ev) {
+  ev.stopPropagation();
+  const pop = document.getElementById('stage-info-pop');
+  const was = pop.classList.contains('show');
+  closeAllMenus();
+  if (!was) {
+    pop.classList.add('show');
+    this.classList.add('active');
+  }
 });
 document.getElementById('btn-sel-clear').addEventListener('click', function() {
   selected.clear();
@@ -2281,31 +4258,29 @@ document.getElementById('btn-sel-clear').addEventListener('click', function() {
   updateFloatBar();
 });
 
-document.getElementById('btn-clear').addEventListener('click', function() {
-  state.categories = {};
-  state.families = {};
-  state.items = {};
-  state.unrecorded = {};
-  saveState();
-  renderAll();
-  toast('已清空所有意見');
-});
+let activeModalSnap = null;
 
-function buildAgentPrompt() {
+function buildAgentPrompt(setsOverride) {
   const BT = String.fromCharCode(96);
   const NL = String.fromCharCode(10);
-  const catEntries = Object.keys(state.categories).filter(function(k) { return (state.categories[k] || '').trim(); });
-  const famEntries = Object.keys(state.families).filter(function(h) { return (state.families[h] || '').trim(); });
-  const itemIds = Object.keys(state.items).filter(function(id) { return (state.items[id] || '').trim() && byId[id]; });
-  const unrecIds = activeUnrecordedIds();
+  const onlyUnsentEl = document.getElementById('only-unsent');
+  const onlyUnsent = Boolean(onlyUnsentEl && onlyUnsentEl.checked);
+  const sets = setsOverride || collectCommentSets(onlyUnsent);
+  const catEntries = sets.catEntries;
+  const famEntries = sets.famEntries;
+  const itemIds = sets.itemIds;
+  const unrecIds = sets.unrecIds;
 
+  const targetLabels = DATA.labelsPath || 'labels/screens-v2.json';
   const lines = [];
-  lines.push('請根據以下我在 Rea-FigmaDesign 複審工作台填寫的人工核對意見，協助核查並整理要寫入 ' + BT + 'labels/screens-v2.json' + BT + ' 的修改方案：');
+  lines.push('請根據以下我在 Rea-FigmaDesign 複審工作台填寫的人工核對意見，協助核查並整理要寫入 ' + BT + targetLabels + BT + '（專案：' + (DATA.projectId || 'default') + '）的修改方案：');
   lines.push('');
 
   if (document.getElementById('include-scope').checked) {
     lines.push('## 核對範圍');
+    lines.push('- 專案：' + BT + (DATA.projectId || 'default') + BT + '（' + (DATA.fileName || '') + '）');
     lines.push('- 圖譜：' + BT + DATA.db + BT);
+    lines.push('- 標註檔：' + BT + targetLabels + BT);
     lines.push('- 檢視範圍：' + DATA.modeLabel + '（去重 ' + DATA.uniqueCount + ' 組 / 共 ' + DATA.matchedScreens + ' 個畫面）');
     lines.push('- 本次提出意見：分類意見 ' + catEntries.length + ' 筆、AST 家族意見 ' + famEntries.length + ' 組、單筆畫面意見 ' + itemIds.length + ' 筆、未收錄新畫面 ' + unrecIds.length + ' 筆（其餘留空項目視為無需修改）');
     lines.push('');
@@ -2340,7 +4315,7 @@ function buildAgentPrompt() {
   if (itemIds.length > 0) {
     lines.push('## 三、單筆畫面核對意見');
     itemIds.forEach(function(id, idx) {
-      const c = byId[id];
+      const c = resolveCardForId(id);
       const cur = c.major ? (c.major + (c.minor ? ' / ' + c.minor : '') + (c.generation ? ' (' + c.generation + ')' : '')) : '未標註';
       const copyNote = c.copies > 1 ? '（同構複本共 ' + c.copies + ' 個：' + c.memberIds.slice(0, 8).join(', ') + (c.memberIds.length > 8 ? '…' : '') + '）' : '';
       lines.push((idx + 1) + '. **' + BT + c.id + BT + '** · 頁面：' + (c.page || '-') + ' · 圖層：' + c.name + ' · 原型：' + c.archetype + copyNote);
@@ -2369,34 +4344,71 @@ function buildAgentPrompt() {
   }
 
   lines.push('## 處理要求');
-  lines.push('1. 請只針對上述有填寫意見的分類、家族或 ID 核對 SQLite 與 ' + BT + 'labels/screens-v2.json' + BT + '，不要改動未提及的標註。');
-  lines.push('2. 若單筆有同構複本（copies > 1）或屬於 AST 家族，請先用 ' + BT + 'apply_labels(dryRun: true)' + BT + ' 列出受影響的所有 node_id 與修改前後對照表。');
-  lines.push('3. 等我確認對照表後再正式寫入 ' + BT + 'labels/screens-v2.json' + BT + '。');
+  lines.push('1. 請只針對上述有填寫意見的分類、家族或 ID 核對 SQLite 與 ' + BT + targetLabels + BT + '，不要改動未提及的標註。');
+  lines.push('2. 若單筆有同構複本（copies > 1）或屬於 AST 家族，請先用 ' + BT + 'apply_labels(project: "' + (DATA.projectId || '') + '", dryRun: true)' + BT + ' 列出受影響的所有 node_id 與修改前後對照表。');
+  lines.push('3. 等我確認對照表後再正式寫入 ' + BT + targetLabels + BT + '。');
   if (unrecIds.length > 0) {
-    lines.push('4. 針對「四、Figma 未收錄新畫面」，請先檢查 SQLite 是否已匯入對應 node_id；若尚未匯入請提醒我先在插件重新匯出該頁面，再協助歸類並列出要寫入 ' + BT + 'labels/screens-v2.json' + BT + ' 的新增方案供確認。');
+    lines.push('4. 針對「四、Figma 未收錄新畫面」，請先檢查 SQLite 是否已匯入對應 node_id；若尚未匯入請提醒我先在插件重新匯出該頁面，再協助歸類並列出要寫入 ' + BT + targetLabels + BT + ' 的新增方案供確認（必要時可用 ' + BT + 'configure_project' + BT + ' 調整本專案畫布識別規則）。');
   }
   return lines.join(NL);
 }
 
+function refreshModalPreview() {
+  const onlyUnsent = document.getElementById('only-unsent').checked;
+  const sets = activeModalSnap
+    ? (onlyUnsent ? activeModalSnap.unsentSets : activeModalSnap.allSets)
+    : collectCommentSets(onlyUnsent);
+  document.getElementById('modal-text').value = buildAgentPrompt(sets);
+}
+
 function showPromptModal() {
-  const prompt = buildAgentPrompt();
+  const unsentSets = collectCommentSets(true);
+  const allSets = collectCommentSets(false);
+  const unsentCnt = countSets(unsentSets);
+  const allCnt = countSets(allSets);
+  const exportedCnt = Math.max(0, allCnt - unsentCnt);
+  const defaultOnlyUnsent = exportedCnt > 0 && unsentCnt > 0;
+
+  document.getElementById('only-unsent').checked = defaultOnlyUnsent;
+  activeModalSnap = { unsentSets: unsentSets, allSets: allSets };
+  const chosenSets = defaultOnlyUnsent ? unsentSets : allSets;
+  const prompt = buildAgentPrompt(chosenSets);
   document.getElementById('modal-text').value = prompt;
+
+  const clrBtn = document.getElementById('modal-clear-exported');
+  if (allCnt > 0) {
+    clrBtn.style.display = '';
+    clrBtn.textContent = '清空已複製舊意見 (' + allCnt + ')';
+  } else {
+    clrBtn.style.display = 'none';
+  }
+
   document.getElementById('modal').classList.add('show');
-  copyText(prompt, '已複製 Agent 提示詞到剪貼簿');
+  if (countSets(chosenSets) > 0) markSetsAsExported(chosenSets);
+  copyText(prompt, defaultOnlyUnsent ? ('已僅複製本次新增／修改的 ' + unsentCnt + ' 筆意見') : '已複製 Agent 提示詞到剪貼簿');
 }
 
 document.getElementById('btn-prompt').addEventListener('click', showPromptModal);
-document.getElementById('include-scope').addEventListener('change', function() {
-  document.getElementById('modal-text').value = buildAgentPrompt();
+document.getElementById('only-unsent').addEventListener('change', refreshModalPreview);
+document.getElementById('include-scope').addEventListener('change', refreshModalPreview);
+document.getElementById('modal-clear-exported').addEventListener('click', function() {
+  const removed = clearExportedOldComments();
+  document.getElementById('modal').classList.remove('show');
+  activeModalSnap = null;
+  toast(removed > 0 ? ('已清空 ' + removed + ' 筆已複製的舊意見') : '沒有可清空的舊意見');
 });
 document.getElementById('modal-copy').addEventListener('click', function() {
   copyText(document.getElementById('modal-text').value, '已重新複製到剪貼簿');
 });
 document.getElementById('modal-close').addEventListener('click', function() {
   document.getElementById('modal').classList.remove('show');
+  activeModalSnap = null;
 });
 document.getElementById('modal').addEventListener('click', function(ev) {
-  if (ev.target && ev.target.id === 'modal') this.classList.remove('show');
+  if (ev.target && ev.target.id === 'modal') {
+    this.classList.remove('show');
+    activeModalSnap = null;
+  }
 });
 
 function closeBatchModal() {
@@ -2424,8 +4436,64 @@ function applyBatchLabel() {
   renderAll();
   toast('已批量標註「' + pageName + '」共 ' + count + ' 筆');
 }
+function openCommitModal(commits, opts) {
+  pendingCommitItems = commits;
+  pendingCommitContext = {
+    mode: (opts && opts.mode) || 'proposals',
+    sourceItemKeys: (opts && opts.sourceItemKeys) || []
+  };
+  document.getElementById('commit-count').textContent = commits.length + ' 筆';
+  const byTarget = new Map();
+  commits.forEach(function(c) {
+    const k = c.major + (c.minor ? ' / ' + c.minor : '');
+    byTarget.set(k, (byTarget.get(k) || 0) + 1);
+  });
+  const sumHtml = Array.from(byTarget.entries())
+    .sort(function(a, b) { return b[1] - a[1]; })
+    .map(function(pair) {
+      const isNew = !(window.__canonicalCatSet && window.__canonicalCatSet.has(pair[0]));
+      return '<div>• <strong>' + esc(pair[0]) + '</strong>：' + pair[1] + ' 筆' + (isNew ? ' <span class="pill accent">自訂新分類</span>' : '') + '</div>';
+    }).join('');
+  document.getElementById('commit-summary').innerHTML = sumHtml;
+  const directBtn = document.getElementById('commit-confirm-direct');
+  directBtn.disabled = false;
+  directBtn.textContent = bridgeWsOpen ? '確定直接落盤並刷新' : '嘗試連線直寫落盤（離線會改複製指令）';
+  document.getElementById('commit-modal').classList.add('show');
+}
+
+document.getElementById('btn-direct-commit').addEventListener('click', function() {
+  const direct = collectDirectLabelCommits();
+  if (direct.commits.length === 0) {
+    toast('目前沒有符合標準分類格式的待寫入項目');
+    return;
+  }
+  openCommitModal(direct.commits, { mode: 'direct', sourceItemKeys: direct.sourceItemKeys });
+});
+
 document.getElementById('batch-cancel').addEventListener('click', closeBatchModal);
 document.getElementById('batch-apply').addEventListener('click', applyBatchLabel);
+document.getElementById('batch-direct-commit').addEventListener('click', function() {
+  if (!pendingBatch || !pendingBatch.ids || pendingBatch.ids.length === 0) {
+    closeBatchModal();
+    return;
+  }
+  const text = (document.getElementById('batch-input').value || '').trim();
+  const direct = collectDirectLabelCommits(pendingBatch.ids, text);
+  if (direct.invalidText || direct.commits.length === 0) {
+    toast('直接入庫需選擇標準分類，或輸入「新UI / 分類名」格式（自由文字請按「僅暫存標註」）');
+    document.getElementById('batch-input').focus();
+    return;
+  }
+  closeBatchModal();
+  openCommitModal(direct.commits, { mode: 'direct', sourceItemKeys: direct.sourceItemKeys });
+});
+document.getElementById('batch-cat-select').addEventListener('change', function() {
+  const val = (this.value || '').trim();
+  if (!val) return;
+  const inp = document.getElementById('batch-input');
+  inp.value = val;
+  inp.focus();
+});
 document.getElementById('batch-modal').addEventListener('click', function(ev) {
   if (ev.target && ev.target.id === 'batch-modal') closeBatchModal();
 });
@@ -2438,6 +4506,113 @@ document.getElementById('batch-input').addEventListener('keydown', function(ev) 
     closeBatchModal();
   }
 });
+
+document.getElementById('commit-cancel').addEventListener('click', function() {
+  document.getElementById('commit-modal').classList.remove('show');
+});
+document.getElementById('commit-modal').addEventListener('click', function(ev) {
+  if (ev.target && ev.target.id === 'commit-modal') this.classList.remove('show');
+});
+document.getElementById('commit-copy-fallback').addEventListener('click', function() {
+  if (!pendingCommitItems || pendingCommitItems.length === 0) return;
+  const prompt = buildProposalFallbackPrompt(pendingCommitItems);
+  document.getElementById('commit-modal').classList.remove('show');
+  copyText(prompt, '已複製 ' + pendingCommitItems.length + ' 筆落盤指令到剪貼簿，可直接貼給 Agent');
+});
+document.getElementById('commit-confirm-direct').addEventListener('click', function() {
+  if (!pendingCommitItems || pendingCommitItems.length === 0) return;
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = '正在寫入並重建看板…';
+  fetch('http://127.0.0.1:8765/api/apply-proposals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: DATA.projectId,
+      confirm: true,
+      items: pendingCommitItems
+    })
+  }).then(function(r) { return r.json(); }).then(function(res) {
+    if (!res || !res.ok) {
+      btn.disabled = false;
+      btn.textContent = '確定直接落盤並刷新';
+      toast('落盤失敗：' + ((res && res.error) || '未知錯誤'));
+      return;
+    }
+    if (!state.proposals) state.proposals = {};
+    pendingCommitItems.forEach(function(it) { delete state.proposals[it.id]; });
+    if (pendingCommitContext && pendingCommitContext.mode === 'direct') {
+      (pendingCommitContext.sourceItemKeys || []).forEach(function(k) {
+        delete state.items[k];
+        if (state.exported && state.exported.items) delete state.exported.items[k];
+      });
+    }
+    saveState();
+    document.getElementById('commit-modal').classList.remove('show');
+    toast('已成功落盤 ' + res.applied + ' 筆並重建看板，即將刷新…');
+    setTimeout(function() { location.reload(); }, 700);
+  }).catch(function() {
+    btn.disabled = false;
+    btn.textContent = '確定直接落盤並刷新';
+    const prompt = buildProposalFallbackPrompt(pendingCommitItems);
+    copyText(prompt, '本地服務未連線，已改為複製落盤指令到剪貼簿');
+  });
+});
+
+function closePropGroupModal() {
+  document.getElementById('prop-group-modal').classList.remove('show');
+  pendingPropGroupKey = '';
+}
+function applyPropGroupModal() {
+  if (!pendingPropGroupKey || !window.__propGroups) {
+    closePropGroupModal();
+    return;
+  }
+  const selVal = (document.getElementById('prop-grp-sel').value || '').trim();
+  const majVal = (document.getElementById('prop-grp-custom-major').value || '新UI').trim();
+  const minVal = (document.getElementById('prop-grp-custom-minor').value || '').trim();
+  const customTarget = buildCustomCategoryTarget(majVal, minVal);
+  const target = selVal || customTarget;
+  const isCustom = !selVal && Boolean(customTarget);
+  if (!target) {
+    toast('請從下拉選擇標準分類，或輸入自訂新分類名稱');
+    return;
+  }
+  const pairs = window.__propGroups.get(pendingPropGroupKey) || [];
+  if (!state.proposals) state.proposals = {};
+  let cnt = 0;
+  pairs.forEach(function(x) {
+    if (!x.prop) return;
+    state.proposals[x.prop.id] = isCustom
+      ? { decision: 'override', target: target, isCustom: true }
+      : { decision: 'override', target: target };
+    cnt += 1;
+  });
+  saveState();
+  closePropGroupModal();
+  renderAll();
+  toast('已將本組 ' + cnt + ' 筆改為' + (isCustom ? '自訂新分類' : '標準分類') + '：' + target);
+}
+document.getElementById('prop-grp-sel').addEventListener('change', function() {
+  if (this.value) document.getElementById('prop-grp-custom-minor').value = '';
+});
+document.getElementById('prop-grp-custom-minor').addEventListener('input', function() {
+  if ((this.value || '').trim()) document.getElementById('prop-grp-sel').value = '';
+});
+document.getElementById('prop-grp-custom-minor').addEventListener('keydown', function(ev) {
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    applyPropGroupModal();
+  } else if (ev.key === 'Escape') {
+    ev.preventDefault();
+    closePropGroupModal();
+  }
+});
+document.getElementById('prop-grp-cancel').addEventListener('click', closePropGroupModal);
+document.getElementById('prop-group-modal').addEventListener('click', function(ev) {
+  if (ev.target && ev.target.id === 'prop-group-modal') closePropGroupModal();
+});
+document.getElementById('prop-grp-apply').addEventListener('click', applyPropGroupModal);
 
 renderAll();
 connectBridge();
@@ -2453,6 +4628,7 @@ connectBridge();
   }
 
   return {
+    projectId: resolved.id,
     html: outPath,
     unique: selectedCards.length,
     screens: rawScreens.length,
@@ -2464,6 +4640,7 @@ connectBridge();
 
 if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   const args = process.argv.slice(2);
+  let projectId = '';
   let dbFlag = '';
   let category = '';
   let page = '';
@@ -2475,7 +4652,8 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.m
 
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
-    if (a === '--db') dbFlag = args[++i] ?? '';
+    if (a === '--project') projectId = args[++i] ?? '';
+    else if (a === '--db') dbFlag = args[++i] ?? '';
     else if (a === '--category') category = args[++i] ?? '';
     else if (a === '--page') page = args[++i] ?? '';
     else if (a === '--unlabeled') unlabeled = true;
@@ -2486,10 +4664,37 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.m
     else if (!a.startsWith('--') && !dbFlag) dbFlag = a;
   }
 
-  const dbPath = dbFlag ? resolve(ROOT, dbFlag) : (AstGraphDB.resolveLatestGraphDb(ROOT) ?? '');
   try {
-    const res = generateReviewBoard({ dbPath, category, page, unlabeled, sample, ids, outPath, open });
-    console.log('review.html written · unique=' + res.unique + ' screens=' + res.screens + ' db=' + res.db);
+    if (projectId || dbFlag || outPath || category || page || unlabeled || sample > 0 || ids.length > 0) {
+      const res = generateReviewBoard({
+        projectId: projectId || undefined,
+        dbPath: dbFlag || undefined,
+        category,
+        page,
+        unlabeled,
+        sample,
+        ids,
+        outPath,
+        open,
+      });
+      console.log('project board written · project=' + res.projectId + ' unique=' + res.unique + ' screens=' + res.screens + ' path=' + res.html);
+      if (!outPath) {
+        const hub = generateProjectHub(ROOT);
+        console.log('review.html (Project Hub) written · projects=' + hub.projects + ' path=' + hub.html);
+      }
+    } else {
+      const projects = listProjects(ROOT);
+      if (projects.length === 0) throw new Error('no database found; run the Figma extraction first');
+      for (const p of projects) {
+        const res = generateReviewBoard({ projectId: p.id, dbPath: p.dbPath, open: false });
+        console.log('project board written · project=' + res.projectId + ' unique=' + res.unique + ' screens=' + res.screens + ' path=' + res.html);
+      }
+      const hub = generateProjectHub(ROOT);
+      console.log('review.html (Project Hub) written · projects=' + hub.projects + ' path=' + hub.html);
+      if (open && process.platform === 'darwin') {
+        spawn('/usr/bin/open', [hub.html], { detached: true, stdio: 'ignore' }).unref();
+      }
+    }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
