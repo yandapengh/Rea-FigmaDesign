@@ -147,6 +147,20 @@ CREATE TABLE IF NOT EXISTS nodes_staging (
   reactions_json TEXT,
   PRIMARY KEY (file_key, page_id, id)
 );
+
+CREATE TABLE IF NOT EXISTS components_staging (
+  file_key TEXT NOT NULL,
+  page_id TEXT NOT NULL,
+  id TEXT NOT NULL,
+  key TEXT NOT NULL,
+  name TEXT NOT NULL,
+  component_set_id TEXT,
+  component_set_name TEXT,
+  variant_properties_json TEXT,
+  description TEXT,
+  page_name TEXT NOT NULL,
+  PRIMARY KEY (file_key, page_id, id)
+);
 `;
 
 const INDEX_SQL = `
@@ -157,6 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_main_comp ON nodes(file_key, main_component
 CREATE INDEX IF NOT EXISTS idx_variables_name ON variables(file_key, name);
 CREATE INDEX IF NOT EXISTS idx_pages_content ON pages(file_key, is_empty);
 CREATE INDEX IF NOT EXISTS idx_staging_page ON nodes_staging(file_key, page_id);
+CREATE INDEX IF NOT EXISTS idx_comp_staging_page ON components_staging(file_key, page_id);
 `;
 
 const NODE_COLUMNS =
@@ -192,6 +207,13 @@ const INSERT_VARIABLE_SQL =
 const INSERT_COMPONENT_SQL =
   'INSERT OR REPLACE INTO components (file_key, id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_id, page_name) ' +
   'VALUES (@file_key, @id, @key, @name, @component_set_id, @component_set_name, @variant_properties_json, @description, @page_id, @page_name)';
+
+const COMP_COLUMNS =
+  'id, key, name, component_set_id, component_set_name, variant_properties_json, description, page_name';
+
+const INSERT_COMP_STAGING_SQL =
+  'INSERT OR REPLACE INTO components_staging (file_key, page_id, ' + COMP_COLUMNS + ') ' +
+  'VALUES (@file_key, @page_id, @id, @key, @name, @component_set_id, @component_set_name, @variant_properties_json, @description, @page_name)';
 
 const UPSERT_FILE_SQL =
   'INSERT INTO file_meta (file_key, file_name, extracted_at, page_count, total_nodes, updated_at) ' +
@@ -302,6 +324,7 @@ export class AstGraphDB {
 
   private readonly insertVariableStmt: Database.Statement;
   private readonly insertComponentStmt: Database.Statement;
+  private readonly insertCompStagingStmt: Database.Statement;
   private readonly insertNodeStmt: Database.Statement;
   private readonly insertStagingStmt: Database.Statement;
 
@@ -318,6 +341,7 @@ export class AstGraphDB {
 
     this.insertVariableStmt = this.db.prepare(INSERT_VARIABLE_SQL);
     this.insertComponentStmt = this.db.prepare(INSERT_COMPONENT_SQL);
+    this.insertCompStagingStmt = this.db.prepare(INSERT_COMP_STAGING_SQL);
     this.insertNodeStmt = this.db.prepare(INSERT_NODE_SQL);
     this.insertStagingStmt = this.db.prepare(INSERT_STAGING_SQL);
   }
@@ -387,6 +411,7 @@ export class AstGraphDB {
     const now = new Date().toISOString();
     this.db.transaction(() => {
       this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db.prepare('DELETE FROM components_staging WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
       this.db
         .prepare(
           'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
@@ -419,22 +444,61 @@ export class AstGraphDB {
     return rows.length;
   }
 
-  completePage(fileKey: string, pageId: string, expected?: number): number {
+  stageComponents(fileKey: string, pageId: string, rows: ComponentRow[]): number {
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    const txn = this.db.transaction((list: ComponentRow[]) => {
+      for (const row of list) {
+        const bind = toComponentBindings(fileKey, row);
+        bind.page_id = pageId;
+        this.insertCompStagingStmt.run(bind);
+      }
+    });
+    txn(rows);
+    return rows.length;
+  }
+
+  completePageWithDiff(fileKey: string, pageId: string, expected?: number): { committed: number; added: number; removed: number } {
     return this.db.transaction(() => {
       const staged = (this.db.prepare('SELECT COUNT(*) AS c FROM nodes_staging WHERE file_key = ? AND page_id = ?').get(fileKey, pageId) as { c: number }).c;
       if (typeof expected === 'number' && expected !== staged) {
         throw new Error('staged count mismatch: expected ' + expected + ', got ' + staged);
       }
+      const added = (
+        this.db
+          .prepare(
+            'SELECT COUNT(*) AS c FROM nodes_staging s LEFT JOIN nodes n ON n.file_key = s.file_key AND n.page_id = s.page_id AND n.id = s.id WHERE s.file_key = ? AND s.page_id = ? AND n.id IS NULL',
+          )
+          .get(fileKey, pageId) as { c: number }
+      ).c;
+      const removed = (
+        this.db
+          .prepare(
+            'SELECT COUNT(*) AS c FROM nodes n LEFT JOIN nodes_staging s ON s.file_key = n.file_key AND s.page_id = n.page_id AND s.id = n.id WHERE n.file_key = ? AND n.page_id = ? AND s.id IS NULL',
+          )
+          .get(fileKey, pageId) as { c: number }
+      ).c;
+
       this.db.prepare('DELETE FROM nodes WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
       this.db
         .prepare('INSERT OR REPLACE INTO nodes (file_key, ' + NODE_COLUMNS + ') SELECT file_key, ' + NODE_COLUMNS + ' FROM nodes_staging WHERE file_key = ? AND page_id = ?')
         .run(fileKey, pageId);
       this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+
+      this.db.prepare('DELETE FROM components WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+      this.db
+        .prepare('INSERT OR REPLACE INTO components (file_key, page_id, ' + COMP_COLUMNS + ') SELECT file_key, page_id, ' + COMP_COLUMNS + ' FROM components_staging WHERE file_key = ? AND page_id = ?')
+        .run(fileKey, pageId);
+      this.db.prepare('DELETE FROM components_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+
       const now = new Date().toISOString();
       this.db.prepare('UPDATE pages SET status = ?, node_count = ?, synced_at = ? WHERE file_key = ? AND page_id = ?').run('DONE', staged, now, fileKey, pageId);
       this.db.prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?').run(fileKey, now, fileKey);
-      return staged;
+      return { committed: staged, added, removed };
     })();
+  }
+
+  completePage(fileKey: string, pageId: string, expected?: number): number {
+    return this.completePageWithDiff(fileKey, pageId, expected).committed;
   }
 
   beginBatch(fileKey: string, pages: Array<{ page_id: string; page_name: string }>): number {
@@ -480,20 +544,66 @@ export class AstGraphDB {
     return page.page_id;
   }
 
-  skipPage(fileKey: string, page: PageSkipPayload): void {
+  skipPage(fileKey: string, page: PageSkipPayload): number {
     const now = new Date().toISOString();
-    this.db
-      .prepare(
-        'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
-          'VALUES (@file_key, @page_id, @page_name, @page_index, 0, 1, @status, 0, NULL, @census_at) ' +
-          'ON CONFLICT(file_key, page_id) DO UPDATE SET page_name = excluded.page_name, page_index = excluded.page_index, status = excluded.status',
-      )
-      .run({ file_key: fileKey, page_id: page.page_id, page_name: page.page_name, page_index: page.page_index, status: 'SKIPPED', census_at: now });
+    return this.db.transaction(() => {
+      const removed = (this.db.prepare('SELECT COUNT(*) AS c FROM nodes WHERE file_key = ? AND page_id = ?').get(fileKey, page.page_id) as { c: number }).c;
+      this.db.prepare('DELETE FROM nodes WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db.prepare('DELETE FROM components WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db.prepare('DELETE FROM components_staging WHERE file_key = ? AND page_id = ?').run(fileKey, page.page_id);
+      this.db
+        .prepare(
+          'INSERT INTO pages (file_key, page_id, page_name, page_index, child_count, is_empty, status, node_count, synced_at, census_at) ' +
+            'VALUES (@file_key, @page_id, @page_name, @page_index, 0, 1, @status, 0, NULL, @census_at) ' +
+            'ON CONFLICT(file_key, page_id) DO UPDATE SET page_name = excluded.page_name, page_index = excluded.page_index, child_count = 0, is_empty = 1, status = excluded.status, node_count = 0, synced_at = NULL, census_at = excluded.census_at',
+        )
+        .run({ file_key: fileKey, page_id: page.page_id, page_name: page.page_name, page_index: page.page_index, status: 'SKIPPED', census_at: now });
+      this.db.prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?').run(fileKey, now, fileKey);
+      return removed;
+    })();
+  }
+
+  /** Remove pages that no longer exist in Figma (based on live page census), keeping untouched live pages intact. */
+  pruneDeletedPages(
+    fileKey: string,
+    livePages: Array<{ page_id: string; page_name: string; page_index: number }>,
+  ): { removedPages: Array<{ page_id: string; page_name: string }>; removedNodes: number } {
+    if (!Array.isArray(livePages) || livePages.length === 0) {
+      return { removedPages: [], removedNodes: 0 };
+    }
+    const liveIds = new Set<string>();
+    for (const lp of livePages) {
+      if (!lp || typeof lp.page_id !== 'string' || !lp.page_id) continue;
+      liveIds.add(this.resolvePageId(fileKey, lp));
+    }
+    if (liveIds.size === 0) return { removedPages: [], removedNodes: 0 };
+
+    const stored = this.db.prepare('SELECT page_id, page_name FROM pages WHERE file_key = ?').all(fileKey) as Array<{ page_id: string; page_name: string }>;
+    const toRemove = stored.filter((r) => !liveIds.has(r.page_id));
+    if (toRemove.length === 0) return { removedPages: [], removedNodes: 0 };
+
+    let removedNodes = 0;
+    const now = new Date().toISOString();
+    this.db.transaction(() => {
+      for (const pg of toRemove) {
+        const cnt = (this.db.prepare('SELECT COUNT(*) AS c FROM nodes WHERE file_key = ? AND page_id = ?').get(fileKey, pg.page_id) as { c: number }).c;
+        removedNodes += cnt;
+        this.db.prepare('DELETE FROM nodes WHERE file_key = ? AND page_id = ?').run(fileKey, pg.page_id);
+        this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pg.page_id);
+        this.db.prepare('DELETE FROM components WHERE file_key = ? AND page_id = ?').run(fileKey, pg.page_id);
+        this.db.prepare('DELETE FROM components_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pg.page_id);
+        this.db.prepare('DELETE FROM pages WHERE file_key = ? AND page_id = ?').run(fileKey, pg.page_id);
+      }
+      this.db.prepare('UPDATE file_meta SET total_nodes = (SELECT COUNT(*) FROM nodes WHERE file_key = ?), updated_at = ? WHERE file_key = ?').run(fileKey, now, fileKey);
+    })();
+    return { removedPages: toRemove, removedNodes };
   }
 
   abortPage(fileKey: string, pageId: string): void {
     this.db.transaction(() => {
       this.db.prepare('DELETE FROM nodes_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
+      this.db.prepare('DELETE FROM components_staging WHERE file_key = ? AND page_id = ?').run(fileKey, pageId);
       this.db.prepare('UPDATE pages SET status = ? WHERE file_key = ? AND page_id = ? AND status = ?').run('INCOMPLETE', fileKey, pageId, 'SYNCING');
     })();
   }
@@ -573,6 +683,7 @@ export class AstGraphDB {
       this.db.exec('DELETE FROM nodes_staging');
       this.db.exec('DELETE FROM pages');
       this.db.exec('DELETE FROM components');
+      this.db.exec('DELETE FROM components_staging');
       this.db.exec('DELETE FROM variables');
       this.db.exec('DELETE FROM file_meta');
     })();

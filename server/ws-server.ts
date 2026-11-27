@@ -12,12 +12,32 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, basename } from 'node:path';
 import Database = require('better-sqlite3');
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import { AstGraphDB } from './db';
-import { loadProposals, resolveProject, saveProposals } from './core/projects';
+import {
+  computeScreenSyncDiff,
+  DEFAULT_SCREEN_SPEC,
+  deleteWorkspace,
+  listWorkspaces,
+  loadProjectConfig,
+  loadProposals,
+  parseCompositeScreenId,
+  reconcileProjectLabelsWithDb,
+  reconcileWorkspaceLabelsWithDbs,
+  resolveProject,
+  resolveWorkspace,
+  sanitizeWorkspaceId,
+  saveLastSync,
+  saveProjectConfig,
+  saveProposals,
+  saveWorkspaceConfig,
+  snapshotProjectScreens,
+  type ScreenSpec,
+  type SyncScreenRef,
+} from './core/projects';
 import { recomputeV2Counts, tryLoadScreenLabelsV2, type ScreenLabelV2 } from './core/semantics';
 import { generateReviewBoard } from './review-board';
 import { generateProjectHub } from './review-hub';
@@ -46,19 +66,36 @@ export interface RunningIngestServer {
   close(): Promise<void>;
 }
 
-interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number; pageId?: string; latestBatch?: unknown }
+interface SyncSummary {
+  pagesUpdated: number;
+  pagesSkipped: number;
+  pagesPruned: number;
+  nodesAdded: number;
+  nodesRemoved: number;
+  screensAdded: number;
+  screensRemoved: number;
+  labelsArchived: number;
+  proposalsPruned: number;
+}
+interface AckOk { status: 'OK'; receivedType: WsMessage['type']; count: number; committed?: number; pages?: unknown[]; batchId?: number; pageId?: string; latestBatch?: unknown; syncSummary?: SyncSummary }
 interface AckError { status: 'ERROR'; receivedType: string | null; error: string; batchId?: number }
 interface BatchRecord { batch_id: number; file_key: string; started_at: string; finished_at: string | null; requested: Array<{ page_id: string; page_name: string; page_index: number }>; pages: Record<string, string> }
 interface SocketState {
   projectId: string | null;
   fileKey: string | null;
+  fileUid: string | null;
   fileName: string | null;
+  sourceFiles: Array<{ file_key?: string; file_name?: string }> | null;
   role: BridgeClientRole | null;
   page: { fileKey: string; pageId: string; pageName: string; pageIndex: number } | null;
   db: AstGraphDB | null;
   folder: string | null;
   batch: BatchRecord | null;
   batchId: number | null;
+  syncStats: { pagesUpdated: number; pagesSkipped: number; pagesPruned: number; nodesAdded: number; nodesRemoved: number };
+  beforeScreens: Map<string, SyncScreenRef> | null;
+  touchedPages: Set<string>;
+  prunedPageNames: string[];
 }
 
 function describeError(error: unknown): string { return error instanceof Error ? error.message : String(error); }
@@ -161,12 +198,17 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     if (!hasTarget) return { clients: all, hasOtherProjectOnly: false };
     const matched = all.filter((sock) => {
       const st = states.get(sock);
-      return st ? matchesTarget(st, fileKey, fileName) : false;
+      if (!st) return false;
+      if (matchesTarget(st, fileKey, fileName)) return true;
+      if (Array.isArray(st.sourceFiles) && st.sourceFiles.length > 0) {
+        return st.sourceFiles.some((sf) => matchesTarget({ fileKey: sf.file_key ?? null, fileName: sf.file_name ?? null }, fileKey, fileName));
+      }
+      return false;
     });
     if (matched.length > 0) return { clients: matched, hasOtherProjectOnly: false };
     const untargeted = all.filter((sock) => {
       const st = states.get(sock);
-      return st && !st.fileName && (!st.fileKey || st.fileKey === '0:0') && !st.projectId;
+      return st && !st.fileName && (!st.fileKey || st.fileKey === '0:0') && !st.projectId && (!st.sourceFiles || st.sourceFiles.length === 0);
     });
     if (untargeted.length > 0) return { clients: untargeted, hasOtherProjectOnly: false };
     return { clients: [], hasOtherProjectOnly: true };
@@ -197,19 +239,44 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     }
   }
 
-  function dbFor(fileKey: string, fileName: string, state: SocketState): AstGraphDB {
+  function emptySyncStats(): SocketState['syncStats'] {
+    return { pagesUpdated: 0, pagesSkipped: 0, pagesPruned: 0, nodesAdded: 0, nodesRemoved: 0 };
+  }
+
+  function newSocketState(): SocketState {
+    return {
+      projectId: null,
+      fileKey: null,
+      fileUid: null,
+      fileName: null,
+      sourceFiles: null,
+      role: null,
+      page: null,
+      db: null,
+      folder: null,
+      batch: null,
+      batchId: null,
+      syncStats: emptySyncStats(),
+      beforeScreens: null,
+      touchedPages: new Set<string>(),
+      prunedPageNames: [],
+    };
+  }
+
+  function dbFor(fileKey: string, fileName: string, state: SocketState, fileUid?: string): AstGraphDB {
     if (fixedDb) { state.folder = null; return fixedDb; }
-    let folder = join(dataRoot, safeFolder(fileKey, fileName));
+    let folder = join(dataRoot, safeFolder(fileUid || fileKey, fileName));
     {
       try {
         for (const entry of readdirSync(dataRoot, { withFileTypes: true })) {
           if (!entry.isDirectory()) continue;
           const manifestPath = join(dataRoot, entry.name, 'manifest.json');
           if (!existsSync(manifestPath)) continue;
-          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { file_key?: string; file_name?: string };
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { file_key?: string; file_uid?: string; file_name?: string };
           const sameKey = manifest.file_key === fileKey;
-          const sameLocalDraft = fileKey === '0:0' && Boolean(fileName) && manifest.file_name === fileName;
-          if ((fileKey !== '0:0' && sameKey) || sameLocalDraft || (fileKey === '0:0' && !fileName && sameKey)) {
+          const sameUid = Boolean(fileUid) && manifest.file_uid === fileUid;
+          const sameLocalDraft = fileKey === '0:0' && Boolean(fileName) && manifest.file_name === fileName && (!manifest.file_uid || !fileUid || manifest.file_uid === fileUid);
+          if ((fileKey !== '0:0' && sameKey) || sameUid || sameLocalDraft || (fileKey === '0:0' && !fileName && sameKey)) {
             folder = join(dataRoot, entry.name);
             break;
           }
@@ -253,7 +320,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     const payload = parsed.payload;
     const batchId = typeof parsed.batch_id === 'number' ? parsed.batch_id : undefined;
     let state = states.get(socket);
-    if (!state) { state = { projectId: null, fileKey: null, fileName: null, role: null, page: null, db: null, folder: null, batch: null, batchId: null }; states.set(socket, state); }
+    if (!state) { state = newSocketState(); states.set(socket, state); }
 
     // Live Bridge control plane (does not write DB or emit ingestion AckOk)
     if (receivedType === 'BRIDGE_HELLO') {
@@ -264,7 +331,16 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       state.role = payload.role;
       if (typeof payload.project_id === 'string' && payload.project_id) state.projectId = payload.project_id;
       if (typeof payload.file_key === 'string' && payload.file_key) state.fileKey = payload.file_key;
+      if (typeof payload.file_uid === 'string' && payload.file_uid) state.fileUid = payload.file_uid;
       if (typeof payload.file_name === 'string' && payload.file_name) state.fileName = payload.file_name;
+      if (Array.isArray(payload.source_files)) {
+        state.sourceFiles = payload.source_files
+          .filter((sf): sf is Record<string, unknown> => isRecord(sf))
+          .map((sf) => ({
+            file_key: typeof sf.file_key === 'string' && sf.file_key ? sf.file_key : undefined,
+            file_name: typeof sf.file_name === 'string' && sf.file_name ? sf.file_name : undefined,
+          }));
+      }
       sendJson(socket, { type: 'BRIDGE_STATUS', payload: currentBridgeStatus() });
       broadcastBridgeStatus();
       if (!quiet) console.log('[bridge] hello role=' + state.role + (state.fileName ? ' file="' + state.fileName + '"' : ''));
@@ -498,6 +574,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       let committed: number | undefined;
       let pages: unknown[] | undefined;
       let pageId: string | undefined;
+      let syncSummary: SyncSummary | undefined;
 
       switch (receivedType) {
         case 'SYNC_START': {
@@ -505,20 +582,63 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const meta = payload as unknown as FileMetaPayload;
           if (!asString(meta.file_key)) throw new Error('SYNC_START payload.file_key is required');
           state.fileKey = asString(meta.file_key);
+          state.fileUid = asString(meta.file_uid) || state.fileUid;
           state.fileName = asString(meta.file_name) || state.fileName;
           state.page = null;
-          state.db = dbFor(state.fileKey, asString(meta.file_name), state);
+          state.syncStats = emptySyncStats();
+          state.touchedPages = new Set<string>();
+          state.prunedPageNames = [];
+          state.db = dbFor(state.fileKey, asString(meta.file_name), state, state.fileUid ?? undefined);
+          if (!fixedDb && state.folder) {
+            try {
+              state.beforeScreens = snapshotProjectScreens(
+                root,
+                basename(state.folder),
+                join(state.folder, 'graph.sqlite'),
+                state.fileKey ?? undefined,
+              );
+            } catch {
+              state.beforeScreens = null;
+            }
+          } else {
+            state.beforeScreens = null;
+          }
           state.db.upsertFileMeta(meta);
           const requested = Array.isArray(meta.pages) ? meta.pages : [];
           state.batchId = state.db.beginBatch(state.fileKey, requested.map((p) => ({ page_id: String(p.page_id), page_name: String(p.page_name) })));
+
+          let prunedIds = new Set<string>();
+          if (Array.isArray(meta.all_pages) && meta.all_pages.length > 0) {
+            const pruned = state.db.pruneDeletedPages(state.fileKey, meta.all_pages);
+            state.syncStats.pagesPruned += pruned.removedPages.length;
+            state.syncStats.nodesRemoved += pruned.removedNodes;
+            state.prunedPageNames = pruned.removedPages.map((p) => p.page_name);
+            prunedIds = new Set(pruned.removedPages.map((p) => p.page_id));
+          }
+
           if (state.folder) {
             const manifestPath = join(state.folder, 'manifest.json');
             let manifest: Record<string, unknown> = { file_key: meta.file_key, file_name: meta.file_name, created_at: nowIso(), updated_at: nowIso(), pages: [] };
             try { manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>; } catch { /* first write */ }
+            const prevFileName = typeof manifest.file_name === 'string' ? manifest.file_name : '';
             manifest.file_key = meta.file_key;
+            if (state.fileUid) manifest.file_uid = state.fileUid;
             manifest.file_name = meta.file_name;
+            if (prunedIds.size > 0 && Array.isArray(manifest.pages)) {
+              manifest.pages = (manifest.pages as Array<{ page_id?: string }>).filter((p) => !p.page_id || !prunedIds.has(p.page_id));
+            }
             manifest.updated_at = nowIso();
             atomicJson(manifestPath, manifest);
+
+            const projId = basename(state.folder);
+            const cfgPath = join(root, 'labels', 'projects', projId, 'project.json');
+            if (existsSync(cfgPath) && meta.file_name && prevFileName && prevFileName !== meta.file_name) {
+              try {
+                const cfg = loadProjectConfig(root, projId, { name: meta.file_name, fileKey: meta.file_key, fileName: meta.file_name });
+                const updatedName = cfg.name === prevFileName ? meta.file_name : cfg.name;
+                saveProjectConfig(root, { ...cfg, name: updatedName, fileName: meta.file_name, fileKey: meta.file_key });
+              } catch { /* ignore config rename failure */ }
+            }
           }
           count = 1;
           break;
@@ -540,7 +660,10 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (!state.db) throw new Error('PAGE_SKIP requires SYNC_START');
           const page = payload as unknown as PageSkipPayload;
           if (!asString(page.page_id)) throw new Error('PAGE_SKIP payload.page_id is required');
-          state.db.skipPage(state.fileKey ?? '', { ...page, page_id: state.db.resolvePageId(state.fileKey ?? '', page) });
+          const removed = state.db.skipPage(state.fileKey ?? '', { ...page, page_id: state.db.resolvePageId(state.fileKey ?? '', page) });
+          state.syncStats.pagesSkipped += 1;
+          state.syncStats.nodesRemoved += removed;
+          if (asString(page.page_name)) state.touchedPages.add(asString(page.page_name));
           if (state.batch) state.batch.pages[page.page_id] = 'SKIPPED';
           pageId = page.page_id;
           saveBatch(state);
@@ -561,7 +684,12 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const done = payload as unknown as PageCompletePayload;
           if (asString(done.page_id) && asString(done.page_id) !== state.page.pageId) throw new Error('PAGE_COMPLETE page_id mismatch');
           const expected = typeof done.total_nodes === 'number' ? done.total_nodes : undefined;
-          committed = state.db.completePage(state.page.fileKey, state.page.pageId, expected);
+          const diff = state.db.completePageWithDiff(state.page.fileKey, state.page.pageId, expected);
+          committed = diff.committed;
+          state.syncStats.pagesUpdated += 1;
+          state.syncStats.nodesAdded += diff.added;
+          state.syncStats.nodesRemoved += diff.removed;
+          if (state.page.pageName) state.touchedPages.add(state.page.pageName);
           pageId = state.page.pageId;
           state.db.checkpoint();
           if (state.batchId !== null) state.db.setBatchPage(state.batchId, state.page.pageId, state.page.pageName, 'DONE', committed);
@@ -572,10 +700,12 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
         }
         case 'PAGE_STATUS': {
           const wantedKey = isRecord(payload) && typeof payload.file_key === 'string' ? payload.file_key : state.fileKey;
+          const wantedUid = isRecord(payload) && typeof payload.file_uid === 'string' ? payload.file_uid : (state.fileUid ?? undefined);
+          if (wantedUid) state.fileUid = wantedUid;
           if (!state.db) {
             if (!wantedKey) throw new Error('PAGE_STATUS requires file_key');
             state.fileKey = wantedKey;
-            state.db = dbFor(wantedKey, state.fileName || '', state);
+            state.db = dbFor(wantedKey, state.fileName || '', state, wantedUid);
           }
           const wanted = isRecord(payload) && typeof payload.file_key === 'string' ? payload.file_key : state.fileKey ?? undefined;
           pages = state.db.listPages(wanted);
@@ -593,7 +723,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           const reqKey = typeof payload.file_key === 'string' && payload.file_key.trim() ? payload.file_key.trim() : state.fileKey;
           if (!state.db && reqKey) {
             state.fileKey = reqKey;
-            state.db = dbFor(reqKey, state.fileName || '', state);
+            state.db = dbFor(reqKey, state.fileName || '', state, state.fileUid ?? undefined);
           }
           if (state.db) state.db.resetAll();
           else if (fixedDb) fixedDb.resetAll();
@@ -611,7 +741,8 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
         case 'CHUNK_COMPONENTS': {
           if (!state.db) throw new Error('CHUNK_COMPONENTS requires SYNC_START');
           if (!Array.isArray(payload)) throw new Error('CHUNK_COMPONENTS payload must be an array');
-          count = state.db.insertComponentsBatch(state.fileKey ?? '', payload as ComponentRow[]);
+          if (state.page) count = state.db.stageComponents(state.page.fileKey, state.page.pageId, payload as ComponentRow[]);
+          else count = state.db.insertComponentsBatch(state.fileKey ?? '', payload as ComponentRow[]);
           break;
         }
         case 'SYNC_COMPLETE': {
@@ -621,6 +752,65 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
           if (typeof totalNodes !== 'number' || !Number.isFinite(totalNodes)) throw new Error('SYNC_COMPLETE total_nodes must be finite');
           state.db.finalizeSync(state.fileKey ?? '', totalNodes);
           if (state.batchId !== null) state.db.finishBatch(state.batchId, 'DONE');
+          state.db.checkpoint();
+
+          let labelsArchived = 0;
+          let proposalsPruned = 0;
+          let screensAdded = 0;
+          let screensRemoved = 0;
+          if (!fixedDb && state.folder) {
+            const projId = basename(state.folder);
+            const dbPath = join(state.folder, 'graph.sqlite');
+            try {
+              const rec = reconcileProjectLabelsWithDb(root, projId, dbPath, state.fileKey ?? undefined);
+              labelsArchived = rec.archived;
+              proposalsPruned = rec.proposalsPruned;
+            } catch (e) {
+              if (!quiet) console.error('[ws] reconcile labels failed: ' + describeError(e));
+            }
+            try {
+              const afterScreens = snapshotProjectScreens(root, projId, dbPath, state.fileKey ?? undefined);
+              const screenDiff = computeScreenSyncDiff(state.beforeScreens ?? new Map(), afterScreens);
+              screensAdded = screenDiff.isInitialImport ? 0 : screenDiff.addedScreens.length;
+              screensRemoved = screenDiff.isInitialImport ? 0 : screenDiff.removedScreens.length;
+              saveLastSync(dbPath, {
+                version: 1,
+                syncedAt: nowIso(),
+                isInitialImport: screenDiff.isInitialImport,
+                touchedPages: [...state.touchedPages],
+                prunedPages: state.prunedPageNames.slice(),
+                addedScreens: screenDiff.addedScreens,
+                removedScreens: screenDiff.removedScreens,
+                labelsArchived,
+                proposalsPruned,
+              });
+            } catch (e) {
+              if (!quiet) console.error('[ws] screen sync diff failed: ' + describeError(e));
+            }
+            try {
+              generateReviewBoard({ projectId: projId, dbPath, open: false });
+              for (const ws of listWorkspaces(root)) {
+                if (ws.sources.includes(projId)) {
+                  try {
+                    reconcileWorkspaceLabelsWithDbs(root, ws);
+                  } catch (wsRecErr) {
+                    if (!quiet) console.error('[ws] reconcile workspace labels failed (' + ws.id + '): ' + describeError(wsRecErr));
+                  }
+                  generateReviewBoard({ projectId: ws.id, open: false });
+                }
+              }
+              generateProjectHub(root);
+            } catch (e) {
+              if (!quiet) console.error('[ws] review board rebuild failed: ' + describeError(e));
+            }
+          }
+          syncSummary = {
+            ...state.syncStats,
+            screensAdded,
+            screensRemoved,
+            labelsArchived,
+            proposalsPruned,
+          };
           count = 1;
           break;
         }
@@ -635,11 +825,15 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       if (pages !== undefined && state.db && state.fileKey) ack.latestBatch = state.db.latestBatch(state.fileKey);
       if (pageId !== undefined) ack.pageId = pageId;
       if (batchId !== undefined) ack.batchId = batchId;
+      if (syncSummary !== undefined) ack.syncSummary = syncSummary;
       sendJson(socket, ack);
       if (!quiet) {
         if (receivedType === 'SYNC_COMPLETE') {
           const stats = state.db ? state.db.getStats(state.fileKey ?? undefined) : null;
-          console.log('[ws] SYNC_COMPLETE — nodes=' + (stats ? stats.nodes : 0) + ' file="' + (stats && stats.file ? stats.file.file_name : 'n/a') + '"');
+          const sumTxt = syncSummary
+            ? (' [+' + syncSummary.nodesAdded + '/-' + syncSummary.nodesRemoved + ' nodes, archived=' + syncSummary.labelsArchived + ', prunedPages=' + syncSummary.pagesPruned + ']')
+            : '';
+          console.log('[ws] SYNC_COMPLETE — nodes=' + (stats ? stats.nodes : 0) + ' file="' + (stats && stats.file ? stats.file.file_name : 'n/a') + '"' + sumTxt);
         } else console.log('[ws] ' + receivedType + ' +' + count + ' [' + stage + ']');
       }
     } catch (error) {
@@ -648,9 +842,58 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     }
   }
 
+  function verifyNodeIdsInSqlite(dbPath: string, rawIds: string[]): string[] {
+    if (rawIds.length === 0) return [];
+    const uniqueIds = [...new Set(rawIds)];
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    const foundIds = new Set<string>();
+    try {
+      for (let i = 0; i < uniqueIds.length; i += 500) {
+        const part = uniqueIds.slice(i, i + 500);
+        const q = db.prepare('SELECT id FROM nodes WHERE id IN (' + part.map(() => '?').join(',') + ')').all(...part) as Array<{ id: string }>;
+        for (const r of q) foundIds.add(r.id);
+      }
+    } finally {
+      db.close();
+    }
+    return uniqueIds.filter((id) => !foundIds.has(id));
+  }
+
+  function readJsonBody<T>(
+    req: import('node:http').IncomingMessage,
+    res: import('node:http').ServerResponse,
+    onBody: (parsed: T, sendJsonRes: (code: number, body: unknown) => void) => void,
+  ): void {
+    const sendJsonRes = (code: number, body: unknown): void => {
+      res.writeHead(code, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(JSON.stringify(body));
+    };
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    req.on('data', (chunk: Buffer) => {
+      totalBytes += chunk.length;
+      if (totalBytes <= 4 * 1024 * 1024) chunks.push(chunk);
+    });
+    req.on('end', () => {
+      if (totalBytes > 4 * 1024 * 1024) {
+        sendJsonRes(413, { ok: false, error: 'request body too large' });
+        return;
+      }
+      try {
+        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')) as T;
+        onBody(parsed, sendJsonRes);
+      } catch (err) {
+        sendJsonRes(500, { ok: false, error: describeError(err) });
+      }
+    });
+  }
+
   const httpServer = createServer((req, res) => {
     const urlPath = (req.url ?? '/').split('?')[0];
-    if (req.method === 'OPTIONS' && urlPath === '/api/apply-proposals') {
+    if (req.method === 'OPTIONS' && (urlPath === '/api/apply-proposals' || urlPath === '/api/workspaces')) {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -659,134 +902,219 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
       res.end();
       return;
     }
-    if (req.method === 'POST' && urlPath === '/api/apply-proposals') {
-      const sendJsonRes = (code: number, body: unknown): void => {
-        res.writeHead(code, {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        });
-        res.end(JSON.stringify(body));
-      };
-      const chunks: Buffer[] = [];
-      let totalBytes = 0;
-      req.on('data', (chunk: Buffer) => {
-        totalBytes += chunk.length;
-        if (totalBytes <= 4 * 1024 * 1024) chunks.push(chunk);
-      });
-      req.on('end', () => {
-        if (totalBytes > 4 * 1024 * 1024) {
-          sendJsonRes(413, { ok: false, error: 'request body too large' });
+    if (req.method === 'POST' && urlPath === '/api/workspaces') {
+      readJsonBody<{
+        action?: 'save' | 'delete';
+        id?: string;
+        name?: string;
+        sourceIds?: string[];
+        screenSpec?: Partial<ScreenSpec>;
+      }>(req, res, (parsed, sendJsonRes) => {
+        const action = parsed?.action === 'delete' ? 'delete' : 'save';
+        if (action === 'delete') {
+          const delId = typeof parsed?.id === 'string' ? parsed.id.trim() : '';
+          if (!delId) {
+            sendJsonRes(400, { ok: false, error: 'workspace id is required for delete' });
+            return;
+          }
+          const ok = deleteWorkspace(root, delId);
+          generateProjectHub(root);
+          sendJsonRes(ok ? 200 : 404, ok ? { ok: true, id: delId } : { ok: false, error: 'workspace not found: ' + delId });
           return;
         }
-        try {
-          const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
-            projectId?: string;
-            confirm?: boolean;
-            items?: Array<{ id?: string; major?: string; minor?: string; generation?: string }>;
-          };
-          if (parsed?.confirm !== true) {
-            sendJsonRes(400, { ok: false, error: 'apply-proposals requires confirm: true' });
+        const name = typeof parsed?.name === 'string' ? parsed.name.trim() : '';
+        if (!name) {
+          sendJsonRes(400, { ok: false, error: '應用名稱不可為空' });
+          return;
+        }
+        const rawSources = Array.isArray(parsed?.sourceIds) ? parsed.sourceIds : [];
+        const cleanSourceIds = [...new Set(rawSources.filter((s): s is string => typeof s === 'string').map((s) => s.trim()).filter(Boolean))];
+        if (cleanSourceIds.length === 0) {
+          sendJsonRes(400, { ok: false, error: '請至少選擇 1 個 Figma 匯出檔' });
+          return;
+        }
+        for (const sid of cleanSourceIds) {
+          const p = resolveProject(root, { project: sid });
+          if (!existsSync(p.dbPath)) {
+            sendJsonRes(400, { ok: false, error: '找不到來源檔 SQLite：' + sid });
             return;
           }
-          const rows = Array.isArray(parsed.items) ? parsed.items : [];
-          if (rows.length === 0) {
-            sendJsonRes(400, { ok: false, error: 'items must be a non-empty array' });
-            return;
-          }
-          const proj = resolveProject(root, { project: typeof parsed.projectId === 'string' ? parsed.projectId : undefined });
-          if (!existsSync(proj.dbPath)) {
-            sendJsonRes(404, { ok: false, error: 'project SQLite database not found' });
-            return;
-          }
-          const cleanRows: Array<{ id: string; major: string; minor: string; generation: string }> = [];
-          for (const raw of rows) {
-            const id = typeof raw?.id === 'string' ? raw.id.trim() : '';
-            const major = typeof raw?.major === 'string' ? raw.major.trim() : '';
-            const minor = typeof raw?.minor === 'string' ? raw.minor.trim() : '';
-            if (!id || !major) continue;
-            const generation = typeof raw?.generation === 'string'
-              ? raw.generation.trim()
-              : (major === '老UI' ? 'old' : (major === '系統UI' ? '' : 'new'));
-            cleanRows.push({ id, major, minor, generation });
-          }
-          if (cleanRows.length === 0) {
-            sendJsonRes(400, { ok: false, error: 'no valid label rows provided' });
-            return;
-          }
+        }
+        const rawId = typeof parsed?.id === 'string' ? parsed.id.trim() : '';
+        const wsId = rawId
+          ? sanitizeWorkspaceId(rawId)
+          : ('ws-' + createHash('sha1').update(name + ':' + cleanSourceIds.join('|') + ':' + Date.now()).digest('hex').slice(0, 10));
+        const specIn = parsed?.screenSpec ?? {};
+        const fullSpec: ScreenSpec = {
+          widths: Array.isArray(specIn.widths) && specIn.widths.length > 0 ? specIn.widths : DEFAULT_SCREEN_SPEC.widths,
+          widthTolerance: typeof specIn.widthTolerance === 'number' ? specIn.widthTolerance : DEFAULT_SCREEN_SPEC.widthTolerance,
+          minHeight: typeof specIn.minHeight === 'number' ? specIn.minHeight : DEFAULT_SCREEN_SPEC.minHeight,
+          maxHeight: typeof specIn.maxHeight === 'number' ? specIn.maxHeight : DEFAULT_SCREEN_SPEC.maxHeight,
+          minNodes: typeof specIn.minNodes === 'number' ? specIn.minNodes : DEFAULT_SCREEN_SPEC.minNodes,
+        };
+        saveWorkspaceConfig(root, {
+          id: wsId,
+          name,
+          sources: cleanSourceIds,
+          screenSpec: fullSpec,
+        });
+        generateReviewBoard({ projectId: wsId, open: false });
+        generateProjectHub(root);
+        if (!quiet) console.log('[bridge] save workspace id=' + wsId + ' sources=' + cleanSourceIds.join(','));
+        sendJsonRes(200, {
+          ok: true,
+          workspace: {
+            id: wsId,
+            name,
+            sourceIds: cleanSourceIds,
+            htmlPath: '.scratch/review-' + wsId + '.html',
+          },
+        });
+      });
+      return;
+    }
+    if (req.method === 'POST' && urlPath === '/api/apply-proposals') {
+      readJsonBody<{
+        projectId?: string;
+        confirm?: boolean;
+        items?: Array<{ id?: string; major?: string; minor?: string; generation?: string }>;
+      }>(req, res, (parsed, sendJsonRes) => {
+        if (parsed?.confirm !== true) {
+          sendJsonRes(400, { ok: false, error: 'apply-proposals requires confirm: true' });
+          return;
+        }
+        const rows = Array.isArray(parsed.items) ? parsed.items : [];
+        if (rows.length === 0) {
+          sendJsonRes(400, { ok: false, error: 'items must be a non-empty array' });
+          return;
+        }
+        const reqProjId = typeof parsed.projectId === 'string' ? parsed.projectId.trim() : '';
+        const ws = reqProjId.startsWith('ws-') ? resolveWorkspace(root, reqProjId) : null;
+        if (reqProjId.startsWith('ws-') && !ws) {
+          sendJsonRes(404, { ok: false, error: 'workspace not found: ' + reqProjId });
+          return;
+        }
+        const proj = ws ? null : resolveProject(root, { project: reqProjId || undefined });
+        if (proj && !existsSync(proj.dbPath)) {
+          sendJsonRes(404, { ok: false, error: 'project SQLite database not found' });
+          return;
+        }
+        const cleanRows: Array<{ id: string; major: string; minor: string; generation: string }> = [];
+        for (const raw of rows) {
+          const id = typeof raw?.id === 'string' ? raw.id.trim() : '';
+          const major = typeof raw?.major === 'string' ? raw.major.trim() : '';
+          const minor = typeof raw?.minor === 'string' ? raw.minor.trim() : '';
+          if (!id || !major) continue;
+          const generation = typeof raw?.generation === 'string'
+            ? raw.generation.trim()
+            : (major === '老UI' ? 'old' : (major === '系統UI' ? '' : 'new'));
+          cleanRows.push({ id, major, minor, generation });
+        }
+        if (cleanRows.length === 0) {
+          sendJsonRes(400, { ok: false, error: 'no valid label rows provided' });
+          return;
+        }
 
-          const nodeIds = [...new Set(cleanRows.map((r) => r.id))];
-          const db = new Database(proj.dbPath, { readonly: true, fileMustExist: true });
-          const foundIds = new Set<string>();
-          try {
-            for (let i = 0; i < nodeIds.length; i += 500) {
-              const part = nodeIds.slice(i, i + 500);
-              const q = db.prepare('SELECT id FROM nodes WHERE id IN (' + part.map(() => '?').join(',') + ')').all(...part) as Array<{ id: string }>;
-              for (const r of q) foundIds.add(r.id);
+        if (ws) {
+          const srcById = new Map(ws.sourceProjects.map((s) => [s.id, s]));
+          const bySource = new Map<string, string[]>();
+          const badComposite: string[] = [];
+          for (const row of cleanRows) {
+            const parsedId = parseCompositeScreenId(row.id);
+            if (!parsedId || !srcById.has(parsedId.sourceId) || !parsedId.nodeId) {
+              badComposite.push(row.id);
+              continue;
             }
-          } finally {
-            db.close();
+            const arr = bySource.get(parsedId.sourceId) ?? [];
+            arr.push(parsedId.nodeId);
+            bySource.set(parsedId.sourceId, arr);
           }
-          const missing = nodeIds.filter((id) => !foundIds.has(id));
+          if (badComposite.length > 0) {
+            sendJsonRes(400, { ok: false, error: 'invalid workspace node_id: ' + badComposite.slice(0, 5).join(', ') });
+            return;
+          }
+          const missing: string[] = [];
+          for (const [sid, rawIds] of bySource) {
+            const src = srcById.get(sid)!;
+            if (!existsSync(src.dbPath)) {
+              missing.push(...rawIds.map((rid) => sid + '::' + rid));
+              continue;
+            }
+            for (const miss of verifyNodeIdsInSqlite(src.dbPath, rawIds)) {
+              missing.push(sid + '::' + miss);
+            }
+          }
           if (missing.length > 0) {
             sendJsonRes(400, { ok: false, error: 'node_id not found in SQLite: ' + missing.slice(0, 5).join(', ') });
             return;
           }
-
-          const existingDoc = tryLoadScreenLabelsV2(proj.labelsPath);
-          const screens: ScreenLabelV2[] = existingDoc ? existingDoc.screens.map((s) => ({ ...s })) : [];
-          const byId = new Map(screens.map((s) => [s.id, s]));
-          const committedIds = new Set<string>();
-
-          for (const row of cleanRows) {
-            const label = row.major === '系統UI'
-              ? (row.minor ? '系統UI - ' + row.minor : '系統UI')
-              : (row.minor ? (row.major === '老UI' ? '老UI - ' + row.minor : row.minor) : row.major);
-            const cur = byId.get(row.id);
-            if (cur) {
-              cur.label = label;
-              cur.major = row.major;
-              cur.minor = row.minor;
-              cur.generation = row.generation;
-            } else {
-              const rec: ScreenLabelV2 = {
-                id: row.id,
-                label,
-                major: row.major,
-                minor: row.minor,
-                generation: row.generation,
-              };
-              screens.push(rec);
-              byId.set(row.id, rec);
-            }
-            committedIds.add(row.id);
+        } else if (proj) {
+          const nodeIds = [...new Set(cleanRows.map((r) => r.id))];
+          const missing = verifyNodeIdsInSqlite(proj.dbPath, nodeIds);
+          if (missing.length > 0) {
+            sendJsonRes(400, { ok: false, error: 'node_id not found in SQLite: ' + missing.slice(0, 5).join(', ') });
+            return;
           }
-
-          const counts = recomputeV2Counts(screens);
-          const nextDoc = {
-            version: 2,
-            sample: existingDoc?.sample ?? proj.id,
-            note: existingDoc?.note ?? ('updated via workbench proposals (' + new Date().toISOString().slice(0, 10) + ')'),
-            counts,
-            screens,
-          };
-          mkdirSync(dirname(proj.labelsPath), { recursive: true });
-          atomicJson(proj.labelsPath, nextDoc);
-
-          const propDoc = loadProposals(root, proj.id);
-          let remainingProposals = 0;
-          if (propDoc) {
-            propDoc.items = propDoc.items.filter((it) => !committedIds.has(it.id));
-            remainingProposals = propDoc.items.length;
-            saveProposals(root, proj.id, propDoc);
-          }
-
-          generateReviewBoard({ projectId: proj.id, dbPath: proj.dbPath, open: false });
-          generateProjectHub(root);
-          if (!quiet) console.log('[bridge] apply-proposals project=' + proj.id + ' applied=' + committedIds.size + ' remaining=' + remainingProposals);
-          sendJsonRes(200, { ok: true, applied: committedIds.size, remainingProposals, counts });
-        } catch (err) {
-          sendJsonRes(500, { ok: false, error: describeError(err) });
         }
+
+        const targetId = ws ? ws.id : proj!.id;
+        const targetLabelsPath = ws ? ws.labelsPath : proj!.labelsPath;
+        const existingDoc = tryLoadScreenLabelsV2(targetLabelsPath);
+        const screens: ScreenLabelV2[] = existingDoc ? existingDoc.screens.map((s) => ({ ...s })) : [];
+        const byId = new Map(screens.map((s) => [s.id, s]));
+        const committedIds = new Set<string>();
+
+        for (const row of cleanRows) {
+          const label = row.major === '系統UI'
+            ? (row.minor ? '系統UI - ' + row.minor : '系統UI')
+            : (row.minor ? (row.major === '老UI' ? '老UI - ' + row.minor : row.minor) : row.major);
+          const cur = byId.get(row.id);
+          if (cur) {
+            cur.label = label;
+            cur.major = row.major;
+            cur.minor = row.minor;
+            cur.generation = row.generation;
+          } else {
+            const rec: ScreenLabelV2 = {
+              id: row.id,
+              label,
+              major: row.major,
+              minor: row.minor,
+              generation: row.generation,
+            };
+            screens.push(rec);
+            byId.set(row.id, rec);
+          }
+          committedIds.add(row.id);
+        }
+
+        const counts = recomputeV2Counts(screens);
+        const nextDoc = {
+          version: 2,
+          sample: existingDoc?.sample ?? targetId,
+          note: existingDoc?.note ?? ('updated via workbench proposals (' + new Date().toISOString().slice(0, 10) + ')'),
+          counts,
+          screens,
+        };
+        mkdirSync(dirname(targetLabelsPath), { recursive: true });
+        atomicJson(targetLabelsPath, nextDoc);
+
+        const propDoc = loadProposals(root, targetId);
+        let remainingProposals = 0;
+        if (propDoc) {
+          propDoc.items = propDoc.items.filter((it) => !committedIds.has(it.id));
+          remainingProposals = propDoc.items.length;
+          saveProposals(root, targetId, propDoc);
+        }
+
+        if (ws) {
+          generateReviewBoard({ projectId: ws.id, open: false });
+        } else {
+          generateReviewBoard({ projectId: proj!.id, dbPath: proj!.dbPath, open: false });
+        }
+        generateProjectHub(root);
+        if (!quiet) console.log('[bridge] apply-proposals project=' + targetId + ' applied=' + committedIds.size + ' remaining=' + remainingProposals);
+        sendJsonRes(200, { ok: true, applied: committedIds.size, remainingProposals, counts });
       });
       return;
     }
@@ -823,7 +1151,7 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
   wss.on('connection', (socket, request) => {
     const remote = request.socket.remoteAddress ?? 'unknown';
     if (!quiet) console.log('[ws] client connected (' + remote + ')');
-    states.set(socket, { projectId: null, fileKey: null, fileName: null, role: null, page: null, db: null, folder: null, batch: null, batchId: null });
+    states.set(socket, newSocketState());
     alive.set(socket, true);
     socket.on('pong', () => alive.set(socket, true));
     socket.on('message', (data, isBinary) => {
@@ -941,7 +1269,10 @@ export async function startIngestServer(options: IngestServerOptions = {}): Prom
     pendingStage.clear();
     wss.clients.forEach((client) => client.terminate());
     await new Promise<void>((resolveClosed) => { wss.close(() => resolveClosed()); });
-    await new Promise<void>((resolveHttp) => { httpServer.close(() => resolveHttp()); });
+    await new Promise<void>((resolveHttp) => {
+      httpServer.close(() => resolveHttp());
+      httpServer.closeAllConnections?.();
+    });
     fixedDb?.close();
     for (const db of openDbs.values()) db.close();
   };

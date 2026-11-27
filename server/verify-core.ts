@@ -15,6 +15,7 @@ import { uxFeatures } from './core/ux';
 import { onionHashes } from './core/onion';
 import { detachFeature, detachScore } from './core/detach';
 import { categoryReportV2, recomputeV2Counts, summarizeCategoriesV2, type ScreenLabelV2 } from './core/semantics';
+import { matchesSearch, normSearchText } from './core/search-zh';
 
 function makeNode(overrides: Partial<NodeRow> & { id: string }): NodeRow {
   return {
@@ -141,11 +142,22 @@ function main(): void {
     assert.equal(majorReport?.total, 1);
     assert.equal(categoryReportV2(sampleLabels, '不存在分類', pageById), null);
 
+    // 6. Simplified/Traditional Chinese insensitive multi-token search
+    assert.equal(matchesSearch('新UI / 通用彈窗', '弹窗'), true);
+    assert.equal(matchesSearch('新UI / 下拉抽屜彈窗', '抽屉 弹窗'), true);
+    assert.equal(matchesSearch('新UI / 交易詳情', '详情'), true);
+    assert.equal(matchesSearch('新UI / MGM详情页', '詳情頁'), true);
+    assert.equal(matchesSearch('新UI / 分帳確認彈窗', '分账'), true);
+    assert.equal(matchesSearch('新UI / 分账记录list', '分帳 記錄'), true);
+    assert.equal(matchesSearch('新UI / 收銀台', '弹窗'), false);
+    assert.equal(normSearchText('彈窗詳情'), '弹窗详情');
+
     console.log('  ok    findScreenRootCandidates & findScreenRoots');
     console.log('  ok    uxFeatures listRun consecutive maxRun');
     console.log('  ok    iterative onionHashes deep chain & shell collapse');
     console.log('  ok    detachScore shared cosine');
     console.log('  ok    semantics v2 category summary & report');
+    console.log('  ok    search-zh simplified/traditional multi-token match');
     console.log('');
     console.log('RESULT: OK — core helpers & bug fixes verified');
   } finally {

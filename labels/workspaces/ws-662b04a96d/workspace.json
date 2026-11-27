@@ -1,0 +1,25 @@
+{
+  "id": "ws-662b04a96d",
+  "name": "白牌-UX Flow",
+  "sources": [
+    "fuid-mwyf1dpa-qjt0f40s",
+    "file-1d40063501"
+  ],
+  "screenSpec": {
+    "widths": [
+      360,
+      375,
+      390,
+      393,
+      412,
+      414,
+      428,
+      430
+    ],
+    "widthTolerance": 6,
+    "minHeight": 600,
+    "maxHeight": 12000,
+    "minNodes": 40
+  },
+  "updatedAt": "2026-11-27T03:39:43.036Z"
+}

@@ -312,12 +312,17 @@ export interface ScreenLabelV2 {
   note?: string;
 }
 
+export interface ArchivedScreenLabelV2 extends ScreenLabelV2 {
+  deletedAt: string;
+}
+
 export interface ScreenLabelsV2File {
   version: 2;
   sample?: string;
   note?: string;
   counts: Record<string, number>;
   screens: ScreenLabelV2[];
+  archivedDeleted?: ArchivedScreenLabelV2[];
 }
 
 export function recomputeV2Counts(screens: ScreenLabelV2[]): Record<string, number> {

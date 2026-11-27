@@ -10,7 +10,15 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { listProjects, type ProjectInfo } from './core/projects';
+import {
+  DEFAULT_SCREEN_SPEC,
+  listProjects,
+  listWorkspaces,
+  PC_WEB_SCREEN_SPEC,
+  type ProjectInfo,
+  type ScreenSpec,
+} from './core/projects';
+import { buildInlineSearchZhJs } from './core/search-zh';
 
 const ROOT = resolve(__dirname, '..');
 const SCRATCH = resolve(ROOT, '.scratch');
@@ -18,10 +26,10 @@ const SCRATCH = resolve(ROOT, '.scratch');
 export interface ProjectHubResult {
   html: string;
   projects: number;
+  workspaces: number;
 }
 
-function summarizeSpec(p: ProjectInfo): string {
-  const s = p.config.screenSpec;
+function summarizeSpec(s: Pick<ScreenSpec, 'widths' | 'minHeight' | 'maxHeight'>): string {
   const w = s.widths.length > 3 ? (Math.min(...s.widths) + '–' + Math.max(...s.widths)) : s.widths.join('/');
   return '寬 ' + w + ' · 高 ' + s.minHeight + '–' + s.maxHeight;
 }
@@ -29,16 +37,17 @@ function summarizeSpec(p: ProjectInfo): string {
 export function generateProjectHub(root: string = ROOT, outPath?: string): ProjectHubResult {
   const absOut = outPath ? resolve(root, outPath) : join(root, '.scratch', 'review.html');
   const projects = listProjects(root);
+  const workspaces = listWorkspaces(root);
 
   const cards = projects.map((p) => ({
     id: p.id,
     name: p.name,
     fileKey: p.fileKey,
-    fileName: p.fileName,
+    fileName: p.fileName || p.name,
     dbRelPath: relative(root, p.dbPath).replace(/\\/g, '/'),
     labelsRelPath: p.labelsRelPath,
     reviewHref: './' + p.reviewHtmlName,
-    specLabel: summarizeSpec(p),
+    specLabel: summarizeSpec(p.config.screenSpec),
     pagesTotal: p.pagesTotal,
     pagesDone: p.pagesDone,
     nodesCount: p.nodesCount,
@@ -51,7 +60,36 @@ export function generateProjectHub(root: string = ROOT, outPath?: string): Proje
       : ['#10b981', '#141a24', '#f59e0b', '#e6edf3', '#06b6d4'],
   }));
 
-  const payload = JSON.stringify({ projects: cards }).replace(/</g, '\\u003c');
+  const wsCards = workspaces.map((ws) => ({
+    id: ws.id,
+    name: ws.name,
+    isWorkspace: true,
+    sourceIds: ws.sources,
+    sources: ws.sourceProjects.map((s) => ({
+      id: s.id,
+      fileKey: s.fileKey,
+      fileName: s.fileName || s.name,
+    })),
+    screenSpec: ws.config.screenSpec,
+    labelsRelPath: ws.labelsRelPath,
+    reviewHref: './' + ws.reviewHtmlName,
+    specLabel: summarizeSpec(ws.config.screenSpec),
+    pagesTotal: ws.pagesTotal,
+    pagesDone: ws.pagesDone,
+    nodesCount: ws.nodesCount,
+    labeledCount: ws.labeledCount,
+    majorCounts: ws.majorCounts,
+    updatedAt: ws.updatedAt ? ws.updatedAt.slice(0, 16).replace('T', ' ') : '-',
+    updatedMs: ws.updatedMs,
+    palette: ['#8250df', '#0969da', '#10b981', '#e6edf3', '#f59e0b'],
+  }));
+
+  const payload = JSON.stringify({
+    projects: cards,
+    workspaces: wsCards,
+    mobileSpec: DEFAULT_SCREEN_SPEC,
+    pcWebSpec: PC_WEB_SCREEN_SPEC,
+  }).replace(/</g, '\\u003c');
 
   const html = `<!doctype html>
 <html lang="zh-Hant">
@@ -209,6 +247,34 @@ export function generateProjectHub(root: string = ROOT, outPath?: string): Proje
   }
   .step-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 16px; }
   .step-card { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; }
+  .sec-hdr {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin: 22px 0 10px; flex-wrap: wrap;
+  }
+  .sec-hdr h3 { margin: 0; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .ws-pcard { cursor: pointer; }
+  .ws-src-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
+  .form-field label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .form-field input[type="text"], .form-field input[type="number"], .form-field select {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font: inherit; background: var(--bg-elev); color: var(--text);
+  }
+  .ws-src-list {
+    max-height: 190px; overflow: auto; border: 1px solid var(--border-soft);
+    border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 4px;
+    background: var(--bg);
+  }
+  .ws-src-opt {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    border-radius: 8px; background: var(--bg-elev); border: 1px solid var(--border-soft);
+    cursor: pointer; font-size: 12.5px;
+  }
+  .ws-src-opt:hover { border-color: var(--accent); }
+  .ws-spec-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    background: var(--bg-soft); padding: 10px; border-radius: 10px; margin-top: 8px;
+  }
   .toast {
     position: fixed; bottom: 18px; right: 20px; background: var(--accent); color: #fff;
     padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
@@ -229,13 +295,65 @@ export function generateProjectHub(root: string = ROOT, outPath?: string): Proje
     <span>Rea-FigmaDesign</span>
     <span class="sub-tag">專案空間（Project Hub）</span>
   </div>
-  <input id="search-box" placeholder="搜尋專案名稱、ID 或畫布規則..." style="width:240px">
+  <input id="search-box" placeholder="搜尋專案／應用名稱、ID 或來源檔名..." style="width:260px">
   <span class="pill" id="bridge-pill">○ 離線模式</span>
   <span class="spacer"></span>
+  <button class="btn primary" id="btn-new-ws" type="button">+ 合併多檔應用</button>
   <button class="btn accent" id="btn-new-proj" type="button">+ 匯入新專案</button>
 </header>
 
 <main class="wrap" id="app"></main>
+
+<div class="modal-backdrop" id="ws-modal">
+  <div class="modal" style="width:min(620px,95vw)">
+    <h3 style="margin:0 0 6px" id="ws-modal-title">建立多檔應用組合</h3>
+    <div style="font-size:12.5px;color:var(--text-muted)">勾選同一應用的多個 Figma 匯出檔（如 A1 + A2），共用同一組畫布篩選規則與分類標註；各檔案底層 SQLite 仍完全隔離。</div>
+    <input type="hidden" id="ws-edit-id" value="">
+    <div class="form-field">
+      <label for="ws-name-input">應用名稱</label>
+      <input type="text" id="ws-name-input" placeholder="例如：手機應用 A、網頁 PC 端">
+    </div>
+    <div class="form-field">
+      <label>選擇包含的 Figma 來源檔（依 Figma 檔名識別）</label>
+      <div class="ws-src-list" id="ws-src-list"></div>
+    </div>
+    <div class="form-field">
+      <label for="ws-spec-preset">共用畫布識別規則</label>
+      <select id="ws-spec-preset">
+        <option value="mobile">手機端預設（寬 360/375/390/414/428/430 · 高 600–12000）</option>
+        <option value="pc">網頁 PC 端（寬 1280/1366/1440/1536/1680/1920 · 高 600–16000）</option>
+        <option value="custom">自訂寬度與高度範圍</option>
+      </select>
+      <div class="ws-spec-grid" id="ws-spec-custom" style="display:none">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted)">畫布寬度（逗號分隔）</label>
+          <input type="text" id="ws-widths" value="360,375,390,414,428,430" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted)">容差 (±px) / 最小節點數</label>
+          <div style="display:flex;gap:6px">
+            <input type="number" id="ws-wtol" value="6" style="width:50%">
+            <input type="number" id="ws-minnodes" value="40" style="width:50%">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted)">最小高度 (px)</label>
+          <input type="number" id="ws-minh" value="600" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted)">最大高度 (px)</label>
+          <input type="number" id="ws-maxh" value="12000" style="width:100%">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px">
+      <button class="btn" id="ws-delete-btn" type="button" style="display:none;color:#cf222e;border-color:#f5c2c7">刪除此應用組合</button>
+      <span class="spacer"></span>
+      <button class="btn" id="close-ws-modal" type="button">取消</button>
+      <button class="btn primary" id="ws-save-btn" type="button">儲存並生成工作台</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="import-modal">
   <div class="modal">
@@ -254,6 +372,7 @@ export function generateProjectHub(root: string = ROOT, outPath?: string): Proje
 
 <script>
 const HUB = ${payload};
+${buildInlineSearchZhJs()}
 let filterKind = 'all';
 let sortBy = 'recent';
 let viewLayout = 'grid';
@@ -278,6 +397,16 @@ function matchFigmaClient(p) {
   const clients = Array.isArray(bridgeStatus.figma_clients) && bridgeStatus.figma_clients.length > 0
     ? bridgeStatus.figma_clients
     : (bridgeStatus.figma_connected ? [{ file_key: bridgeStatus.figma_file_key, file_name: bridgeStatus.figma_file_name }] : []);
+  if (Array.isArray(p.sources) && p.sources.length > 0) {
+    return p.sources.some(function(s) {
+      return clients.some(function(c) {
+        if (!c) return false;
+        if (c.file_key && c.file_key !== '0:0' && s.fileKey && s.fileKey !== '0:0' && c.file_key === s.fileKey) return true;
+        if (c.file_name && s.fileName && c.file_name === s.fileName) return true;
+        return false;
+      });
+    });
+  }
   return clients.some(function(c) {
     if (!c) return false;
     if (c.file_key && c.file_key !== '0:0' && p.fileKey && p.fileKey !== '0:0' && c.file_key === p.fileKey) return true;
@@ -287,6 +416,14 @@ function matchFigmaClient(p) {
 }
 
 function findProjectForPayload(payload) {
+  const wsHit = (HUB.workspaces || []).find(function(w) {
+    return (w.sources || []).some(function(s) {
+      if (payload.file_key && payload.file_key !== '0:0' && s.fileKey && s.fileKey !== '0:0' && payload.file_key === s.fileKey) return true;
+      if (payload.file_name && s.fileName && payload.file_name === s.fileName) return true;
+      return false;
+    });
+  });
+  if (wsHit) return wsHit;
   return HUB.projects.find(function(p) {
     if (payload.file_key && payload.file_key !== '0:0' && p.fileKey && p.fileKey !== '0:0' && payload.file_key === p.fileKey) return true;
     if (payload.file_name && (payload.file_name === p.name || payload.file_name === p.fileName)) return true;
@@ -363,12 +500,12 @@ function renderCover(p) {
     '</div></div>';
 }
 
-function render() {
-  let list = HUB.projects.slice();
+function filterAndSortItems(items, isWs) {
+  let list = (items || []).slice();
   if (query.trim()) {
-    const q = query.trim().toLowerCase();
     list = list.filter(function(p) {
-      return (p.name + ' ' + p.id + ' ' + p.specLabel + ' ' + p.labelsRelPath).toLowerCase().indexOf(q) !== -1;
+      const srcStr = isWs ? (p.sources || []).map(function(s) { return s.fileName + ' ' + s.id; }).join(' ') : (p.fileName || '');
+      return matchesSearch(p.name + ' ' + p.id + ' ' + srcStr + ' ' + p.specLabel + ' ' + p.labelsRelPath, query);
     });
   }
   if (filterKind === 'labeled') list = list.filter(function(p) { return p.labeledCount > 0; });
@@ -377,16 +514,25 @@ function render() {
   if (sortBy === 'nodes') list.sort(function(a, b) { return b.nodesCount - a.nodesCount; });
   else if (sortBy === 'labels') list.sort(function(a, b) { return b.labeledCount - a.labeledCount; });
   else list.sort(function(a, b) { return b.updatedMs - a.updatedMs; });
+  return list;
+}
+
+function render() {
+  const wsAll = HUB.workspaces || [];
+  const wsList = filterAndSortItems(wsAll, true);
+  const list = filterAndSortItems(HUB.projects, false);
 
   let html = '<div class="banner">' +
-    '<div><strong>多專案隔離空間：每個 Figma 檔案獨立儲存圖譜與分類標註</strong>' +
-    '<div class="muted">點擊專案卡片進入專屬複審工作台；在工作台左上角隨時可點「← 專案空間」回到這裡切換其他專案。</div></div>' +
-    '<span class="pill accent">共 ' + HUB.projects.length + ' 個已匯入專案</span>' +
-    '</div>';
+    '<div><strong>多檔應用組合 × 獨立來源隔離</strong>' +
+    '<div class="muted">先按 Figma 檔名識別各匯出檔，再自由勾選合併為同一個應用工作台共用篩選規則與分類標註；底層 SQLite 仍各自隔離。</div></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<span class="pill accent">' + wsAll.length + ' 個應用組合</span>' +
+    '<span class="pill">' + HUB.projects.length + ' 個 Figma 來源檔</span>' +
+    '</div></div>';
 
   html += '<div class="toolbar">' +
     '<div class="chips">' +
-    '<button class="chip' + (filterKind === 'all' ? ' active' : '') + '" data-filter="all">全部專案 (' + HUB.projects.length + ')</button>' +
+    '<button class="chip' + (filterKind === 'all' ? ' active' : '') + '" data-filter="all">全部 (' + (wsAll.length + HUB.projects.length) + ')</button>' +
     '<button class="chip' + (filterKind === 'labeled' ? ' active' : '') + '" data-filter="labeled">已建立分類</button>' +
     '<button class="chip' + (filterKind === 'cold' ? ' active' : '') + '" data-filter="cold">冷啟動 AST</button>' +
     '</div>' +
@@ -397,6 +543,44 @@ function render() {
     '<button type="button" data-layout="list" class="' + (viewLayout === 'list' ? 'active' : '') + '">清單</button>' +
     '</div></div></div>';
 
+  html += '<div class="sec-hdr"><h3>應用組合（多檔合併共用規則） <span class="pill">' + wsList.length + '</span></h3>' +
+    '<button class="btn sm" id="sec-new-ws" type="button">+ 新增應用組合</button></div>';
+
+  if (wsAll.length === 0) {
+    html += '<div class="banner" style="background:var(--bg-soft);margin-bottom:16px">' +
+      '<div class="muted">尚未建立多檔應用組合。若同一個產品拆分在多個 Figma 檔案（如 A1、A2 或 PC 端多檔），點右上角「+ 合併多檔應用」勾選即可共用規則與標註。</div>' +
+      '<button class="btn sm primary" id="empty-new-ws" type="button">立即組合</button></div>';
+  } else {
+    html += '<div class="grid' + (viewLayout === 'list' ? ' list-mode' : '') + '" style="margin-bottom:18px">';
+    wsList.forEach(function(w) {
+      const majorsSummary = Object.keys(w.majorCounts || {}).slice(0, 4).map(function(k) {
+        return k + ' ' + w.majorCounts[k];
+      }).join(' · ');
+      const srcChips = (w.sources || []).map(function(s) {
+        return '<span class="pill accent">📄 ' + esc(s.fileName || s.id) + '</span>';
+      }).join('');
+      html += '<div class="pcard ws-pcard" data-ws-href="' + esc(w.reviewHref) + '">' +
+        renderCover(w) +
+        '<div class="pbody">' +
+        '<div class="ptitle-row"><div class="ptitle">' + esc(w.name) + '</div><span class="pill">' + (w.sources || []).length + ' 檔合併</span></div>' +
+        '<div class="ws-src-chips">' + srcChips + '</div>' +
+        '<div class="stats-line">' +
+        '<span><b>' + w.pagesDone + '/' + w.pagesTotal + '</b> 頁面</span>' +
+        '<span><b>' + w.nodesCount.toLocaleString() + '</b> 節點</span>' +
+        '<span><b>' + w.labeledCount.toLocaleString() + '</b> 已標註畫面</span>' +
+        '</div>' +
+        '<div style="font-size:11.5px;color:var(--text-muted)">' + esc(majorsSummary || '尚未填寫分類，進入後將依 AST 結構家族整理') + '</div>' +
+        '<div class="iso-meta">' +
+        '<span>標註：<code>' + esc(w.labelsRelPath) + '</code></span>' +
+        '<span style="display:flex;gap:6px;align-items:center"><button class="btn sm ws-edit-btn" type="button" data-edit-ws="' + esc(w.id) + '">編輯組合</button><strong>進入工作台 →</strong></span>' +
+        '</div></div></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="sec-hdr"><h3>獨立 Figma 來源檔 <span class="pill">' + list.length + '</span></h3>' +
+    '<span style="font-size:12px;color:var(--text-muted)">每個卡片對應一份真實 Figma 檔案（依 Figma 檔名區分）</span></div>';
+
   html += '<div class="grid' + (viewLayout === 'list' ? ' list-mode' : '') + '">';
   list.forEach(function(p) {
     const majorsSummary = Object.keys(p.majorCounts || {}).slice(0, 4).map(function(k) {
@@ -406,7 +590,7 @@ function render() {
     html += '<a class="pcard" href="' + esc(p.reviewHref) + '">' +
       renderCover(p) +
       '<div class="pbody">' +
-      '<div class="ptitle-row"><div class="ptitle">' + esc(p.name) + '</div><span class="pill">' + esc(p.id) + '</span></div>' +
+      '<div class="ptitle-row"><div class="ptitle">' + esc(p.fileName || p.name) + '</div><span class="pill">' + esc(p.id) + '</span></div>' +
       '<div class="stats-line">' +
       '<span><b>' + p.pagesDone + '/' + p.pagesTotal + '</b> 頁面</span>' +
       '<span><b>' + p.nodesCount.toLocaleString() + '</b> 節點</span>' +
@@ -428,8 +612,71 @@ function render() {
   document.getElementById('app').innerHTML = html;
 }
 
+function fillSpecInputs(spec) {
+  const s = spec || HUB.mobileSpec;
+  document.getElementById('ws-widths').value = (s.widths || []).join(',');
+  document.getElementById('ws-wtol').value = String(s.widthTolerance || 6);
+  document.getElementById('ws-minnodes').value = String(s.minNodes || 40);
+  document.getElementById('ws-minh').value = String(s.minHeight || 600);
+  document.getElementById('ws-maxh').value = String(s.maxHeight || 12000);
+}
+
+function detectSpecPreset(spec) {
+  if (!spec || !Array.isArray(spec.widths)) return 'mobile';
+  const wStr = spec.widths.join(',');
+  if (wStr === (HUB.mobileSpec.widths || []).join(',') && spec.maxHeight === HUB.mobileSpec.maxHeight) return 'mobile';
+  if (wStr === (HUB.pcWebSpec.widths || []).join(',') && spec.maxHeight === HUB.pcWebSpec.maxHeight) return 'pc';
+  return 'custom';
+}
+
+function openWorkspaceModal(editWsId) {
+  const ws = editWsId ? (HUB.workspaces || []).find(function(w) { return w.id === editWsId; }) : null;
+  document.getElementById('ws-modal-title').textContent = ws ? ('編輯應用組合 · ' + ws.name) : '建立多檔應用組合';
+  document.getElementById('ws-edit-id').value = ws ? ws.id : '';
+  document.getElementById('ws-name-input').value = ws ? ws.name : '';
+  document.getElementById('ws-delete-btn').style.display = ws ? 'inline-flex' : 'none';
+
+  const checkedSet = new Set(ws ? (ws.sourceIds || []) : []);
+  const srcListEl = document.getElementById('ws-src-list');
+  if (!HUB.projects || HUB.projects.length === 0) {
+    srcListEl.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px">尚未匯入任何 Figma 來源檔</div>';
+  } else {
+    srcListEl.innerHTML = HUB.projects.map(function(p) {
+      const checked = checkedSet.has(p.id) ? ' checked' : '';
+      return '<label class="ws-src-opt">' +
+        '<input type="checkbox" class="ws-src-chk" value="' + esc(p.id) + '"' + checked + '>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.fileName || p.name) + '</div>' +
+        '<div style="font-size:11px;color:var(--text-muted)">' + esc(p.id) + ' · ' + p.pagesTotal + ' 頁 · ' + p.nodesCount.toLocaleString() + ' 節點</div>' +
+        '</div>' +
+        '</label>';
+    }).join('');
+  }
+
+  const preset = ws ? detectSpecPreset(ws.screenSpec) : 'mobile';
+  document.getElementById('ws-spec-preset').value = preset;
+  fillSpecInputs(ws ? ws.screenSpec : HUB.mobileSpec);
+  document.getElementById('ws-spec-custom').style.display = preset === 'custom' ? 'grid' : 'none';
+  document.getElementById('ws-modal').classList.add('show');
+}
+
 document.getElementById('search-box').addEventListener('input', function() { query = this.value; render(); });
 document.getElementById('app').addEventListener('click', function(ev) {
+  const editBtn = ev.target.closest('[data-edit-ws]');
+  if (editBtn) {
+    ev.stopPropagation();
+    openWorkspaceModal(editBtn.getAttribute('data-edit-ws'));
+    return;
+  }
+  if (ev.target.closest('#sec-new-ws') || ev.target.closest('#empty-new-ws')) {
+    openWorkspaceModal('');
+    return;
+  }
+  const wsCard = ev.target.closest('[data-ws-href]');
+  if (wsCard) {
+    window.location.href = wsCard.getAttribute('data-ws-href');
+    return;
+  }
   const f = ev.target.closest('[data-filter]');
   if (f) { filterKind = f.getAttribute('data-filter'); render(); return; }
   const l = ev.target.closest('[data-layout]');
@@ -438,6 +685,79 @@ document.getElementById('app').addEventListener('click', function(ev) {
 });
 document.getElementById('app').addEventListener('change', function(ev) {
   if (ev.target && ev.target.id === 'sort-sel') { sortBy = ev.target.value; render(); }
+});
+document.getElementById('btn-new-ws').addEventListener('click', function() { openWorkspaceModal(''); });
+document.getElementById('close-ws-modal').addEventListener('click', function() { document.getElementById('ws-modal').classList.remove('show'); });
+document.getElementById('ws-modal').addEventListener('click', function(ev) {
+  if (ev.target && ev.target.id === 'ws-modal') this.classList.remove('show');
+});
+document.getElementById('ws-spec-preset').addEventListener('change', function() {
+  if (this.value === 'pc') fillSpecInputs(HUB.pcWebSpec);
+  else if (this.value === 'mobile') fillSpecInputs(HUB.mobileSpec);
+  document.getElementById('ws-spec-custom').style.display = this.value === 'custom' ? 'grid' : 'none';
+});
+document.getElementById('ws-save-btn').addEventListener('click', function() {
+  const btn = this;
+  const id = (document.getElementById('ws-edit-id').value || '').trim();
+  const name = (document.getElementById('ws-name-input').value || '').trim();
+  const sourceIds = Array.from(document.querySelectorAll('.ws-src-chk:checked')).map(function(el) { return el.value; });
+  if (!name) { toast('請輸入應用名稱'); return; }
+  if (sourceIds.length === 0) { toast('請至少勾選 1 個 Figma 來源檔'); return; }
+  const preset = document.getElementById('ws-spec-preset').value;
+  let screenSpec;
+  if (preset === 'pc') {
+    screenSpec = HUB.pcWebSpec;
+  } else if (preset === 'mobile') {
+    screenSpec = HUB.mobileSpec;
+  } else {
+    const widths = (document.getElementById('ws-widths').value || '')
+      .split(',')
+      .map(function(x) { return Number(x.trim()); })
+      .filter(function(n) { return Number.isFinite(n) && n > 0; });
+    screenSpec = {
+      widths: widths.length > 0 ? widths : HUB.mobileSpec.widths,
+      widthTolerance: Math.max(0, Number(document.getElementById('ws-wtol').value) || 6),
+      minHeight: Math.max(100, Number(document.getElementById('ws-minh').value) || 600),
+      maxHeight: Math.max(500, Number(document.getElementById('ws-maxh').value) || 12000),
+      minNodes: Math.max(1, Number(document.getElementById('ws-minnodes').value) || 40)
+    };
+  }
+  btn.disabled = true;
+  btn.textContent = '儲存中...';
+  fetch('http://127.0.0.1:8765/api/workspaces', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'save', id: id || undefined, name: name, sourceIds: sourceIds, screenSpec: screenSpec })
+  }).then(function(r) { return r.json(); }).then(function(res) {
+    if (!res || !res.ok) {
+      toast('儲存失敗：' + ((res && res.error) || '請確認已啟動 npm run start:server'));
+      btn.disabled = false;
+      btn.textContent = '儲存並生成工作台';
+      return;
+    }
+    toast('已儲存應用組合「' + name + '」');
+    document.getElementById('ws-modal').classList.remove('show');
+    window.location.reload();
+  }).catch(function() {
+    toast('無法連線 http://127.0.0.1:8765，請先啟動 npm run start:server');
+    btn.disabled = false;
+    btn.textContent = '儲存並生成工作台';
+  });
+});
+document.getElementById('ws-delete-btn').addEventListener('click', function() {
+  const id = (document.getElementById('ws-edit-id').value || '').trim();
+  if (!id || !confirm('確定刪除這個多檔應用組合？底層來源檔 SQLite 資料不會受影響。')) return;
+  fetch('http://127.0.0.1:8765/api/workspaces', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete', id: id })
+  }).then(function(r) { return r.json(); }).then(function(res) {
+    if (!res || !res.ok) { toast('刪除失敗：' + ((res && res.error) || '未知錯誤')); return; }
+    document.getElementById('ws-modal').classList.remove('show');
+    window.location.reload();
+  }).catch(function() {
+    toast('無法連線 http://127.0.0.1:8765，請先啟動 npm run start:server');
+  });
 });
 document.getElementById('btn-new-proj').addEventListener('click', function() {
   document.getElementById('import-modal').classList.add('show');
@@ -457,10 +777,10 @@ connectBridge();
 
   mkdirSync(SCRATCH, { recursive: true });
   writeFileSync(absOut, html, 'utf8');
-  return { html: absOut, projects: projects.length };
+  return { html: absOut, projects: projects.length, workspaces: workspaces.length };
 }
 
 if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) {
   const res = generateProjectHub(ROOT);
-  console.log('project-hub written · projects=' + res.projects + ' path=' + res.html);
+  console.log('project-hub written · workspaces=' + res.workspaces + ' projects=' + res.projects + ' path=' + res.html);
 }

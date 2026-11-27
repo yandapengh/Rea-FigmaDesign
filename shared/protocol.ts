@@ -8,10 +8,12 @@
 
 export interface FileMetaPayload {
   file_key: string;
+  file_uid?: string;
   file_name: string;
   extracted_at: string;
   page_count: number;
   pages?: Array<{ page_id: string; page_name: string; page_index: number }>;
+  all_pages?: Array<{ page_id: string; page_name: string; page_index: number }>;
 }
 
 export interface VariableRow {
@@ -117,7 +119,9 @@ export interface BridgeHelloPayload {
   role: BridgeClientRole;
   project_id?: string;
   file_key?: string;
+  file_uid?: string;
   file_name?: string;
+  source_files?: Array<{ file_key?: string; file_name?: string }>;
 }
 
 export interface BridgeFocusRequestPayload {
@@ -211,7 +215,7 @@ export type WsMessage =
   | { type: 'PAGE_START'; payload: PageStartPayload }
   | { type: 'PAGE_SKIP'; payload: PageSkipPayload }
   | { type: 'PAGE_COMPLETE'; payload: PageCompletePayload }
-  | { type: 'PAGE_STATUS'; payload: { file_key?: string } }
+  | { type: 'PAGE_STATUS'; payload: { file_key?: string; file_uid?: string } }
   | { type: 'RESET_DATABASE'; payload: ResetDatabasePayload }
   | { type: 'CHUNK_VARIABLES'; payload: VariableRow[] }
   | { type: 'CHUNK_COMPONENTS'; payload: ComponentRow[] }

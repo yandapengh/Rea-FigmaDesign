@@ -1,0 +1,676 @@
+{
+  "version": 2,
+  "sample": "ws-662b04a96d",
+  "note": "updated via workbench proposals (2026-11-27)",
+  "counts": {
+    "新UI": 93,
+    "系統UI": 2
+  },
+  "screens": [
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16717",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16768",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16819",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16876",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16927",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:16993",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17197",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17485",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27053",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17825",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27393",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17885",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27453",
+      "label": "Tap&Pay 陣地頁",
+      "major": "新UI",
+      "minor": "Tap&Pay 陣地頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17539",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27107",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17600",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27168",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17658",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27226",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18766",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19025",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20935",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:21759",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:24320",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:24528",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:24735",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:22878",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23015",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23085",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23289",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23554",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17661",
+      "label": "下拉抽屜彈窗",
+      "major": "新UI",
+      "minor": "下拉抽屜彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27229",
+      "label": "下拉抽屜彈窗",
+      "major": "新UI",
+      "minor": "下拉抽屜彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17405",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18303",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:22803",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23443",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:26821",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:17946",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27514",
+      "label": "首頁",
+      "major": "新UI",
+      "minor": "首頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18094",
+      "label": "個人中心",
+      "major": "新UI",
+      "minor": "個人中心",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18304",
+      "label": "個人中心",
+      "major": "新UI",
+      "minor": "個人中心",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:25416",
+      "label": "個人中心",
+      "major": "新UI",
+      "minor": "個人中心",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:21983",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23909",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:22374",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:25724",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:25990",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:26304",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27783",
+      "label": "交易結果頁",
+      "major": "新UI",
+      "minor": "交易結果頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27714",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27991",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:28215",
+      "label": "通用彈窗",
+      "major": "新UI",
+      "minor": "通用彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23418",
+      "label": "下拉抽屜彈窗",
+      "major": "新UI",
+      "minor": "下拉抽屜彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:28003",
+      "label": "下拉抽屜彈窗",
+      "major": "新UI",
+      "minor": "下拉抽屜彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:24957",
+      "label": "收銀台",
+      "major": "新UI",
+      "minor": "收銀台",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:25306",
+      "label": "收銀台",
+      "major": "新UI",
+      "minor": "收銀台",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:25409",
+      "label": "收銀台",
+      "major": "新UI",
+      "minor": "收銀台",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20787",
+      "label": "T&C彈窗",
+      "major": "新UI",
+      "minor": "T&C彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18516",
+      "label": "系統UI - 系統彈窗",
+      "major": "系統UI",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19138",
+      "label": "系統UI - 系統彈窗",
+      "major": "系統UI",
+      "minor": "系統彈窗",
+      "generation": ""
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18831",
+      "label": "指紋確認彈窗",
+      "major": "新UI",
+      "minor": "指紋確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23559",
+      "label": "指紋確認彈窗",
+      "major": "新UI",
+      "minor": "指紋確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:26517",
+      "label": "指紋確認彈窗",
+      "major": "新UI",
+      "minor": "指紋確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18815",
+      "label": "KYC彈窗",
+      "major": "新UI",
+      "minor": "KYC彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:27703",
+      "label": "KYC彈窗",
+      "major": "新UI",
+      "minor": "KYC彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:18899",
+      "label": "PIN確認彈窗",
+      "major": "新UI",
+      "minor": "PIN確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23627",
+      "label": "PIN確認彈窗",
+      "major": "新UI",
+      "minor": "PIN確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::33:26585",
+      "label": "PIN確認彈窗",
+      "major": "新UI",
+      "minor": "PIN確認彈窗",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19060",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19398",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19616",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:21335",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23696",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19228",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19545",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19940",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:21482",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23843",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19318",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19473",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19796",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:21410",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:23771",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19691",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20194",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:19868",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20004",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20103",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20299",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20401",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20509",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20611",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20668",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    },
+    {
+      "id": "fuid-mwyf1dpa-qjt0f40s::1:20727",
+      "label": "NFC 設置頁",
+      "major": "新UI",
+      "minor": "NFC 設置頁",
+      "generation": "new"
+    }
+  ]
+}

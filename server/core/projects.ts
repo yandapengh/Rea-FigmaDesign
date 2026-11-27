@@ -7,11 +7,12 @@
  * while keeping legacy primary project labels/screens-v2.json 100% compatible.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import Database = require('better-sqlite3');
-import { DEFAULT_SCREEN_SPEC, type ScreenSpec } from './graph';
-import { tryLoadScreenLabelsV2 } from './semantics';
+import { DEFAULT_SCREEN_SPEC, findScreenRoots, Graph, type ScreenSpec } from './graph';
+import { recomputeV2Counts, tryLoadScreenLabelsV2, type ArchivedScreenLabelV2 } from './semantics';
 
 export { DEFAULT_SCREEN_SPEC, type ScreenSpec };
 
@@ -356,4 +357,512 @@ export function matchBridgeProject(
   if (bKey && bKey !== '0:0' && tKey && tKey !== '0:0' && bKey === tKey) return true;
   if (bName && tNames.indexOf(bName) !== -1) return true;
   return false;
+}
+
+export interface ReconcileLabelsResult {
+  archived: number;
+  archivedIds: string[];
+  remaining: number;
+  proposalsPruned: number;
+}
+
+/**
+ * After incremental/full SQLite sync, archive label entries whose node_id no longer exists
+ * in the database into `archivedDeleted` (preserving history) and prune stale proposals.
+ */
+export function reconcileProjectLabelsWithDb(
+  root: string,
+  projectId: string,
+  dbPath: string,
+  fileKey?: string,
+): ReconcileLabelsResult {
+  if (!existsSync(dbPath)) {
+    return { archived: 0, archivedIds: [], remaining: 0, proposalsPruned: 0 };
+  }
+  const labelsPath = labelsPathForProject(root, projectId);
+  const v2Doc = tryLoadScreenLabelsV2(labelsPath);
+  const proposalsDoc = loadProposals(root, projectId);
+
+  const checkIds = new Set<string>();
+  if (v2Doc) for (const s of v2Doc.screens) checkIds.add(s.id);
+  if (proposalsDoc) for (const it of proposalsDoc.items) checkIds.add(it.id);
+
+  if (checkIds.size === 0) {
+    return { archived: 0, archivedIds: [], remaining: 0, proposalsPruned: 0 };
+  }
+
+  const allIds = [...checkIds];
+  const liveIds = new Set<string>();
+  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+  try {
+    for (let i = 0; i < allIds.length; i += 500) {
+      const part = allIds.slice(i, i + 500);
+      const placeholders = part.map(() => '?').join(',');
+      const rows = (fileKey
+        ? db.prepare('SELECT id FROM nodes WHERE file_key = ? AND id IN (' + placeholders + ')').all(fileKey, ...part)
+        : db.prepare('SELECT id FROM nodes WHERE id IN (' + placeholders + ')').all(...part)) as Array<{ id: string }>;
+      for (const r of rows) liveIds.add(r.id);
+    }
+  } finally {
+    db.close();
+  }
+
+  let archived = 0;
+  const archivedIds: string[] = [];
+  let remaining = v2Doc?.screens.length ?? 0;
+
+  if (v2Doc) {
+    const kept: typeof v2Doc.screens = [];
+    const deleted: ArchivedScreenLabelV2[] = [];
+    const now = new Date().toISOString();
+    for (const s of v2Doc.screens) {
+      if (liveIds.has(s.id)) {
+        kept.push(s);
+      } else {
+        archived += 1;
+        archivedIds.push(s.id);
+        deleted.push({ ...s, deletedAt: now });
+      }
+    }
+    remaining = kept.length;
+    if (archived > 0) {
+      const archivedById = new Map<string, ArchivedScreenLabelV2>();
+      for (const prev of v2Doc.archivedDeleted ?? []) archivedById.set(prev.id, prev);
+      for (const d of deleted) archivedById.set(d.id, d);
+      const nextDoc = {
+        ...v2Doc,
+        counts: recomputeV2Counts(kept),
+        screens: kept,
+        archivedDeleted: [...archivedById.values()],
+      };
+      mkdirSync(dirname(labelsPath), { recursive: true });
+      writeFileSync(labelsPath, JSON.stringify(nextDoc, null, 2) + '\n', 'utf8');
+    }
+  }
+
+  let proposalsPruned = 0;
+  if (proposalsDoc && proposalsDoc.items.length > 0) {
+    const keptProps = proposalsDoc.items.filter((it) => liveIds.has(it.id));
+    proposalsPruned = proposalsDoc.items.length - keptProps.length;
+    if (proposalsPruned > 0) {
+      saveProposals(root, projectId, { ...proposalsDoc, items: keptProps });
+    }
+  }
+
+  return { archived, archivedIds, remaining, proposalsPruned };
+}
+
+export interface SyncScreenRef {
+  id: string;
+  name: string;
+  pageId: string;
+  pageName: string;
+  major?: string;
+  minor?: string;
+}
+
+export interface LastSyncReport {
+  version: 1;
+  syncedAt: string;
+  isInitialImport: boolean;
+  touchedPages: string[];
+  prunedPages: string[];
+  addedScreens: SyncScreenRef[];
+  removedScreens: SyncScreenRef[];
+  labelsArchived: number;
+  proposalsPruned: number;
+}
+
+export function lastSyncPathForDb(dbPath: string): string {
+  return join(dirname(dbPath), 'last-sync.json');
+}
+
+export function loadLastSync(dbPath: string): LastSyncReport | null {
+  const path = lastSyncPathForDb(dbPath);
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as Partial<LastSyncReport>;
+    if (!parsed || !Array.isArray(parsed.addedScreens) || !Array.isArray(parsed.removedScreens)) return null;
+    return {
+      version: 1,
+      syncedAt: parsed.syncedAt || '',
+      isInitialImport: parsed.isInitialImport === true,
+      touchedPages: Array.isArray(parsed.touchedPages) ? parsed.touchedPages : [],
+      prunedPages: Array.isArray(parsed.prunedPages) ? parsed.prunedPages : [],
+      addedScreens: parsed.addedScreens,
+      removedScreens: parsed.removedScreens,
+      labelsArchived: typeof parsed.labelsArchived === 'number' ? parsed.labelsArchived : 0,
+      proposalsPruned: typeof parsed.proposalsPruned === 'number' ? parsed.proposalsPruned : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastSync(dbPath: string, report: LastSyncReport): string {
+  const path = lastSyncPathForDb(dbPath);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(report, null, 2) + '\n', 'utf8');
+  return path;
+}
+
+export function snapshotProjectScreens(
+  root: string,
+  projectId: string,
+  dbPath: string,
+  fileKey?: string,
+): Map<string, SyncScreenRef> {
+  const out = new Map<string, SyncScreenRef>();
+  if (!existsSync(dbPath)) return out;
+
+  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+  let nodeCount = 0;
+  try {
+    const row = db.prepare('SELECT COUNT(*) AS c FROM nodes').get() as { c: number } | undefined;
+    nodeCount = row?.c ?? 0;
+  } catch {
+    nodeCount = 0;
+  } finally {
+    db.close();
+  }
+  if (nodeCount === 0) return out;
+
+  const config = loadProjectConfig(root, projectId);
+  const v2Doc = tryLoadScreenLabelsV2(labelsPathForProject(root, projectId));
+  const labelById = new Map<string, { major: string; minor: string }>();
+  if (v2Doc) {
+    for (const s of v2Doc.screens) labelById.set(s.id, { major: s.major, minor: s.minor });
+    for (const a of v2Doc.archivedDeleted ?? []) {
+      if (!labelById.has(a.id)) labelById.set(a.id, { major: a.major, minor: a.minor });
+    }
+  }
+
+  const g = new Graph(dbPath);
+  const roots = findScreenRoots(g, config.screenSpec);
+  for (const id of roots) {
+    const n = g.nodes.get(id);
+    if (!n) continue;
+    const lbl = labelById.get(id);
+    out.set(id, {
+      id,
+      name: n.name || '(無名)',
+      pageId: n.page_id || '',
+      pageName: n.page_name || '',
+      major: lbl?.major || undefined,
+      minor: lbl?.minor || undefined,
+    });
+  }
+  void fileKey;
+  return out;
+}
+
+export function computeScreenSyncDiff(
+  before: Map<string, SyncScreenRef>,
+  after: Map<string, SyncScreenRef>,
+): { addedScreens: SyncScreenRef[]; removedScreens: SyncScreenRef[]; isInitialImport: boolean } {
+  const isInitialImport = before.size === 0;
+  const addedScreens: SyncScreenRef[] = [];
+  const removedScreens: SyncScreenRef[] = [];
+  for (const [id, ref] of after) {
+    if (!before.has(id)) addedScreens.push(ref);
+  }
+  for (const [id, ref] of before) {
+    if (!after.has(id)) removedScreens.push(ref);
+  }
+  return { addedScreens, removedScreens, isInitialImport };
+}
+
+export const PC_WEB_SCREEN_SPEC: ScreenSpec = {
+  widths: [1280, 1366, 1440, 1512, 1680, 1728, 1920],
+  widthTolerance: 16,
+  minHeight: 700,
+  maxHeight: 16000,
+  minNodes: 40,
+};
+
+export interface WorkspaceConfig {
+  id: string;
+  name: string;
+  sources: string[];
+  screenSpec: ScreenSpec;
+  majorOrder?: string[];
+  updatedAt?: string;
+}
+
+export interface WorkspaceInfo {
+  id: string;
+  name: string;
+  sources: string[];
+  sourceProjects: ProjectInfo[];
+  missingSources: string[];
+  configPath: string;
+  labelsPath: string;
+  labelsRelPath: string;
+  reviewHtmlName: string;
+  config: WorkspaceConfig;
+  pagesTotal: number;
+  pagesDone: number;
+  nodesCount: number;
+  labeledCount: number;
+  majorCounts: Record<string, number>;
+  updatedAt: string;
+  updatedMs: number;
+}
+
+export function makeCompositeScreenId(sourceId: string, nodeId: string): string {
+  return sourceId + '::' + nodeId;
+}
+
+export function parseCompositeScreenId(id: string): { sourceId: string; nodeId: string } | null {
+  const idx = id.indexOf('::');
+  if (idx <= 0) return null;
+  const sourceId = id.slice(0, idx).trim();
+  const nodeId = id.slice(idx + 2).trim();
+  if (!sourceId || !nodeId) return null;
+  return { sourceId, nodeId };
+}
+
+export function sanitizeWorkspaceId(raw: string): string {
+  const trimmed = (raw || '').trim();
+  const bare = trimmed.replace(/^ws-/i, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  if (bare && bare.length >= 2) {
+    return ('ws-' + bare).slice(0, 60);
+  }
+  const digest = createHash('sha1').update((trimmed || 'app') + '|' + Date.now()).digest('hex').slice(0, 8);
+  return 'ws-' + digest;
+}
+
+export function workspaceDir(root: string, wsId: string): string {
+  return resolve(root, 'labels/workspaces', wsId);
+}
+
+export function workspaceConfigPath(root: string, wsId: string): string {
+  return resolve(root, 'labels/workspaces', wsId, 'workspace.json');
+}
+
+export function workspaceLabelsPath(root: string, wsId: string): string {
+  return resolve(root, 'labels/workspaces', wsId, 'screens-v2.json');
+}
+
+export function loadWorkspaceConfig(root: string, wsId: string): WorkspaceConfig | null {
+  const cfgPath = workspaceConfigPath(root, wsId);
+  if (!existsSync(cfgPath)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(cfgPath, 'utf8')) as Partial<WorkspaceConfig>;
+    if (!parsed || typeof parsed.name !== 'string') return null;
+    const sources = Array.isArray(parsed.sources)
+      ? [...new Set(parsed.sources.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim()))]
+      : [];
+    const majorOrder = Array.isArray(parsed.majorOrder) && parsed.majorOrder.length > 0
+      ? parsed.majorOrder.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      : undefined;
+    return {
+      id: parsed.id || wsId,
+      name: parsed.name.trim() || wsId,
+      sources,
+      screenSpec: normalizeScreenSpec(parsed.screenSpec),
+      majorOrder,
+      updatedAt: parsed.updatedAt || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveWorkspaceConfig(root: string, config: WorkspaceConfig): WorkspaceConfig {
+  const id = config.id.startsWith('ws-') ? config.id : sanitizeWorkspaceId(config.id || config.name);
+  const cfgPath = workspaceConfigPath(root, id);
+  mkdirSync(dirname(cfgPath), { recursive: true });
+  const normalized: WorkspaceConfig = {
+    id,
+    name: config.name.trim() || id,
+    sources: [...new Set((config.sources || []).map((s) => s.trim()).filter(Boolean))],
+    screenSpec: normalizeScreenSpec(config.screenSpec),
+    majorOrder: config.majorOrder && config.majorOrder.length > 0 ? config.majorOrder : undefined,
+    updatedAt: new Date().toISOString(),
+  };
+  writeFileSync(cfgPath, JSON.stringify(normalized, null, 2) + '\n', 'utf8');
+  return normalized;
+}
+
+export function deleteWorkspace(root: string, wsId: string): boolean {
+  if (!wsId || !wsId.startsWith('ws-')) return false;
+  const dir = workspaceDir(root, wsId);
+  const boardPath = resolve(root, '.scratch', projectReviewHtmlName(wsId));
+  let existed = false;
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true, force: true });
+    existed = true;
+  }
+  if (existsSync(boardPath)) {
+    rmSync(boardPath, { force: true });
+    existed = true;
+  }
+  return existed;
+}
+
+export function listWorkspaces(root: string): WorkspaceInfo[] {
+  const wsRoot = resolve(root, 'labels/workspaces');
+  if (!existsSync(wsRoot)) return [];
+  const allProjects = listProjects(root);
+  const byProjId = new Map(allProjects.map((p) => [p.id, p]));
+  const out: WorkspaceInfo[] = [];
+
+  for (const entry of readdirSync(wsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const cfg = loadWorkspaceConfig(root, entry.name);
+    if (!cfg) continue;
+
+    const sourceProjects: ProjectInfo[] = [];
+    const missingSources: string[] = [];
+    let pagesTotal = 0;
+    let pagesDone = 0;
+    let nodesCount = 0;
+    let maxUpdatedMs = cfg.updatedAt ? Date.parse(cfg.updatedAt) || 0 : 0;
+
+    for (const sid of cfg.sources) {
+      const sp = byProjId.get(sid);
+      if (sp) {
+        sourceProjects.push(sp);
+        pagesTotal += sp.pagesTotal;
+        pagesDone += sp.pagesDone;
+        nodesCount += sp.nodesCount;
+        if (sp.updatedMs > maxUpdatedMs) maxUpdatedMs = sp.updatedMs;
+      } else {
+        missingSources.push(sid);
+      }
+    }
+
+    const labelsPath = workspaceLabelsPath(root, cfg.id);
+    const v2Doc = tryLoadScreenLabelsV2(labelsPath);
+    const labeledCount = v2Doc?.screens.length ?? 0;
+    const majorCounts = v2Doc?.counts ?? {};
+    const updatedMs = maxUpdatedMs || statSync(workspaceConfigPath(root, entry.name)).mtimeMs;
+    const updatedAt = new Date(updatedMs).toISOString();
+
+    out.push({
+      id: cfg.id,
+      name: cfg.name,
+      sources: cfg.sources,
+      sourceProjects,
+      missingSources,
+      configPath: workspaceConfigPath(root, cfg.id),
+      labelsPath,
+      labelsRelPath: relative(root, labelsPath).replace(/\\/g, '/'),
+      reviewHtmlName: projectReviewHtmlName(cfg.id),
+      config: cfg,
+      pagesTotal,
+      pagesDone,
+      nodesCount,
+      labeledCount,
+      majorCounts,
+      updatedAt,
+      updatedMs,
+    });
+  }
+
+  out.sort((a, b) => b.updatedMs - a.updatedMs || a.id.localeCompare(b.id));
+  return out;
+}
+
+export function resolveWorkspace(root: string, want: string): WorkspaceInfo | null {
+  const trimmed = (want || '').trim();
+  if (!trimmed) return null;
+  const all = listWorkspaces(root);
+  const byId = all.find((w) => w.id === trimmed);
+  if (byId) return byId;
+  const lower = trimmed.toLowerCase();
+  return all.find((w) => w.name.toLowerCase() === lower) ?? null;
+}
+
+/** Reconcile workspace labels & proposals (composite `sourceId::nodeId`) against each source's SQLite DB. */
+export function reconcileWorkspaceLabelsWithDbs(root: string, ws: WorkspaceInfo): ReconcileLabelsResult {
+  const v2Doc = tryLoadScreenLabelsV2(ws.labelsPath);
+  const proposalsDoc = loadProposals(root, ws.id);
+  const bySourceId = new Map(ws.sourceProjects.map((sp) => [sp.id, sp]));
+
+  const idsBySource = new Map<string, Set<string>>();
+  const addCheck = (compId: string): void => {
+    const parsed = parseCompositeScreenId(compId);
+    if (!parsed) return;
+    let bucket = idsBySource.get(parsed.sourceId);
+    if (!bucket) {
+      bucket = new Set<string>();
+      idsBySource.set(parsed.sourceId, bucket);
+    }
+    bucket.add(parsed.nodeId);
+  };
+  if (v2Doc) for (const s of v2Doc.screens) addCheck(s.id);
+  if (proposalsDoc) for (const it of proposalsDoc.items) addCheck(it.id);
+
+  if (idsBySource.size === 0) {
+    return { archived: 0, archivedIds: [], remaining: v2Doc?.screens.length ?? 0, proposalsPruned: 0 };
+  }
+
+  const liveCompositeIds = new Set<string>();
+  for (const [srcId, rawSet] of idsBySource) {
+    const sp = bySourceId.get(srcId);
+    if (!sp || !existsSync(sp.dbPath)) continue;
+    const rawList = [...rawSet];
+    const db = new Database(sp.dbPath, { readonly: true, fileMustExist: true });
+    try {
+      for (let i = 0; i < rawList.length; i += 500) {
+        const part = rawList.slice(i, i + 500);
+        const rows = db
+          .prepare('SELECT id FROM nodes WHERE id IN (' + part.map(() => '?').join(',') + ')')
+          .all(...part) as Array<{ id: string }>;
+        for (const r of rows) liveCompositeIds.add(makeCompositeScreenId(srcId, r.id));
+      }
+    } finally {
+      db.close();
+    }
+  }
+
+  let archived = 0;
+  const archivedIds: string[] = [];
+  let remaining = v2Doc?.screens.length ?? 0;
+
+  if (v2Doc) {
+    const kept: typeof v2Doc.screens = [];
+    const deleted: ArchivedScreenLabelV2[] = [];
+    const now = new Date().toISOString();
+    for (const s of v2Doc.screens) {
+      const parsed = parseCompositeScreenId(s.id);
+      if (!parsed || !bySourceId.has(parsed.sourceId) || liveCompositeIds.has(s.id)) {
+        kept.push(s);
+      } else {
+        archived += 1;
+        archivedIds.push(s.id);
+        deleted.push({ ...s, deletedAt: now });
+      }
+    }
+    remaining = kept.length;
+    if (archived > 0) {
+      const archivedById = new Map<string, ArchivedScreenLabelV2>();
+      for (const prev of v2Doc.archivedDeleted ?? []) archivedById.set(prev.id, prev);
+      for (const d of deleted) archivedById.set(d.id, d);
+      const nextDoc = {
+        ...v2Doc,
+        counts: recomputeV2Counts(kept),
+        screens: kept,
+        archivedDeleted: [...archivedById.values()],
+      };
+      mkdirSync(dirname(ws.labelsPath), { recursive: true });
+      writeFileSync(ws.labelsPath, JSON.stringify(nextDoc, null, 2) + '\n', 'utf8');
+    }
+  }
+
+  let proposalsPruned = 0;
+  if (proposalsDoc && proposalsDoc.items.length > 0) {
+    const keptProps = proposalsDoc.items.filter((it) => {
+      const parsed = parseCompositeScreenId(it.id);
+      return !parsed || !bySourceId.has(parsed.sourceId) || liveCompositeIds.has(it.id);
+    });
+    proposalsPruned = proposalsDoc.items.length - keptProps.length;
+    if (proposalsPruned > 0) {
+      saveProposals(root, ws.id, { ...proposalsDoc, items: keptProps });
+    }
+  }
+
+  return { archived, archivedIds, remaining, proposalsPruned };
 }

@@ -19,7 +19,20 @@ import { dirname, join, resolve, sep } from 'node:path';
 import Database = require('better-sqlite3');
 import { AstGraphDB } from './db';
 import { Graph, archetypeOf, findScreenRootCandidates, headlineOf, parseJson, type ScreenSpec, type StylePayload } from './core/graph';
-import { listProjects, loadProposals, projectReviewHtmlName, resolveProject } from './core/projects';
+import {
+  listProjects,
+  listWorkspaces,
+  loadLastSync,
+  loadProposals,
+  makeCompositeScreenId,
+  projectReviewHtmlName,
+  resolveProject,
+  resolveWorkspace,
+  type LastSyncReport,
+  type ProjectInfo,
+  type WorkspaceInfo,
+} from './core/projects';
+import { buildInlineSearchZhJs } from './core/search-zh';
 import { tryLoadScreenLabelsV2, type ScreenLabelV2 } from './core/semantics';
 import { generateProjectHub } from './review-hub';
 
@@ -52,12 +65,28 @@ export interface ReviewBoardResult {
 }
 
 export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult {
-  const resolved = resolveProject(ROOT, { project: opts.projectId, dbPath: opts.dbPath });
-  const dbPath = opts.dbPath ? resolve(ROOT, opts.dbPath) : resolved.dbPath;
-  if (!dbPath || !existsSync(dbPath)) {
-    throw new Error('no database found; run the Figma extraction first');
+  const matchedWs: WorkspaceInfo | null = (!opts.dbPath && opts.projectId)
+    ? resolveWorkspace(ROOT, opts.projectId)
+    : null;
+  const isWorkspace = matchedWs !== null;
+  const resolved = isWorkspace ? null : resolveProject(ROOT, { project: opts.projectId, dbPath: opts.dbPath });
+  const boardId = isWorkspace ? matchedWs!.id : resolved!.id;
+  const boardName = isWorkspace ? matchedWs!.name : resolved!.name;
+  const dbPath = isWorkspace
+    ? (matchedWs!.sourceProjects[0]?.dbPath || join(ROOT, 'data'))
+    : (opts.dbPath ? resolve(ROOT, opts.dbPath) : resolved!.dbPath);
+  const sources: ProjectInfo[] = isWorkspace ? matchedWs!.sourceProjects : [resolved!];
+
+  if (sources.length === 0) {
+    throw new Error('應用組合「' + boardName + '」目前沒有可用的已匯出 Figma 來源檔');
   }
-  const outPath = opts.outPath ? resolve(ROOT, opts.outPath) : join(SCRATCH, projectReviewHtmlName(resolved.id));
+  for (const src of sources) {
+    if (!src.dbPath || !existsSync(src.dbPath)) {
+      throw new Error('no database found for ' + src.id + '; run the Figma extraction first');
+    }
+  }
+
+  const outPath = opts.outPath ? resolve(ROOT, opts.outPath) : join(SCRATCH, projectReviewHtmlName(boardId));
   if (!(outPath === SCRATCH || outPath.startsWith(SCRATCH + sep))) {
     throw new Error('--out must stay inside .scratch/ (got ' + outPath + ')');
   }
@@ -68,34 +97,40 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   const sampleCount = typeof opts.sample === 'number' && opts.sample > 0 ? Math.max(1, Math.floor(opts.sample)) : 0;
   const idsFilter = (opts.ids ?? []).map((s) => s.trim()).filter(Boolean);
 
-  const g = opts.graph ?? new Graph(dbPath);
-  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
-  let fileKey = resolved.fileKey || '';
-  let fileName = resolved.fileName || '';
-  const pageMeta = new Map<string, { name: string; index: number }>();
+  let fileKey = isWorkspace ? '' : (resolved!.fileKey || '');
+  let fileName = isWorkspace ? matchedWs!.name : (resolved!.fileName || '');
 
-  const labelsAbsPath = opts.labelsPath ? resolve(ROOT, opts.labelsPath) : resolved.labelsPath;
+  const labelsRelPath = isWorkspace ? matchedWs!.labelsRelPath : resolved!.labelsRelPath;
+  const labelsAbsPath = opts.labelsPath
+    ? resolve(ROOT, opts.labelsPath)
+    : (isWorkspace ? matchedWs!.labelsPath : resolved!.labelsPath);
   const v2Doc = tryLoadScreenLabelsV2(labelsAbsPath);
   const labelMap = new Map<string, ScreenLabelV2>();
   if (v2Doc) {
     for (const s of v2Doc.screens) labelMap.set(s.id, s);
   }
 
+  const baseSpec = isWorkspace ? matchedWs!.config.screenSpec : resolved!.config.screenSpec;
   const screenSpec: ScreenSpec = {
-    ...resolved.config.screenSpec,
+    ...baseSpec,
     ...(opts.screenSpec ?? {}),
-    widths: opts.screenSpec?.widths && opts.screenSpec.widths.length > 0 ? opts.screenSpec.widths : resolved.config.screenSpec.widths,
+    widths: opts.screenSpec?.widths && opts.screenSpec.widths.length > 0 ? opts.screenSpec.widths : baseSpec.widths,
   };
-  const allRoots = findScreenRootCandidates(g, screenSpec);
   const idSet = new Set(idsFilter);
   const pageNeedle = pageFilter.toLowerCase();
 
   interface RawScreen {
     id: string;
+    rawId: string;
     name: string;
     page: string;
+    rawPageName: string;
     pageId: string;
+    rawPageId: string;
     pageIndex: number;
+    sourceId: string;
+    sourceName: string;
+    sourceFileKey: string;
     archetype: string;
     hash: string;
     nodes: number;
@@ -109,10 +144,16 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
 
   interface Card {
     id: string;
+    rawId: string;
     name: string;
     page: string;
+    rawPageName: string;
     pageId: string;
+    rawPageId: string;
     pageIndex: number;
+    sourceId: string;
+    sourceName: string;
+    sourceFileKey: string;
     archetype: string;
     hash: string;
     shortHash: string;
@@ -131,83 +172,86 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
 
   const rawScreens: RawScreen[] = [];
   let selectedCards: Card[] = [];
+  const rawPaletteByScreen = new Map<string, string[]>();
+  let totalRootsCount = 0;
 
-  try {
-    const fileMeta = db.prepare('SELECT file_key, file_name FROM file_meta ORDER BY extracted_at DESC LIMIT 1').get() as
-      | { file_key: string; file_name: string }
-      | undefined;
-    fileKey = fileMeta?.file_key ?? '';
-    fileName = fileMeta?.file_name ?? '';
-    for (const row of db.prepare('SELECT page_id, page_name, page_index FROM pages').all() as Array<{
-      page_id: string;
-      page_name: string;
-      page_index: number;
-    }>) {
-      pageMeta.set(row.page_id, { name: row.page_name, index: row.page_index });
+  for (let sIdx = 0; sIdx < sources.length; sIdx += 1) {
+    const src = sources[sIdx];
+    const g = (!isWorkspace && opts.graph) ? opts.graph : new Graph(src.dbPath);
+    const db = new Database(src.dbPath, { readonly: true, fileMustExist: true });
+    const srcFallbackMap = new Map<string, ScreenLabelV2>();
+    if (isWorkspace) {
+      const srcDoc = tryLoadScreenLabelsV2(src.labelsPath);
+      if (srcDoc) for (const lbl of srcDoc.screens) srcFallbackMap.set(lbl.id, lbl);
     }
 
-    for (const id of allRoots) {
-      const sub = g.subtree(id);
-      if (sub.length < screenSpec.minNodes && !idSet.has(id)) continue;
-      const n = g.nodes.get(id)!;
-      const pgInfo = pageMeta.get(n.page_id);
-      const pageName = (pgInfo?.name ?? n.page_name ?? '').trim();
-      const lbl = labelMap.get(id);
+    const srcRoots = findScreenRootCandidates(g, screenSpec);
+    totalRootsCount += srcRoots.length;
+    const srcScreens: RawScreen[] = [];
 
-      if (idSet.size > 0 && !idSet.has(id)) continue;
-      if (unlabeledOnly && lbl) continue;
-      if (categoryFilter) {
-        if (!lbl) continue;
-        const matchMinor = lbl.minor === categoryFilter || lbl.label === categoryFilter;
-        const matchMajor = lbl.major === categoryFilter;
-        if (!matchMinor && !matchMajor) continue;
+    try {
+      const fileMeta = db.prepare('SELECT file_key, file_name FROM file_meta ORDER BY extracted_at DESC LIMIT 1').get() as
+        | { file_key: string; file_name: string }
+        | undefined;
+      const srcFileKey = fileMeta?.file_key ?? src.fileKey ?? '';
+      const srcFileName = fileMeta?.file_name ?? src.fileName ?? src.id;
+      if (!isWorkspace) {
+        fileKey = srcFileKey;
+        fileName = srcFileName;
       }
-      if (pageNeedle && pageName.toLowerCase().indexOf(pageNeedle) === -1) continue;
 
-      const texts: string[] = [];
-      for (const sid of sub) {
-        const t = g.nodes.get(sid)?.text_content;
-        if (t) texts.push(t);
+      const pageMeta = new Map<string, { name: string; index: number }>();
+      for (const row of db.prepare('SELECT page_id, page_name, page_index FROM pages').all() as Array<{
+        page_id: string;
+        page_name: string;
+        page_index: number;
+      }>) {
+        pageMeta.set(row.page_id, { name: row.page_name, index: row.page_index });
       }
-      rawScreens.push({
-        id,
-        name: n.name,
-        page: pageName,
-        pageId: n.page_id,
-        pageIndex: pgInfo?.index ?? 9999,
-        archetype: archetypeOf(g, id),
-        hash: g.hash.get(id) ?? '',
-        nodes: sub.length,
-        headline: headlineOf(texts),
-        major: lbl?.major ?? '',
-        minor: lbl?.minor ?? '',
-        label: lbl?.label ?? '',
-        generation: lbl?.generation ?? '',
-        note: lbl?.note ?? '',
-      });
-    }
 
-    if (idSet.size > 0) {
-      const included = new Set(rawScreens.map((r) => r.id));
-      for (const id of idsFilter) {
-        if (included.has(id) || !g.nodes.has(id)) continue;
-        const n = g.nodes.get(id)!;
-        const sub = g.subtree(id);
+      const seenRaw = new Set<string>();
+      const appendScreen = (rawId: string, checkMinNodes: boolean): void => {
+        if (seenRaw.has(rawId) || !g.nodes.has(rawId)) return;
+        const sub = g.subtree(rawId);
+        if (checkMinNodes && sub.length < screenSpec.minNodes && !idSet.has(rawId) && !idSet.has(makeCompositeScreenId(src.id, rawId))) return;
+        const screenId = isWorkspace ? makeCompositeScreenId(src.id, rawId) : rawId;
+        if (idSet.size > 0 && !idSet.has(screenId) && !idSet.has(rawId)) return;
+
+        const n = g.nodes.get(rawId)!;
+        const pgInfo = pageMeta.get(n.page_id);
+        const rawPageName = (pgInfo?.name ?? n.page_name ?? '').trim();
+        const displayPage = isWorkspace ? ('[' + srcFileName + '] ' + (rawPageName || '(未命名頁面)')) : rawPageName;
+        const lbl = labelMap.get(screenId) ?? (isWorkspace ? srcFallbackMap.get(rawId) : undefined);
+
+        if (unlabeledOnly && lbl) return;
+        if (categoryFilter) {
+          if (!lbl) return;
+          const matchMinor = lbl.minor === categoryFilter || lbl.label === categoryFilter;
+          const matchMajor = lbl.major === categoryFilter;
+          if (!matchMinor && !matchMajor) return;
+        }
+        if (pageNeedle && displayPage.toLowerCase().indexOf(pageNeedle) === -1) return;
+
         const texts: string[] = [];
         for (const sid of sub) {
           const t = g.nodes.get(sid)?.text_content;
           if (t) texts.push(t);
         }
-        const pgInfo = pageMeta.get(n.page_id);
-        const lbl = labelMap.get(id);
-        rawScreens.push({
-          id,
+        seenRaw.add(rawId);
+        const rec: RawScreen = {
+          id: screenId,
+          rawId,
           name: n.name,
-          page: (pgInfo?.name ?? n.page_name ?? '').trim(),
-          pageId: n.page_id,
-          pageIndex: pgInfo?.index ?? 9999,
-          archetype: archetypeOf(g, id),
-          hash: g.hash.get(id) ?? '',
+          page: displayPage,
+          rawPageName: rawPageName || '(未命名頁面)',
+          pageId: isWorkspace ? makeCompositeScreenId(src.id, n.page_id) : n.page_id,
+          rawPageId: n.page_id,
+          pageIndex: sIdx * 10000 + (pgInfo?.index ?? 9999),
+          sourceId: src.id,
+          sourceName: srcFileName,
+          sourceFileKey: srcFileKey,
+          archetype: archetypeOf(g, rawId),
+          hash: g.hash.get(rawId) ?? '',
           nodes: sub.length,
           headline: headlineOf(texts),
           major: lbl?.major ?? '',
@@ -215,174 +259,106 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
           label: lbl?.label ?? '',
           generation: lbl?.generation ?? '',
           note: lbl?.note ?? '',
-        });
-      }
-    }
+        };
+        srcScreens.push(rec);
+        rawScreens.push(rec);
+      };
 
-    const cards: Card[] = [];
-    if (idSet.size > 0) {
-      for (const r of rawScreens) {
-        cards.push({
-          id: r.id,
-          name: r.name,
-          page: r.page,
-          pageId: r.pageId,
-          pageIndex: r.pageIndex,
-          archetype: r.archetype,
-          hash: r.hash,
-          shortHash: r.hash.slice(0, 8),
-          nodes: r.nodes,
-          headline: r.headline,
-          copies: 1,
-          memberIds: [r.id],
-          memberPages: r.page ? [r.page] : [],
-          major: r.major,
-          minor: r.minor,
-          label: r.label,
-          generation: r.generation,
-          existingNote: r.note,
-          palette: [],
-        });
-      }
-    } else {
-      const byKey = new Map<string, Card>();
-      for (const r of rawScreens) {
-        const k = r.hash + '|' + r.headline;
-        const prev = byKey.get(k);
-        if (!prev) {
-          const card: Card = {
-            id: r.id,
-            name: r.name,
-            page: r.page,
-            pageId: r.pageId,
-            pageIndex: r.pageIndex,
-            archetype: r.archetype,
-            hash: r.hash,
-            shortHash: r.hash.slice(0, 8),
-            nodes: r.nodes,
-            headline: r.headline,
-            copies: 1,
-            memberIds: [r.id],
-            memberPages: r.page ? [r.page] : [],
-            major: r.major,
-            minor: r.minor,
-            label: r.label,
-            generation: r.generation,
-            existingNote: r.note,
-            palette: [],
-          };
-          byKey.set(k, card);
-          cards.push(card);
-        } else {
-          prev.copies += 1;
-          prev.memberIds.push(r.id);
-          if (r.page && prev.memberPages.indexOf(r.page) === -1) prev.memberPages.push(r.page);
+      for (const rawId of srcRoots) appendScreen(rawId, true);
+      if (idSet.size > 0) {
+        for (const target of idsFilter) {
+          const rawCandidate = target.startsWith(src.id + '::') ? target.slice(src.id.length + 2) : target;
+          appendScreen(rawCandidate, false);
         }
       }
-    }
 
-    selectedCards = cards;
-    if (sampleCount > 0 && cards.length > sampleCount) {
-      const sortedPool = cards.slice().sort((a, b) => {
-        if (a.pageIndex !== b.pageIndex) return a.pageIndex - b.pageIndex;
-        if (a.major !== b.major) return a.major < b.major ? -1 : 1;
-        return a.id < b.id ? -1 : 1;
-      });
-      const picked: Card[] = [];
-      const step = sortedPool.length / sampleCount;
-      for (let i = 0; i < sampleCount; i += 1) {
-        const idx = Math.min(sortedPool.length - 1, Math.floor(i * step));
-        picked.push(sortedPool[idx]);
-      }
-      selectedCards = picked;
-    }
-
-    const cardPalette = new Map<string, Map<string, number>>();
-    const nodeToCard = new Map<string, string>();
-    for (const c of selectedCards) {
-      cardPalette.set(c.id, new Map<string, number>());
-      const sub = g.subtree(c.id);
-      const cap = Math.min(sub.length, 80);
-      for (let i = 0; i < cap; i += 1) {
-        const sid = sub[i];
-        if (!nodeToCard.has(sid)) nodeToCard.set(sid, c.id);
-      }
-    }
-
-    const addStyleToPalette = (cardId: string, styleJson: string): void => {
-      const st = parseJson<StylePayload>(styleJson);
-      if (!st) return;
-      const pal = cardPalette.get(cardId);
-      if (!pal) return;
-      for (const f of st.fills ?? []) {
-        if (f.hex) {
-          const hx = f.hex.toUpperCase();
-          pal.set(hx, (pal.get(hx) ?? 0) + 1);
+      // Extract top palette hex colors per screen from this source SQLite DB
+      const cardPalette = new Map<string, Map<string, number>>();
+      const nodeToScreen = new Map<string, string>();
+      for (const r of srcScreens) {
+        cardPalette.set(r.id, new Map<string, number>());
+        const sub = g.subtree(r.rawId);
+        const cap = Math.min(sub.length, 80);
+        for (let i = 0; i < cap; i += 1) {
+          const sid = sub[i];
+          if (!nodeToScreen.has(sid)) nodeToScreen.set(sid, r.id);
         }
-        for (const s of f.stops ?? []) {
+      }
+      const addStyleToPalette = (screenId: string, styleJson: string): void => {
+        const st = parseJson<StylePayload>(styleJson);
+        if (!st) return;
+        const pal = cardPalette.get(screenId);
+        if (!pal) return;
+        for (const f of st.fills ?? []) {
+          if (f.hex) {
+            const hx = f.hex.toUpperCase();
+            pal.set(hx, (pal.get(hx) ?? 0) + 1);
+          }
+          for (const s of f.stops ?? []) {
+            if (s.hex) {
+              const hx = s.hex.toUpperCase();
+              pal.set(hx, (pal.get(hx) ?? 0) + 1);
+            }
+          }
+        }
+        for (const s of st.strokes ?? []) {
           if (s.hex) {
             const hx = s.hex.toUpperCase();
             pal.set(hx, (pal.get(hx) ?? 0) + 1);
           }
         }
-      }
-      for (const s of st.strokes ?? []) {
-        if (s.hex) {
-          const hx = s.hex.toUpperCase();
-          pal.set(hx, (pal.get(hx) ?? 0) + 1);
+      };
+
+      const targetIds = [...nodeToScreen.keys()];
+      if (targetIds.length > 0 && targetIds.length <= 4000 && srcFileKey) {
+        for (let i = 0; i < targetIds.length; i += 500) {
+          const part = targetIds.slice(i, i + 500);
+          const rows = db
+            .prepare('SELECT id, style_json FROM nodes WHERE file_key = ? AND id IN (' + part.map(() => '?').join(',') + ')')
+            .all(srcFileKey, ...part) as Array<{ id: string; style_json: string }>;
+          for (const r of rows) {
+            const sid = nodeToScreen.get(r.id);
+            if (sid) addStyleToPalette(sid, r.style_json);
+          }
+        }
+      } else if (targetIds.length > 0) {
+        const sql = srcFileKey ? 'SELECT id, style_json FROM nodes WHERE file_key = ?' : 'SELECT id, style_json FROM nodes';
+        const stmt = db.prepare(sql);
+        const iter = (srcFileKey ? stmt.iterate(srcFileKey) : stmt.iterate()) as Iterable<{ id: string; style_json: string }>;
+        for (const r of iter) {
+          const sid = nodeToScreen.get(r.id);
+          if (sid) addStyleToPalette(sid, r.style_json);
         }
       }
-    };
 
-    const targetIds = [...nodeToCard.keys()];
-    if (targetIds.length > 0 && targetIds.length <= 4000 && fileKey) {
-      for (let i = 0; i < targetIds.length; i += 500) {
-        const part = targetIds.slice(i, i + 500);
-        const rows = db
-          .prepare('SELECT id, style_json FROM nodes WHERE file_key = ? AND id IN (' + part.map(() => '?').join(',') + ')')
-          .all(fileKey, ...part) as Array<{ id: string; style_json: string }>;
-        for (const r of rows) {
-          const cid = nodeToCard.get(r.id);
-          if (cid) addStyleToPalette(cid, r.style_json);
-        }
+      for (const r of srcScreens) {
+        const pal = cardPalette.get(r.id);
+        if (!pal) continue;
+        rawPaletteByScreen.set(
+          r.id,
+          [...pal.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([hx]) => hx),
+        );
       }
-    } else if (targetIds.length > 0) {
-      const sql = fileKey ? 'SELECT id, style_json FROM nodes WHERE file_key = ?' : 'SELECT id, style_json FROM nodes';
-      const stmt = db.prepare(sql);
-      const iter = (fileKey ? stmt.iterate(fileKey) : stmt.iterate()) as Iterable<{ id: string; style_json: string }>;
-      for (const r of iter) {
-        const cid = nodeToCard.get(r.id);
-        if (cid) addStyleToPalette(cid, r.style_json);
-      }
+    } finally {
+      db.close();
     }
-
-    for (const c of selectedCards) {
-      const pal = cardPalette.get(c.id);
-      if (!pal) continue;
-      c.palette = [...pal.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([hx]) => hx);
-    }
-  } finally {
-    db.close();
   }
 
-  const paletteByHash = new Map<string, string[]>();
-  for (const c of selectedCards) {
-    if (c.palette.length > 0 && !paletteByHash.has(c.hash)) paletteByHash.set(c.hash, c.palette);
-  }
-
-  // Per-page cards (deduplicated strictly within each Figma page & category so Page View / Category View never leak cross-page memberIds)
-  const pageCards: Card[] = [];
+  const cards: Card[] = [];
   if (idSet.size > 0) {
     for (const r of rawScreens) {
-      pageCards.push({
+      cards.push({
         id: r.id,
+        rawId: r.rawId,
         name: r.name,
         page: r.page,
+        rawPageName: r.rawPageName,
         pageId: r.pageId,
+        rawPageId: r.rawPageId,
         pageIndex: r.pageIndex,
+        sourceId: r.sourceId,
+        sourceName: r.sourceName,
+        sourceFileKey: r.sourceFileKey,
         archetype: r.archetype,
         hash: r.hash,
         shortHash: r.hash.slice(0, 8),
@@ -396,21 +372,27 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
         label: r.label,
         generation: r.generation,
         existingNote: r.note,
-        palette: paletteByHash.get(r.hash) ?? [],
+        palette: rawPaletteByScreen.get(r.id) ?? [],
       });
     }
   } else {
-    const byPageKey = new Map<string, Card>();
+    const byKey = new Map<string, Card>();
     for (const r of rawScreens) {
-      const k = r.pageId + '|' + r.major + '|' + r.minor + '|' + r.hash + '|' + r.headline;
-      const prev = byPageKey.get(k);
+      const k = r.hash + '|' + r.headline;
+      const prev = byKey.get(k);
       if (!prev) {
         const card: Card = {
           id: r.id,
+          rawId: r.rawId,
           name: r.name,
           page: r.page,
+          rawPageName: r.rawPageName,
           pageId: r.pageId,
+          rawPageId: r.rawPageId,
           pageIndex: r.pageIndex,
+          sourceId: r.sourceId,
+          sourceName: r.sourceName,
+          sourceFileKey: r.sourceFileKey,
           archetype: r.archetype,
           hash: r.hash,
           shortHash: r.hash.slice(0, 8),
@@ -424,7 +406,103 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
           label: r.label,
           generation: r.generation,
           existingNote: r.note,
-          palette: paletteByHash.get(r.hash) ?? [],
+          palette: rawPaletteByScreen.get(r.id) ?? [],
+        };
+        byKey.set(k, card);
+        cards.push(card);
+      } else {
+        prev.copies += 1;
+        prev.memberIds.push(r.id);
+        if (r.page && prev.memberPages.indexOf(r.page) === -1) prev.memberPages.push(r.page);
+      }
+    }
+  }
+
+  selectedCards = cards;
+  if (sampleCount > 0 && cards.length > sampleCount) {
+    const sortedPool = cards.slice().sort((a, b) => {
+      if (a.pageIndex !== b.pageIndex) return a.pageIndex - b.pageIndex;
+      if (a.major !== b.major) return a.major < b.major ? -1 : 1;
+      return a.id < b.id ? -1 : 1;
+    });
+    const picked: Card[] = [];
+    const step = sortedPool.length / sampleCount;
+    for (let i = 0; i < sampleCount; i += 1) {
+      const idx = Math.min(sortedPool.length - 1, Math.floor(i * step));
+      picked.push(sortedPool[idx]);
+    }
+    selectedCards = picked;
+  }
+
+  const paletteByHash = new Map<string, string[]>();
+  for (const c of selectedCards) {
+    if (c.palette.length > 0 && !paletteByHash.has(c.hash)) paletteByHash.set(c.hash, c.palette);
+  }
+
+  // Per-page cards (deduplicated strictly within each Figma page & category so Page View / Category View never leak cross-page memberIds)
+  const pageCards: Card[] = [];
+  if (idSet.size > 0) {
+    for (const r of rawScreens) {
+      pageCards.push({
+        id: r.id,
+        rawId: r.rawId,
+        name: r.name,
+        page: r.page,
+        rawPageName: r.rawPageName,
+        pageId: r.pageId,
+        rawPageId: r.rawPageId,
+        pageIndex: r.pageIndex,
+        sourceId: r.sourceId,
+        sourceName: r.sourceName,
+        sourceFileKey: r.sourceFileKey,
+        archetype: r.archetype,
+        hash: r.hash,
+        shortHash: r.hash.slice(0, 8),
+        nodes: r.nodes,
+        headline: r.headline,
+        copies: 1,
+        memberIds: [r.id],
+        memberPages: r.page ? [r.page] : [],
+        major: r.major,
+        minor: r.minor,
+        label: r.label,
+        generation: r.generation,
+        existingNote: r.note,
+        palette: rawPaletteByScreen.get(r.id) ?? paletteByHash.get(r.hash) ?? [],
+      });
+    }
+  } else {
+    const byPageKey = new Map<string, Card>();
+    for (const r of rawScreens) {
+      const k = r.sourceId + '|' + r.rawPageId + '|' + r.major + '|' + r.minor + '|' + r.hash + '|' + r.headline;
+      const prev = byPageKey.get(k);
+      if (!prev) {
+        const card: Card = {
+          id: r.id,
+          rawId: r.rawId,
+          name: r.name,
+          page: r.page,
+          rawPageName: r.rawPageName,
+          pageId: r.pageId,
+          rawPageId: r.rawPageId,
+          pageIndex: r.pageIndex,
+          sourceId: r.sourceId,
+          sourceName: r.sourceName,
+          sourceFileKey: r.sourceFileKey,
+          archetype: r.archetype,
+          hash: r.hash,
+          shortHash: r.hash.slice(0, 8),
+          nodes: r.nodes,
+          headline: r.headline,
+          copies: 1,
+          memberIds: [r.id],
+          memberPages: r.page ? [r.page] : [],
+          major: r.major,
+          minor: r.minor,
+          label: r.label,
+          generation: r.generation,
+          existingNote: r.note,
+          palette: rawPaletteByScreen.get(r.id) ?? paletteByHash.get(r.hash) ?? [],
         };
         byPageKey.set(k, card);
         pageCards.push(card);
@@ -447,6 +525,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   }
 
   const modeParts: string[] = [];
+  if (isWorkspace) modeParts.push('多檔組合（' + sources.length + ' 份）');
   if (categoryFilter) modeParts.push('分類=' + categoryFilter);
   if (unlabeledOnly) modeParts.push('僅未標註');
   if (pageFilter) modeParts.push('頁面含「' + pageFilter + '」');
@@ -469,28 +548,60 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     autoSelectMode = 'subset';
   }
 
-  const proposalsDoc = loadProposals(ROOT, resolved.id);
+  const proposalsDoc = loadProposals(ROOT, boardId);
   const activeProposals = (proposalsDoc?.items ?? []).filter((it) => {
     const cur = labelMap.get(it.id);
     if (!cur) return false;
     return cur.major === it.currentMajor && (cur.minor || '') === (it.currentMinor || '');
   });
 
+  let mergedLastSync: LastSyncReport | null = null;
+  if (!isWorkspace) {
+    mergedLastSync = loadLastSync(dbPath);
+  } else {
+    let bestTs = '';
+    for (const src of sources) {
+      const ls = loadLastSync(src.dbPath);
+      if (!ls || ls.isInitialImport) continue;
+      if (ls.addedScreens.length === 0 && ls.removedScreens.length === 0) continue;
+      if (ls.syncedAt >= bestTs) {
+        bestTs = ls.syncedAt;
+        mergedLastSync = {
+          ...ls,
+          touchedPages: ls.touchedPages.map((pn) => '[' + src.fileName + '] ' + pn),
+          prunedPages: ls.prunedPages.map((pn) => '[' + src.fileName + '] ' + pn),
+          addedScreens: ls.addedScreens.map((s) => ({
+            ...s,
+            id: makeCompositeScreenId(src.id, s.id),
+            pageName: '[' + src.fileName + '] ' + s.pageName,
+          })),
+          removedScreens: ls.removedScreens.map((s) => ({
+            ...s,
+            id: makeCompositeScreenId(src.id, s.id),
+            pageName: '[' + src.fileName + '] ' + s.pageName,
+          })),
+        };
+      }
+    }
+  }
+
   const payloadObj = {
-    projectId: resolved.id,
-    projectName: resolved.name,
+    projectId: boardId,
+    projectName: boardName,
+    isWorkspace,
+    sources: sources.map((s) => ({ id: s.id, name: s.name, fileName: s.fileName, fileKey: s.fileKey })),
     fileKey,
-    db: dbPath,
+    db: isWorkspace ? sources.map((s) => s.dbPath).join(', ') : dbPath,
     fileName,
-    labelsPath: resolved.labelsRelPath,
+    labelsPath: labelsRelPath,
     screenSpec,
-    majorOrder: resolved.config.majorOrder ?? ['新UI', '老UI', '系統UI', '未標註'],
+    majorOrder: (isWorkspace ? matchedWs!.config.majorOrder : resolved!.config.majorOrder) ?? ['新UI', '老UI', '系統UI', '未標註'],
     hubHref: './review.html',
     modeLabel,
     isColdStart,
     isSampled: sampleCount > 0,
     defaultSidebarMode: (unlabeledOnly || isColdStart) && !categoryFilter ? 'families' : 'categories',
-    totalRoots: allRoots.length,
+    totalRoots: totalRootsCount,
     matchedScreens: rawScreens.length,
     uniqueCount: selectedCards.length,
     familyCount: famMap.size,
@@ -500,6 +611,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
     autoSelectMode,
     proposalsScope: proposalsDoc?.scope || '',
     proposals: activeProposals,
+    lastSync: mergedLastSync,
     cards: selectedCards,
     pageCards,
   };
@@ -656,6 +768,53 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   .cat-item.active .pill:not(.green):not(.amber) { background: var(--accent); color: #fff; }
   .cat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
   .cat-meta { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .sb-source-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--bg-soft);
+  }
+  .sb-src-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sb-src-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 148px;
+    overflow-y: auto;
+  }
+  .sb-src-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--border-soft);
+    background: var(--bg-elev);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .sb-src-item:hover { background: var(--bg-hover); }
+  .sb-src-item.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: #0550ae;
+    font-weight: 700;
+  }
+  .sb-src-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+  .sb-src-dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
+  .sb-src-dot.live { background: var(--green); }
   .pill {
     display: inline-flex;
     align-items: center;
@@ -987,6 +1146,83 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   .cat-select:hover { border-color: #94a3b8; }
   .cat-select.filled { border-color: var(--accent); background-color: var(--accent-bg); font-weight: 600; color: #0550ae; }
   .quick-cat-sel { height: 28px; margin-bottom: 6px; background-color: var(--bg-soft); }
+  .cat-combo { position: relative; width: 100%; }
+  .cat-combo.quick { margin-bottom: 6px; }
+  .cat-combo-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 42px 0 9px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background-color: var(--bg-elev);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.25L6 7.75L9.5 4.25' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 12px;
+    color: var(--text);
+  }
+  .cat-combo-input.quick-cat-sel { height: 28px; margin-bottom: 0; background-color: var(--bg-soft); }
+  .cat-combo-input:hover { border-color: #94a3b8; }
+  .cat-combo-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.14); background-color: var(--bg-elev); }
+  .cat-combo-input.filled { border-color: var(--accent); background-color: var(--accent-bg); font-weight: 600; color: #0550ae; }
+  .cat-combo-clear {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .cat-combo-clear:hover { background: var(--bg-hover); color: var(--text); }
+  .cat-combo-input:placeholder-shown + .cat-combo-clear { display: none; }
+  #cat-combo-menu {
+    position: fixed;
+    z-index: 160;
+    display: none;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(31, 35, 40, 0.16);
+    max-height: 290px;
+    overflow-y: auto;
+    padding: 6px;
+  }
+  .cat-combo-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 4px;
+  }
+  .cat-combo-grp {
+    padding: 6px 8px 3px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .cat-combo-opt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .cat-combo-opt:hover, .cat-combo-opt.active { background: var(--accent-bg); color: #0550ae; }
+  .cat-combo-empty { padding: 14px 10px; text-align: center; font-size: 12px; color: var(--text-muted); }
   .direct-hint { margin-top: 4px; font-size: 11px; color: var(--green); font-weight: 600; min-height: 0; }
 
   .unrec-row {
@@ -1281,10 +1517,15 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
         <button id="seg-pages" data-sb="pages">頁面</button>
         <button id="seg-fams" data-sb="families">AST</button>
       </div>
+      <div id="sb-source-picker" class="sb-source-picker" style="display:none"></div>
       <input class="sb-search" id="sb-filter" placeholder="篩選分類名稱...">
     </div>
     <div class="sb-scroll" id="sb-list"></div>
     <div class="sb-foot">
+      <div class="cat-item" id="btn-sync-diff-view" style="margin-bottom:4px">
+        <span class="cat-name">最近同步變更</span>
+        <span class="pill" id="sb-sync-diff-badge">0</span>
+      </div>
       <div class="cat-item" id="btn-proposals-view" style="margin-bottom:4px">
         <span class="cat-name">Agent 預分類驗收</span>
         <span class="pill accent" id="sb-proposals-badge">0</span>
@@ -1306,7 +1547,7 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
       <span class="muted" id="topbar-sub"></span>
       <span class="pill" id="bridge-pill" title="啟動 npm run start:server 並在 Figma 開啟 Rea-FigmaDesign 插件即可即時聯動">○ 離線模式</span>
       <span class="spacer"></span>
-      <button class="btn accent" id="btn-direct-commit" type="button" style="display:none" title="將已填寫的明確標準分類直接寫入 labels/screens-v2.json，無需貼給 Agent">直接寫入分類 (0)</button>
+      <button class="btn" id="btn-direct-commit" type="button" title="將已標註的確定標準分類寫入標註檔並重建頁面">重建頁面 (0)</button>
       <button class="btn primary" id="btn-prompt">複製為 Agent 提示詞 (0)</button>
       <div class="menu-wrap">
         <button class="btn" id="btn-top-menu" type="button" title="更多設定與操作">⋯</button>
@@ -1367,14 +1608,14 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
         <strong id="batch-title">批量標註</strong>
         <span class="muted" id="batch-count" style="font-size:12px">已選中 0 筆</span>
       </div>
-      <select id="batch-cat-select" class="cat-select" style="width:100%">
-        <option value="">— 下拉選擇標準分類（直接套用，不開新類）—</option>
-      </select>
-      <textarea id="batch-input" style="height:100px" placeholder="輸入或由上方下拉選擇標準分類（例：新UI / 收銀台、老UI / 廢棄、系統UI / 系統彈窗）"></textarea>
+      <div class="cat-combo">
+        <input id="batch-cat-select" class="cat-combo-input" data-combo-kind="batch" autocomplete="off" placeholder="搜尋或下拉選擇標準分類（支援簡繁，如：弹窗）…">
+        <button type="button" class="cat-combo-clear" data-clear-combo="batch-cat-select" title="清除">✕</button>
+      </div>
+      <textarea id="batch-input" style="height:100px" placeholder="輸入或由上方搜尋選擇標準分類（例：新UI / 收銀台、老UI / 廢棄、系統UI / 系統彈窗）"></textarea>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button class="btn" id="batch-cancel">取消</button>
-        <button class="btn" id="batch-apply">僅暫存標註</button>
-        <button class="btn primary" id="batch-direct-commit" type="button">直接寫入分類</button>
+        <button class="btn primary" id="batch-apply">確認標註</button>
       </div>
     </div>
   </div>
@@ -1402,10 +1643,11 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
         <span class="pill accent" id="prop-grp-count">0 筆</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <label class="muted" for="prop-grp-sel">方式一：從現有標準分類下拉選擇</label>
-        <select id="prop-grp-sel" class="cat-select">
-          <option value="">— 請選擇現有標準分類 —</option>
-        </select>
+        <label class="muted" for="prop-grp-sel">方式一：搜尋／選擇現有標準分類</label>
+        <div class="cat-combo">
+          <input id="prop-grp-sel" class="cat-combo-input" data-combo-kind="prop-grp" autocomplete="off" placeholder="搜尋或下拉選擇現有標準分類（支援簡繁，如：弹窗）…">
+          <button type="button" class="cat-combo-clear" data-clear-combo="prop-grp-sel" title="清除">✕</button>
+        </div>
       </div>
       <div class="prop-divider">或方式二：輸入自訂新分類（獨立於下拉）</div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -1424,10 +1666,12 @@ export function generateReviewBoard(opts: ReviewBoardOptions): ReviewBoardResult
   </div>
 
   <datalist id="all-cat-options"></datalist>
+  <div id="cat-combo-menu" role="listbox"></div>
   <div class="toast" id="toast"></div>
 
 <script>
 const DATA = ${payload};
+${buildInlineSearchZhJs()}
 const STORAGE_KEY = 'rea-figma-workbench::' + (DATA.projectId || DATA.db) + '::' + DATA.modeLabel;
 const MAJOR_ORDER = Array.isArray(DATA.majorOrder) && DATA.majorOrder.length > 0 ? DATA.majorOrder : ['新UI', '老UI', '系統UI', '未標註'];
 const CAT_COLORS = ['#0969da', '#1a7f37', '#8250df', '#d97706', '#cf222e', '#0891b2', '#4f46e5', '#64748b'];
@@ -1441,7 +1685,8 @@ const expandedPages = new Set();
 const selected = new Set();
 let lastClickedId = '';
 let focusedNodeId = '';
-let detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
+let activePageSourceId = '';
+let detailFilter = { q: '', arch: '', gen: '', source: '', onlyCommented: false };
 let pendingBatch = null;
 // Temporary in-memory Figma lookup batches (never persisted to localStorage)
 let lookupBatches = [];
@@ -1453,6 +1698,10 @@ let propGroupBy = 'target';
 let pendingCommitItems = [];
 let pendingCommitContext = { mode: 'proposals', sourceItemKeys: [] };
 let pendingPropGroupKey = '';
+const lastSyncAddedSet = new Set(
+  ((DATA.lastSync && !DATA.lastSync.isInitialImport && Array.isArray(DATA.lastSync.addedScreens)) ? DATA.lastSync.addedScreens : [])
+    .map(function(s) { return s.id; })
+);
 
 function getActiveLookupBatch() {
   if (activeBatchId) {
@@ -1500,11 +1749,13 @@ function esc(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m];
   });
 }
-function toast(msg) {
+let toastTimer = null;
+function toast(msg, durationMs) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(function() { el.classList.remove('show'); }, 1800);
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove('show'); }, durationMs || 1800);
 }
 function copyText(text, msg) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1525,17 +1776,65 @@ let bridgeBusy = false;
 let bridgeBusyTimer = null;
 let bridgeSeq = 0;
 
-function isMatchingFigma() {
+function stripCompositeId(id) {
+  const s = String(id || '');
+  const idx = s.indexOf('::');
+  if (idx === -1) return { sourceId: '', rawId: s };
+  return { sourceId: s.slice(0, idx), rawId: s.slice(idx + 2) };
+}
+
+function rawNodeId(id) {
+  return stripCompositeId(id).rawId;
+}
+
+function isMatchingFigmaForSource(fileKey, fileName) {
   if (!bridgeStatus.figma_connected) return false;
   const clients = Array.isArray(bridgeStatus.figma_clients) && bridgeStatus.figma_clients.length > 0
     ? bridgeStatus.figma_clients
     : [{ file_key: bridgeStatus.figma_file_key, file_name: bridgeStatus.figma_file_name }];
   return clients.some(function(c) {
     if (!c) return false;
-    if (c.file_key && c.file_key !== '0:0' && DATA.fileKey && DATA.fileKey !== '0:0' && c.file_key === DATA.fileKey) return true;
-    if (c.file_name && DATA.fileName && c.file_name === DATA.fileName) return true;
+    if (c.file_key && c.file_key !== '0:0' && fileKey && fileKey !== '0:0' && c.file_key === fileKey) return true;
+    if (c.file_name && fileName && c.file_name === fileName) return true;
     return false;
   });
+}
+
+function isMatchingFigma() {
+  if (DATA.isWorkspace && Array.isArray(DATA.sources) && DATA.sources.length > 0) {
+    return DATA.sources.some(function(s) { return isMatchingFigmaForSource(s.fileKey, s.fileName); });
+  }
+  return isMatchingFigmaForSource(DATA.fileKey, DATA.fileName);
+}
+
+function collectBridgeTarget(cards, onlyPageId) {
+  const list = Array.isArray(cards) ? cards : [];
+  const srcIds = new Set();
+  const srcNames = new Set();
+  let targetFileKey = DATA.fileKey || '';
+  let targetFileName = DATA.fileName || '';
+  list.forEach(function(c) {
+    if (!c) return;
+    const sid = c.sourceId || stripCompositeId(c.id).sourceId || DATA.projectId || '';
+    if (sid) srcIds.add(sid);
+    if (c.sourceName) srcNames.add(c.sourceName);
+    if (c.sourceFileKey) targetFileKey = c.sourceFileKey;
+    if (c.sourceName) targetFileName = c.sourceName;
+  });
+  if (DATA.isWorkspace && srcIds.size > 1) {
+    return {
+      error: '所選項目跨 ' + srcIds.size + ' 個來源 Figma 檔案（' + Array.from(srcNames).join('、') + '），請切換到單一來源篩選後再同步到 Figma'
+    };
+  }
+  const compositeIds = collectMemberIds(list, onlyPageId);
+  const rawIds = compositeIds.map(rawNodeId);
+  const rawPageId = onlyPageId ? rawNodeId(onlyPageId) : '';
+  return {
+    rawIds: rawIds,
+    rawPageId: rawPageId,
+    fileKey: targetFileKey,
+    fileName: targetFileName
+  };
 }
 
 function updateBridgePill() {
@@ -1547,7 +1846,7 @@ function updateBridgePill() {
     return;
   }
   if (bridgeStatus.figma_connected) {
-    if (isMatchingFigma() || !DATA.fileName) {
+    if (isMatchingFigma() || (!DATA.fileName && !DATA.isWorkspace)) {
       pill.className = 'pill green';
       pill.textContent = '● Figma 已連線' + (bridgeStatus.figma_file_name ? ' · ' + bridgeStatus.figma_file_name : '');
     } else {
@@ -1579,7 +1878,10 @@ function connectBridge() {
           role: 'review-ui',
           project_id: DATA.projectId || undefined,
           file_key: DATA.fileKey || undefined,
-          file_name: DATA.fileName || undefined
+          file_name: DATA.fileName || undefined,
+          source_files: (DATA.isWorkspace && Array.isArray(DATA.sources))
+            ? DATA.sources.map(function(s) { return { file_key: s.fileKey || undefined, file_name: s.fileName || undefined }; })
+            : undefined
         }
       }));
     } catch (e) {}
@@ -1604,6 +1906,7 @@ function connectBridge() {
     if (msg.type === 'BRIDGE_STATUS' && msg.payload) {
       bridgeStatus = msg.payload;
       updateBridgePill();
+      if (sbMode === 'pages' && DATA.isWorkspace) renderSidebar();
       return;
     }
     if (msg.type === 'BRIDGE_FOCUS_RESULT' && msg.payload) {
@@ -1614,11 +1917,12 @@ function connectBridge() {
         if (r.page_only) {
           toast('已跳轉到頁面「' + (r.page_name || '') + '」');
         } else {
-          const missNote = r.missing_ids && r.missing_ids.length ? '（另有 ' + r.missing_ids.length + ' 筆在目前檔案找不到）' : '';
-          toast('已定位到「' + (r.page_name || '') + '」· 選中 ' + (r.selected_count || 0) + ' 個節點' + missNote);
+          const hasMiss = Boolean(r.missing_ids && r.missing_ids.length);
+          const missNote = hasMiss ? '（另有 ' + r.missing_ids.length + ' 筆在 Figma 找不到，可能已刪除，建議在插件對該頁做單頁增量匯出）' : '';
+          toast('已定位到「' + (r.page_name || '') + '」· 選中 ' + (r.selected_count || 0) + ' 個節點' + missNote, hasMiss ? 4500 : 1800);
         }
       } else {
-        toast(r.error || 'Figma 定位失敗');
+        toast(r.error || 'Figma 定位失敗', 4200);
       }
       return;
     }
@@ -1627,10 +1931,11 @@ function connectBridge() {
       if (bridgeBusyTimer) { clearTimeout(bridgeBusyTimer); bridgeBusyTimer = null; }
       const r = msg.payload;
       if (r.ok) {
-        const missNote = r.missing_ids && r.missing_ids.length ? '（另有 ' + r.missing_ids.length + ' 筆找不到）' : '';
-        toast('已生成臨時拼板「' + (r.section_name || '') + '」· 共 ' + (r.staged_count || 0) + ' 個畫面' + missNote);
+        const hasMiss = Boolean(r.missing_ids && r.missing_ids.length);
+        const missNote = hasMiss ? '（另有 ' + r.missing_ids.length + ' 筆找不到，可能已刪除）' : '';
+        toast('已生成臨時拼板「' + (r.section_name || '') + '」· 共 ' + (r.staged_count || 0) + ' 個畫面' + missNote, hasMiss ? 4200 : 2500);
       } else {
-        toast(r.error || '生成臨時拼板失敗');
+        toast(r.error || '生成臨時拼板失敗', 4200);
       }
       return;
     }
@@ -1642,20 +1947,37 @@ function connectBridge() {
       const unrecordedList = [];
       selected.clear();
 
+      let matchedSrc = null;
+      if (DATA.isWorkspace && Array.isArray(DATA.sources)) {
+        matchedSrc = DATA.sources.find(function(s) {
+          if (s.fileKey && s.fileKey !== '0:0' && p.file_key && p.file_key !== '0:0' && s.fileKey === p.file_key) return true;
+          if (s.fileName && p.file_name && s.fileName === p.file_name) return true;
+          return false;
+        }) || null;
+      }
+      function toLookupId(rawId) {
+        return matchedSrc ? (matchedSrc.id + '::' + rawId) : rawId;
+      }
+
       items.forEach(function(it) {
         if (!it || !it.id) return;
-        const base = byMemberId[it.id] || null;
+        const fullId = toLookupId(it.id);
+        const base = byMemberId[fullId] || byMemberId[it.id] || null;
         if (base) {
-          if (seenMatchedIds.has(it.id)) return;
-          seenMatchedIds.add(it.id);
-          const matchVia = it.id === base.id ? 'exact' : 'copy';
+          const itemKey = matchedSrc ? fullId : (base.sourceId ? (base.sourceId + '::' + it.id) : it.id);
+          if (seenMatchedIds.has(itemKey)) return;
+          seenMatchedIds.add(itemKey);
+          const matchVia = itemKey === base.id ? 'exact' : 'copy';
           const pgName = it.page_name || p.page_name || base.page || '';
-          const pgId = it.page_id || p.page_id || base.pageId || '';
+          const pgId = (matchedSrc ? (matchedSrc.id + '::' + (it.page_id || p.page_id || '')) : '') || base.pageId || it.page_id || p.page_id || '';
           const rowCard = {
-            id: it.id,
+            id: itemKey,
+            rawId: it.id,
             name: it.name || base.name || '(未命名)',
             page: pgName,
+            rawPageName: it.page_name || p.page_name || base.rawPageName || base.page || '',
             pageId: pgId,
+            rawPageId: it.page_id || p.page_id || base.rawPageId || '',
             pageIndex: base.pageIndex,
             archetype: base.archetype,
             hash: base.hash,
@@ -1663,14 +1985,17 @@ function connectBridge() {
             nodes: base.nodes,
             headline: it.text_preview || base.headline || '',
             copies: 1,
-            memberIds: [it.id],
+            memberIds: [itemKey],
             memberPages: pgName ? [pgName] : [],
             major: base.major,
             minor: base.minor,
             label: base.label,
             generation: base.generation,
             palette: base.palette || [],
-            repId: base.id
+            repId: base.id,
+            sourceId: (matchedSrc && matchedSrc.id) || base.sourceId || '',
+            sourceName: (matchedSrc && matchedSrc.fileName) || base.sourceName || '',
+            sourceFileKey: (matchedSrc && matchedSrc.fileKey) || base.sourceFileKey || ''
           };
           lookupCardById[rowCard.id] = rowCard;
           matchedList.push({
@@ -1685,7 +2010,8 @@ function connectBridge() {
         let ancCard = null;
         if (Array.isArray(it.ancestor_ids)) {
           for (let i = 0; i < it.ancestor_ids.length; i += 1) {
-            const hit = byMemberId[it.ancestor_ids[i]];
+            const ancFull = toLookupId(it.ancestor_ids[i]);
+            const hit = byMemberId[ancFull] || byMemberId[it.ancestor_ids[i]];
             if (hit) {
               ancCard = hit;
               break;
@@ -1776,7 +2102,11 @@ function connectBridge() {
 function requestFigmaFocus(nodeIds, label, opts) {
   const o = opts || {};
   const pageOnly = o.pageOnly === true;
-  if ((!nodeIds || nodeIds.length === 0) && !(pageOnly && (o.pageId || label))) {
+  const cleanIds = Array.isArray(nodeIds) ? nodeIds.map(rawNodeId).filter(Boolean) : [];
+  const rawPageId = o.pageId ? rawNodeId(o.pageId) : undefined;
+  const targetFileKey = o.fileKey || DATA.fileKey || '';
+  const targetFileName = o.fileName || DATA.fileName || '';
+  if (cleanIds.length === 0 && !(pageOnly && (rawPageId || label))) {
     toast('沒有可定位的 node_id');
     return;
   }
@@ -1784,8 +2114,12 @@ function requestFigmaFocus(nodeIds, label, opts) {
     toast('Figma 尚未連線：請先啟動 npm run start:server 並開啟 Figma 插件（或改用複製 ID）');
     return;
   }
-  if (DATA.fileName && !isMatchingFigma()) {
-    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前專案「' + DATA.fileName + '」不符');
+  if (targetFileName && !isMatchingFigmaForSource(targetFileKey, targetFileName)) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目標檔案「' + targetFileName + '」不符');
+    return;
+  }
+  if (!targetFileName && DATA.isWorkspace && !isMatchingFigma()) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前應用組合檔案不符');
     return;
   }
   if (bridgeBusy) {
@@ -1799,16 +2133,16 @@ function requestFigmaFocus(nodeIds, label, opts) {
     bridgeBusy = false;
     bridgeBusyTimer = null;
   }, 15000);
-  toast((pageOnly ? '正在跳轉到頁面「' : '正在定位「') + (label || nodeIds[0]) + '」…');
+  toast((pageOnly ? '正在跳轉到頁面「' : '正在定位「') + (label || cleanIds[0]) + '」…');
   bridgeWs.send(JSON.stringify({
     type: 'BRIDGE_FOCUS_NODES',
     payload: {
       request_id: reqId,
-      node_ids: nodeIds || [],
+      node_ids: cleanIds,
       project_id: DATA.projectId || undefined,
-      file_key: DATA.fileKey || undefined,
-      file_name: DATA.fileName || undefined,
-      page_id: o.pageId || undefined,
+      file_key: targetFileKey || undefined,
+      file_name: targetFileName || undefined,
+      page_id: rawPageId || undefined,
       page_name: label || undefined,
       page_only: pageOnly ? true : undefined
     }
@@ -1817,7 +2151,10 @@ function requestFigmaFocus(nodeIds, label, opts) {
 
 function requestFigmaStageBoard(nodeIds, title, opts) {
   const o = opts || {};
-  const list = Array.isArray(nodeIds) ? nodeIds : [];
+  const list = Array.isArray(nodeIds) ? nodeIds.map(rawNodeId).filter(Boolean) : [];
+  const targetPageId = o.targetPageId ? rawNodeId(o.targetPageId) : undefined;
+  const targetFileKey = o.fileKey || DATA.fileKey || '';
+  const targetFileName = o.fileName || DATA.fileName || '';
   if (list.length === 0) {
     toast('沒有可加入臨時拼板的 node_id');
     return;
@@ -1826,8 +2163,12 @@ function requestFigmaStageBoard(nodeIds, title, opts) {
     toast('Figma 尚未連線：請先啟動 npm run start:server 並開啟 Figma 插件');
     return;
   }
-  if (DATA.fileName && !isMatchingFigma()) {
-    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前專案「' + DATA.fileName + '」不符');
+  if (targetFileName && !isMatchingFigmaForSource(targetFileKey, targetFileName)) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目標檔案「' + targetFileName + '」不符');
+    return;
+  }
+  if (!targetFileName && DATA.isWorkspace && !isMatchingFigma()) {
+    toast('目前 Figma 開啟的是「' + (bridgeStatus.figma_file_name || '其他檔案') + '」，與目前應用組合檔案不符');
     return;
   }
   if (bridgeBusy) {
@@ -1856,9 +2197,9 @@ function requestFigmaStageBoard(nodeIds, title, opts) {
       node_ids: sendIds,
       title: title || '選中畫面',
       project_id: DATA.projectId || undefined,
-      file_key: DATA.fileKey || undefined,
-      file_name: DATA.fileName || undefined,
-      target_page_id: o.targetPageId || undefined
+      file_key: targetFileKey || undefined,
+      file_name: targetFileName || undefined,
+      target_page_id: targetPageId || undefined
     }
   }));
 }
@@ -1885,11 +2226,15 @@ function resolveCardForId(id) {
   if (byId[id]) return byId[id];
   const base = byMemberId[id];
   if (!base) return null;
+  const parsed = stripCompositeId(id);
   const synth = {
     id: id,
+    rawId: parsed.rawId,
     name: base.name,
     page: base.page,
+    rawPageName: base.rawPageName || base.page || '',
     pageId: base.pageId,
+    rawPageId: base.rawPageId || rawNodeId(base.pageId || ''),
     pageIndex: base.pageIndex,
     archetype: base.archetype,
     hash: base.hash,
@@ -1904,7 +2249,10 @@ function resolveCardForId(id) {
     label: base.label,
     generation: base.generation,
     palette: base.palette || [],
-    repId: base.id
+    repId: base.id,
+    sourceId: base.sourceId || parsed.sourceId || '',
+    sourceName: base.sourceName || '',
+    sourceFileKey: base.sourceFileKey || ''
   };
   lookupCardById[id] = synth;
   return synth;
@@ -1968,8 +2316,12 @@ workCards.forEach(function(c) {
   if (!figmaPageMap.has(pg)) {
     figmaPageMap.set(pg, {
       page: pg,
+      rawPageName: c.rawPageName || pg,
       pageId: c.pageId || '',
       pageIndex: typeof c.pageIndex === 'number' ? c.pageIndex : 9999,
+      sourceId: c.sourceId || '',
+      sourceName: c.sourceName || '',
+      sourceFileKey: c.sourceFileKey || '',
       cards: [],
       totalScreens: 0,
       labeledScreens: 0,
@@ -1993,6 +2345,34 @@ const sortedFigmaPages = Array.from(figmaPageMap.values()).sort(function(a, b) {
   return b.totalScreens - a.totalScreens;
 });
 
+const sourceStatsById = new Map();
+if (DATA.isWorkspace && Array.isArray(DATA.sources)) {
+  DATA.sources.forEach(function(s) {
+    sourceStatsById.set(s.id, {
+      id: s.id,
+      fileName: s.fileName || s.id,
+      fileKey: s.fileKey || '',
+      totalScreens: 0,
+      unlabeledScreens: 0,
+      pageCount: 0
+    });
+  });
+  sortedFigmaPages.forEach(function(p) {
+    if (!p.sourceId || !sourceStatsById.has(p.sourceId)) return;
+    const st = sourceStatsById.get(p.sourceId);
+    st.pageCount += 1;
+    st.totalScreens += p.totalScreens;
+    st.unlabeledScreens += p.unlabeledScreens;
+  });
+  if (DATA.sources.length > 0) {
+    const withUnlabeled = DATA.sources.find(function(s) {
+      const st = sourceStatsById.get(s.id);
+      return st && st.unlabeledScreens > 0;
+    });
+    activePageSourceId = withUnlabeled ? withUnlabeled.id : DATA.sources[0].id;
+  }
+}
+
 function topPalette(palMap, n) {
   return Array.from(palMap.entries()).sort(function(a, b) { return b[1] - a[1]; }).slice(0, n).map(function(x) { return x[0]; });
 }
@@ -2014,7 +2394,6 @@ document.getElementById('sb-sub').textContent = (DATA.fileName || 'Figma AST') +
 
 (function populateCatDatalist() {
   const dl = document.getElementById('all-cat-options');
-  const sel = document.getElementById('batch-cat-select');
   const coreDefaults = [
     '新UI', '新UI / 廢棄',
     '老UI', '老UI / 廢棄',
@@ -2022,8 +2401,11 @@ document.getElementById('sb-sub').textContent = (DATA.fileName || 'Figma AST') +
   ];
   const byMajor = new Map();
   const seen = new Set();
-  function addOpt(label, maj) {
-    if (!label || seen.has(label)) return;
+  const countByLabel = new Map();
+  function addOpt(label, maj, cnt) {
+    if (!label) return;
+    if (typeof cnt === 'number' && cnt > 0) countByLabel.set(label, cnt);
+    if (seen.has(label)) return;
     seen.add(label);
     const m = maj || label.split(' / ')[0];
     if (!byMajor.has(m)) byMajor.set(m, []);
@@ -2032,11 +2414,11 @@ document.getElementById('sb-sub').textContent = (DATA.fileName || 'Figma AST') +
   coreDefaults.forEach(function(lbl) { addOpt(lbl); });
   sortedMajors.forEach(function(mRec) {
     if (mRec.major === '未標註') return;
-    addOpt(mRec.major, mRec.major);
+    addOpt(mRec.major, mRec.major, mRec.screens);
     const minors = Array.from(mRec.minors.values()).sort(function(a, b) { return b.totalScreens - a.totalScreens; });
     minors.forEach(function(r) {
       const lbl = (r.minor && r.minor !== '(未細分)') ? (r.major + ' / ' + r.minor) : r.major;
-      addOpt(lbl, r.major);
+      addOpt(lbl, r.major, r.totalScreens);
     });
   });
   window.__canonicalCatSet = seen;
@@ -2053,21 +2435,289 @@ document.getElementById('sb-sub').textContent = (DATA.fileName || 'Figma AST') +
     return a.localeCompare(b);
   });
   let groupsHtml = '';
+  const groupsData = [];
   order.forEach(function(maj) {
     const list = byMajor.get(maj) || [];
     groupsHtml += '<optgroup label="' + esc(maj) + '">' +
       list.map(function(o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') +
       '</optgroup>';
+    groupsData.push({
+      major: maj,
+      items: list.map(function(o) { return { value: o, count: countByLabel.get(o) || 0 }; })
+    });
   });
   window.__catSelectGroupsHtml = groupsHtml;
-  if (sel) {
-    sel.innerHTML = '<option value="">— 下拉選擇標準分類（直接套用，不開新類）—</option>' + groupsHtml;
-  }
-  const propGrpSel = document.getElementById('prop-grp-sel');
-  if (propGrpSel) {
-    propGrpSel.innerHTML = '<option value="">— 請選擇現有標準分類 —</option>' + groupsHtml;
-  }
+  window.__canonicalCatGroups = groupsData;
 })();
+
+let comboActiveInput = null;
+let comboFlatItems = [];
+let comboHighlightIdx = 0;
+
+function positionCatComboMenu(inp) {
+  const menu = document.getElementById('cat-combo-menu');
+  if (!menu || !inp) return;
+  const r = inp.getBoundingClientRect();
+  const vw = window.innerWidth || 1200;
+  const vh = window.innerHeight || 800;
+  const width = Math.max(r.width, 280);
+  const left = Math.max(8, Math.min(r.left, vw - width - 8));
+  menu.style.width = width + 'px';
+  menu.style.left = left + 'px';
+  const spaceBelow = vh - r.bottom - 10;
+  const spaceAbove = r.top - 10;
+  if (spaceBelow < 210 && spaceAbove > spaceBelow) {
+    menu.style.top = 'auto';
+    menu.style.bottom = (vh - r.top + 4) + 'px';
+    menu.style.maxHeight = Math.max(140, Math.min(290, spaceAbove)) + 'px';
+  } else {
+    menu.style.bottom = 'auto';
+    menu.style.top = (r.bottom + 4) + 'px';
+    menu.style.maxHeight = Math.max(140, Math.min(290, spaceBelow)) + 'px';
+  }
+}
+
+function closeCatComboMenu() {
+  const menu = document.getElementById('cat-combo-menu');
+  if (menu) menu.style.display = 'none';
+  comboActiveInput = null;
+  comboFlatItems = [];
+  comboHighlightIdx = 0;
+}
+
+function renderCatComboMenu(inp, queryText) {
+  const menu = document.getElementById('cat-combo-menu');
+  if (!menu || !inp) return;
+  comboActiveInput = inp;
+  const q = String(queryText == null ? inp.value : queryText).trim();
+  const groups = Array.isArray(window.__canonicalCatGroups) ? window.__canonicalCatGroups : [];
+  const filteredGroups = [];
+  comboFlatItems = [];
+  groups.forEach(function(g) {
+    const matched = q ? g.items.filter(function(it) { return matchesSearch(it.value, q); }) : g.items;
+    if (matched.length === 0) return;
+    filteredGroups.push({ major: g.major, items: matched });
+    matched.forEach(function(it) { comboFlatItems.push(it); });
+  });
+  if (comboHighlightIdx >= comboFlatItems.length) comboHighlightIdx = 0;
+  if (comboHighlightIdx < 0) comboHighlightIdx = 0;
+
+  let html = '<div class="cat-combo-meta">' +
+    '<span>' + (q ? ('找到 ' + comboFlatItems.length + ' 個相關分類') : ('共 ' + comboFlatItems.length + ' 個標準分類（可直接打字搜尋）')) + '</span>' +
+    '<span>↑↓ 選擇 · Enter 確認</span>' +
+    '</div>';
+  if (comboFlatItems.length === 0) {
+    html += '<div class="cat-combo-empty">找不到與「' + esc(q) + '」相符的標準分類</div>';
+  } else {
+    let idx = 0;
+    filteredGroups.forEach(function(g) {
+      html += '<div class="cat-combo-grp">' + esc(g.major) + '</div>';
+      g.items.forEach(function(it) {
+        const isAct = idx === comboHighlightIdx;
+        html += '<div class="cat-combo-opt' + (isAct ? ' active' : '') + '" data-combo-idx="' + idx + '" data-val="' + esc(it.value) + '">' +
+          '<span>' + esc(it.value) + '</span>' +
+          (it.count > 0 ? '<span class="pill">' + it.count + '</span>' : '') +
+          '</div>';
+        idx += 1;
+      });
+    });
+  }
+  menu.innerHTML = html;
+  menu.style.display = 'block';
+  positionCatComboMenu(inp);
+}
+
+function selectCatComboValue(inp, val) {
+  if (!inp || !val) return;
+  const kind = inp.getAttribute('data-combo-kind') || '';
+  if (kind === 'batch') {
+    inp.value = val;
+    inp.setAttribute('data-selected-val', val);
+    inp.classList.add('filled');
+    closeCatComboMenu();
+    const ta = document.getElementById('batch-input');
+    if (ta) {
+      ta.value = val;
+      ta.focus();
+    }
+    return;
+  }
+  if (kind === 'quick') {
+    inp.value = val;
+    closeCatComboMenu();
+    applyQuickCat(inp);
+    return;
+  }
+  if (kind === 'prop-override') {
+    const id = inp.getAttribute('data-prop-override-id');
+    closeCatComboMenu();
+    if (!id) return;
+    if (!state.proposals) state.proposals = {};
+    state.proposals[id] = { decision: 'override', target: val };
+    saveState();
+    renderAll();
+    toast('已改選標準分類：' + val);
+    return;
+  }
+  if (kind === 'prop-grp') {
+    inp.value = val;
+    inp.setAttribute('data-selected-val', val);
+    inp.classList.add('filled');
+    const customInp = document.getElementById('prop-grp-custom-minor');
+    if (customInp) customInp.value = '';
+    closeCatComboMenu();
+  }
+}
+
+function restoreUnpickedComboInput(inp) {
+  if (!inp) return;
+  const kind = inp.getAttribute('data-combo-kind') || '';
+  if (kind === 'quick') {
+    inp.value = '';
+    return;
+  }
+  const prev = inp.getAttribute('data-selected-val') || '';
+  if (inp.value !== prev) {
+    inp.value = prev;
+    inp.classList.toggle('filled', Boolean(prev));
+  }
+}
+
+document.addEventListener('focusin', function(ev) {
+  const inp = ev.target && ev.target.closest ? ev.target.closest('.cat-combo-input') : null;
+  if (!inp) return;
+  comboHighlightIdx = 0;
+  const committed = inp.getAttribute('data-selected-val') || '';
+  const initialQuery = (committed && inp.value === committed) ? '' : inp.value;
+  renderCatComboMenu(inp, initialQuery);
+  if (committed && inp.value === committed && inp.select) {
+    try { inp.select(); } catch (e) {}
+  }
+});
+
+document.addEventListener('input', function(ev) {
+  const inp = ev.target && ev.target.closest ? ev.target.closest('.cat-combo-input') : null;
+  if (!inp) return;
+  inp.classList.remove('filled');
+  comboHighlightIdx = 0;
+  renderCatComboMenu(inp, inp.value);
+});
+
+document.addEventListener('keydown', function(ev) {
+  const inp = ev.target && ev.target.closest ? ev.target.closest('.cat-combo-input') : null;
+  if (!inp) return;
+  const menu = document.getElementById('cat-combo-menu');
+  const isOpen = Boolean(menu && menu.style.display === 'block' && comboActiveInput === inp);
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    if (!isOpen) { renderCatComboMenu(inp, ''); return; }
+    if (comboFlatItems.length > 0) {
+      comboHighlightIdx = (comboHighlightIdx + 1) % comboFlatItems.length;
+      renderCatComboMenu(inp, inp.value);
+      const act = menu.querySelector('.cat-combo-opt.active');
+      if (act && act.scrollIntoView) act.scrollIntoView({ block: 'nearest' });
+    }
+    return;
+  }
+  if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    if (!isOpen) { renderCatComboMenu(inp, ''); return; }
+    if (comboFlatItems.length > 0) {
+      comboHighlightIdx = (comboHighlightIdx - 1 + comboFlatItems.length) % comboFlatItems.length;
+      renderCatComboMenu(inp, inp.value);
+      const act = menu.querySelector('.cat-combo-opt.active');
+      if (act && act.scrollIntoView) act.scrollIntoView({ block: 'nearest' });
+    }
+    return;
+  }
+  if (ev.key === 'Enter') {
+    if (isOpen && comboFlatItems.length > 0) {
+      ev.preventDefault();
+      const picked = comboFlatItems[comboHighlightIdx] || comboFlatItems[0];
+      if (picked) selectCatComboValue(inp, picked.value);
+    }
+    return;
+  }
+  if (ev.key === 'Escape') {
+    if (isOpen) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      restoreUnpickedComboInput(inp);
+      closeCatComboMenu();
+    }
+  }
+});
+
+document.addEventListener('mousedown', function(ev) {
+  const menu = document.getElementById('cat-combo-menu');
+  if (!menu) return;
+  const opt = ev.target && ev.target.closest ? ev.target.closest('#cat-combo-menu .cat-combo-opt') : null;
+  if (opt) {
+    ev.preventDefault();
+    const val = opt.getAttribute('data-val') || '';
+    if (comboActiveInput && val) selectCatComboValue(comboActiveInput, val);
+    return;
+  }
+  if (ev.target && ev.target.closest && (ev.target.closest('#cat-combo-menu') || ev.target.closest('.cat-combo'))) {
+    return;
+  }
+  if (comboActiveInput) {
+    restoreUnpickedComboInput(comboActiveInput);
+    closeCatComboMenu();
+  }
+});
+
+document.addEventListener('click', function(ev) {
+  const clr = ev.target && ev.target.closest ? ev.target.closest('.cat-combo-clear') : null;
+  if (clr) {
+    ev.stopPropagation();
+    const propId = clr.getAttribute('data-clear-prop-override');
+    if (propId) {
+      if (state.proposals && state.proposals[propId]) {
+        delete state.proposals[propId];
+        saveState();
+        renderAll();
+      }
+      closeCatComboMenu();
+      return;
+    }
+    const targetId = clr.getAttribute('data-clear-combo');
+    const inp = targetId ? document.getElementById(targetId) : null;
+    if (!inp) return;
+    inp.value = '';
+    inp.setAttribute('data-selected-val', '');
+    inp.classList.remove('filled');
+    if (targetId === 'batch-cat-select') {
+      const ta = document.getElementById('batch-input');
+      if (ta && window.__canonicalCatSet && window.__canonicalCatSet.has(ta.value.trim())) {
+        ta.value = '';
+      }
+    }
+    inp.focus();
+    comboHighlightIdx = 0;
+    renderCatComboMenu(inp, '');
+    return;
+  }
+  const comboInp = ev.target && ev.target.closest ? ev.target.closest('.cat-combo-input') : null;
+  if (comboInp) {
+    const menu = document.getElementById('cat-combo-menu');
+    if (!menu || menu.style.display !== 'block' || comboActiveInput !== comboInp) {
+      comboHighlightIdx = 0;
+      const committed = comboInp.getAttribute('data-selected-val') || '';
+      renderCatComboMenu(comboInp, (committed && comboInp.value === committed) ? '' : comboInp.value);
+    }
+  }
+});
+
+window.addEventListener('resize', function() {
+  if (comboActiveInput) positionCatComboMenu(comboActiveInput);
+});
+window.addEventListener('scroll', function(ev) {
+  const menu = document.getElementById('cat-combo-menu');
+  if (!comboActiveInput || !menu || menu.style.display !== 'block') return;
+  if (ev.target === menu || (ev.target && menu.contains && menu.contains(ev.target))) return;
+  positionCatComboMenu(comboActiveInput);
+}, true);
 
 function buildCatSelectOptions(selectedVal, placeholder) {
   let html = '<option value="">' + esc(placeholder || '請選擇標準分類…') + '</option>' + (window.__catSelectGroupsHtml || '');
@@ -2282,15 +2932,27 @@ function updateCommentCounters() {
   if (pb) {
     pb.textContent = propStat.ready > 0 ? (propStat.ready + '/' + propStat.total) : String(propStat.total);
   }
+  const syncBadge = document.getElementById('sb-sync-diff-badge');
+  if (syncBadge) {
+    const ls = DATA.lastSync;
+    const addN = (ls && !ls.isInitialImport && Array.isArray(ls.addedScreens)) ? ls.addedScreens.length : 0;
+    const remN = (ls && !ls.isInitialImport && Array.isArray(ls.removedScreens)) ? ls.removedScreens.length : 0;
+    if (addN > 0 || remN > 0) {
+      const parts = [];
+      if (addN > 0) parts.push('+' + addN);
+      if (remN > 0) parts.push('-' + remN);
+      syncBadge.textContent = parts.join('/');
+      syncBadge.className = 'pill ' + (addN > 0 ? 'green' : 'red');
+    } else {
+      syncBadge.textContent = '0';
+      syncBadge.className = 'pill';
+    }
+  }
   const directBtn = document.getElementById('btn-direct-commit');
   if (directBtn) {
     const directRes = collectDirectLabelCommits();
-    if (directRes.commits.length > 0) {
-      directBtn.style.display = '';
-      directBtn.textContent = '直接寫入分類 (' + directRes.commits.length + ')';
-    } else {
-      directBtn.style.display = 'none';
-    }
+    directBtn.textContent = '重建頁面 (' + directRes.commits.length + ')';
+    directBtn.className = directRes.commits.length > 0 ? 'btn accent' : 'btn';
   }
   updateLookupBadge();
 }
@@ -2324,30 +2986,66 @@ function renderSidebar() {
   document.getElementById('seg-cats').classList.toggle('active', sbMode === 'categories');
   document.getElementById('seg-pages').classList.toggle('active', sbMode === 'pages');
   document.getElementById('seg-fams').classList.toggle('active', sbMode === 'families');
+  const syncDiffBtn = document.getElementById('btn-sync-diff-view');
+  if (syncDiffBtn) syncDiffBtn.classList.toggle('active', viewMode === 'sync-diff');
   const propBtn = document.getElementById('btn-proposals-view');
   if (propBtn) propBtn.classList.toggle('active', viewMode === 'proposals');
   document.getElementById('btn-lookup-view').classList.toggle('active', viewMode === 'figma-lookup');
   document.getElementById('btn-commented-view').classList.toggle('active', viewMode === 'commented');
 
+  const srcPickerEl = document.getElementById('sb-source-picker');
+  const showSrcPicker = sbMode === 'pages' && DATA.isWorkspace && Array.isArray(DATA.sources) && DATA.sources.length > 1;
+  if (srcPickerEl) {
+    if (showSrcPicker) {
+      if (!activePageSourceId && DATA.sources.length > 0) activePageSourceId = DATA.sources[0].id;
+      srcPickerEl.style.display = 'flex';
+      srcPickerEl.innerHTML =
+        '<div class="sb-src-title"><span>切換 Figma 來源檔</span><span>' + DATA.sources.length + ' 份</span></div>' +
+        '<div class="sb-src-list">' +
+        DATA.sources.map(function(s) {
+          const st = sourceStatsById.get(s.id) || { totalScreens: 0, unlabeledScreens: 0, pageCount: 0 };
+          const isActSrc = activePageSourceId === s.id;
+          const isLive = isMatchingFigmaForSource(s.fileKey, s.fileName);
+          return '<div class="sb-src-item' + (isActSrc ? ' active' : '') + '" data-pick-source="' + esc(s.id) + '" title="' + esc((s.fileName || s.id) + ' · ' + st.pageCount + ' 頁 / ' + st.totalScreens + ' 畫面') + '">' +
+            '<span class="sb-src-dot' + (isLive ? ' live' : '') + '" title="' + (isLive ? '此檔案已在 Figma 連線' : '未連線或非當前開啟檔') + '"></span>' +
+            '<span class="sb-src-name">' + esc(s.fileName || s.id) + '</span>' +
+            (st.unlabeledScreens > 0 ? '<span class="pill amber" title="本檔尚未標註畫面數">?' + st.unlabeledScreens + '</span>' : '') +
+            '<span class="pill">' + st.totalScreens + '</span>' +
+            '</div>';
+        }).join('') +
+        '</div>';
+    } else {
+      srcPickerEl.style.display = 'none';
+      srcPickerEl.innerHTML = '';
+    }
+  }
+
   const filterInput = document.getElementById('sb-filter');
-  filterInput.placeholder = sbMode === 'categories' ? '篩選分類名稱...' : (sbMode === 'pages' ? '篩選 Figma 頁面...' : '篩選 AST 家族...');
-  const q = filterInput.value.trim().toLowerCase();
+  if (showSrcPicker) {
+    const curSrc = DATA.sources.find(function(s) { return s.id === activePageSourceId; });
+    filterInput.placeholder = '篩選「' + (curSrc ? (curSrc.fileName || curSrc.id) : '') + '」的頁面...';
+  } else {
+    filterInput.placeholder = sbMode === 'categories' ? '搜尋分類（支援簡繁，如：弹窗）...' : (sbMode === 'pages' ? '篩選 Figma 頁面（支援簡繁）...' : '篩選 AST 家族...');
+  }
+  const q = filterInput.value.trim();
   const container = document.getElementById('sb-list');
 
   if (sbMode === 'categories') {
     let html = '';
+    let matchedCatTotal = 0;
     sortedMajors.forEach(function(mRec) {
       const minors = Array.from(mRec.minors.values()).sort(function(a, b) { return b.totalScreens - a.totalScreens; });
       const filteredMinors = q ? minors.filter(function(r) {
-        return (r.major + ' ' + r.minor).toLowerCase().indexOf(q) !== -1;
+        return matchesSearch(r.major + ' ' + r.minor + ' ' + (r.label || ''), q);
       }) : minors;
       if (q && filteredMinors.length === 0) return;
+      matchedCatTotal += filteredMinors.length;
 
       const isOpen = q ? true : expandedMajors.has(mRec.major);
       html += '<div class="major-group' + (isOpen ? ' open' : '') + '">' +
         '<div class="major-hdr" data-toggle-major="' + esc(mRec.major) + '">' +
         '<span class="major-hdr-left"><span class="major-chev">' + (isOpen ? '▾' : '▸') + '</span><span>' + esc(mRec.major) + '</span></span>' +
-        '<span class="pill">' + mRec.screens + '</span>' +
+        '<span class="pill">' + (q ? (filteredMinors.length + ' 類') : mRec.screens) + '</span>' +
         '</div>';
       if (isOpen) {
         html += '<div class="major-children">';
@@ -2365,20 +3063,33 @@ function renderSidebar() {
       }
       html += '</div>';
     });
-    container.innerHTML = html || '<div class="muted" style="padding:10px">找不到符合的分類</div>';
+    if (q) {
+      const summaryBar = '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;font-size:11.5px;color:var(--text-muted)">' +
+        '<span>找到 <strong>' + matchedCatTotal + '</strong> 個相關分類</span>' +
+        '<button type="button" class="btn sm" id="sb-clear-filter" style="padding:2px 8px;font-size:11px">清除</button>' +
+        '</div>';
+      container.innerHTML = summaryBar + (html || '<div class="muted" style="padding:10px">找不到與「' + esc(q) + '」相關的分類</div>');
+    } else {
+      container.innerHTML = html || '<div class="muted" style="padding:10px">找不到符合的分類</div>';
+    }
     return;
   }
 
   if (sbMode === 'pages') {
-    const filteredPages = q ? sortedFigmaPages.filter(function(p) {
-      return p.page.toLowerCase().indexOf(q) !== -1;
-    }) : sortedFigmaPages;
+    const scopePages = (DATA.isWorkspace && Array.isArray(DATA.sources) && DATA.sources.length > 1 && activePageSourceId)
+      ? sortedFigmaPages.filter(function(p) { return p.sourceId === activePageSourceId; })
+      : sortedFigmaPages;
+    const filteredPages = q ? scopePages.filter(function(p) {
+      const disp = p.rawPageName || p.page;
+      return matchesSearch(disp + ' ' + p.page, q);
+    }) : scopePages;
     let html = '';
     filteredPages.forEach(function(p) {
+      const dispName = p.rawPageName || p.page;
       const noteCnt = countCommentsInCards(p.cards);
       const isAct = viewMode === 'page' && activeKey === p.page;
-      html += '<div class="cat-item' + (isAct ? ' active' : '') + '" data-open-page="' + esc(p.page) + '" title="' + esc(p.page) + '（' + p.catCount.size + ' 個分類）">' +
-        '<span class="cat-name">' + esc(p.page) + '</span>' +
+      html += '<div class="cat-item' + (isAct ? ' active' : '') + '" data-open-page="' + esc(p.page) + '" title="' + esc((p.sourceName ? p.sourceName + ' · ' : '') + dispName + '（' + p.catCount.size + ' 個分類）') + '">' +
+        '<span class="cat-name">' + esc(dispName) + '</span>' +
         '<span class="cat-meta">' +
         (noteCnt > 0 ? '<span class="pill green">✎' + noteCnt + '</span>' : '') +
         (p.unlabeledScreens > 0 && !isAct ? '<span class="pill amber" title="未標註數量">?' + p.unlabeledScreens + '</span>' : '') +
@@ -2392,7 +3103,7 @@ function renderSidebar() {
   // AST families mode
   const filteredFams = q ? sortedFamilies.filter(function(f) {
     const rep = f.cards[0];
-    return (f.shortHash + ' ' + rep.name + ' ' + rep.headline).toLowerCase().indexOf(q) !== -1;
+    return matchesSearch(f.shortHash + ' ' + rep.name + ' ' + rep.headline, q);
   }) : sortedFamilies;
 
   let html = '';
@@ -2434,6 +3145,42 @@ function renderOverview() {
       : '點選任一分類卡片進入詳情頁檢視（已按 Figma 頁面分組）；<strong>沒問題的畫面直接留空</strong>，只需針對有偏差的地方寫意見，完成後點擊右上角「複製為 Agent 提示詞」。') +
     (specLabel ? ' <span class="pill" style="margin-left:6px">畫布規則：' + esc(specLabel) + '</span>' : '') +
     '</div>';
+
+  if (DATA.isWorkspace && Array.isArray(DATA.sources) && DATA.sources.length > 1) {
+    html += '<div class="panel" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<strong>來源 Figma 檔案（分檔檢視頁面，全域共用分類）</strong>' +
+      DATA.sources.map(function(s) {
+        const st = sourceStatsById.get(s.id) || { totalScreens: 0, unlabeledScreens: 0, pageCount: 0 };
+        return '<button class="btn sm" type="button" data-jump-source-pages="' + esc(s.id) + '" title="點擊切換左側「頁面」分頁檢視此檔案的獨立頁面">' +
+          '<span>📄 ' + esc(s.fileName || s.id) + '</span>' +
+          '<span class="pill">' + st.pageCount + ' 頁 / ' + st.totalScreens + '</span>' +
+          (st.unlabeledScreens > 0 ? '<span class="pill amber">?' + st.unlabeledScreens + ' 未標</span>' : '') +
+          '</button>';
+      }).join('') +
+      '</div></div>';
+  }
+
+  const lsOverview = DATA.lastSync;
+  if (lsOverview && !lsOverview.isInitialImport && ((lsOverview.addedScreens && lsOverview.addedScreens.length > 0) || (lsOverview.removedScreens && lsOverview.removedScreens.length > 0))) {
+    const addCnt = lsOverview.addedScreens ? lsOverview.addedScreens.length : 0;
+    const remCnt = lsOverview.removedScreens ? lsOverview.removedScreens.length : 0;
+    const archCnt = lsOverview.labelsArchived || 0;
+    const touchedTxt = (lsOverview.touchedPages && lsOverview.touchedPages.length > 0)
+      ? lsOverview.touchedPages.slice(0, 3).join('、') + (lsOverview.touchedPages.length > 3 ? ' 等 ' + lsOverview.touchedPages.length + ' 頁' : '')
+      : '';
+    html += '<div class="panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<strong>最近同步變更</strong>' +
+      (lsOverview.syncedAt ? '<span class="muted">' + esc(lsOverview.syncedAt.slice(0, 16).replace('T', ' ')) + '</span>' : '') +
+      (touchedTxt ? '<span class="pill">' + esc(touchedTxt) + '</span>' : '') +
+      (addCnt > 0 ? '<span class="pill green">🟢 新入庫 +' + addCnt + '</span>' : '') +
+      (remCnt > 0 ? '<span class="pill red">🔴 已刪除 -' + remCnt + '</span>' : '') +
+      (archCnt > 0 ? '<span class="pill amber">歸檔舊標註 ' + archCnt + ' 筆</span>' : '') +
+      '</div>' +
+      '<button class="btn sm accent" id="btn-open-sync-diff" type="button">檢視新入庫與刪除詳情 →</button>' +
+      '</div>';
+  }
 
   html += '<div class="kpi-grid">' +
     '<div class="kpi-card"><div class="kpi-label">畫面總數</div><div class="kpi-val">' + DATA.matchedScreens.toLocaleString() + '</div><div class="kpi-sub">AST 去重後 ' + DATA.uniqueCount.toLocaleString() + ' 組 · ' + DATA.familyCount + ' 個結構家族</div></div>' +
@@ -2530,19 +3277,24 @@ function renderScreenRow(c) {
   const archCls = c.archetype === 'overlay' ? 'purple' : (c.archetype === 'overlay-panel' ? 'accent' : '');
   const genCls = c.generation === 'new' ? 'green' : (c.generation === 'old' ? 'red' : '');
 
+  const isNewlySynced = lastSyncAddedSet.has(c.id) || (Array.isArray(c.memberIds) && c.memberIds.some(function(mid) { return lastSyncAddedSet.has(mid); }));
+  const dispId = c.rawId || rawNodeId(c.id);
+
   return '<div class="' + cls + '" data-id="' + esc(c.id) + '">' +
     '<div style="padding-top:3px"><input type="checkbox" class="row-chk" data-id="' + esc(c.id) + '"' + (isSel ? ' checked' : '') + '></div>' +
     '<div>' +
     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
-    '<span class="id-link" data-copy="' + esc(c.id) + '" title="點擊複製 node_id">' + esc(c.id) + '</span>' +
+    '<span class="id-link" data-copy="' + esc(dispId) + '" title="點擊複製 node_id">' + esc(dispId) + '</span>' +
     '<button class="btn sm focus-node-btn" data-focus-id="' + esc(c.id) + '" title="在 Figma 中切換頁面並聚焦到此畫面">定位</button>' +
+    (isNewlySynced ? '<span class="pill green" title="最近一次增量同步新匯入的畫面">NEW 新入庫</span>' : '') +
     (isSel ? '<span class="pill solid-blue sel-badge">✓ 已選中</span>' : '') +
     (isFocused ? '<span class="pill solid-amber focus-badge">◉ 當前定位</span>' : '') +
     '</div>' +
     '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">' +
     '<span class="pill ' + archCls + '">' + esc(c.archetype) + '</span>' +
     (c.generation ? '<span class="pill ' + genCls + '">' + esc(c.generation) + '</span>' : '') +
-    (c.copies > 1 ? '<span class="pill amber" title="' + esc(c.memberIds.join(', ')) + '">×' + c.copies + '</span>' : '') +
+    ((DATA.isWorkspace && c.sourceName) ? '<span class="pill accent" title="來源 Figma 檔案">' + esc(c.sourceName) + '</span>' : '') +
+    (c.copies > 1 ? '<span class="pill amber" title="' + esc(c.memberIds.map(rawNodeId).join(', ')) + '">×' + c.copies + '</span>' : '') +
     '</div>' +
     '<div style="margin-top:6px">' + swatchesHtml(c.palette) + '</div>' +
     '</div>' +
@@ -2552,7 +3304,7 @@ function renderScreenRow(c) {
     (c.major ? '<div class="muted" style="margin-top:4px">' + esc(c.major + (c.minor ? ' / ' + c.minor : '')) + ' · #' + esc(c.shortHash) + '</div>' : '<div class="muted" style="margin-top:4px">未標註 · AST #' + esc(c.shortHash) + '</div>') +
     '</div>' +
     '<div>' +
-    '<select class="cat-select quick-cat-sel" data-quick-cat-id="' + esc(c.id) + '">' + buildCatSelectOptions('', '下拉快選標準分類（不開新類）…') + '</select>' +
+    '<div class="cat-combo quick"><input class="cat-combo-input quick-cat-sel" data-combo-kind="quick" data-quick-cat-id="' + esc(c.id) + '" autocomplete="off" placeholder="搜尋／快選標準分類（如：弹窗）…"></div>' +
     '<textarea class="comment item-comment' + (comment.trim() ? ' filled' : '') + '" data-id="' + esc(c.id) + '" placeholder="沒問題留空；或於上方下拉快選，也可手寫補充說明">' + esc(comment) + '</textarea>' +
     '<div class="direct-hint" data-direct-hint-id="' + esc(c.id) + '">' + (directMeta ? ('✓ 確定分類（' + esc(directMeta.target) + '）· 可直接入庫') : '') + '</div>' +
     '</div>' +
@@ -2587,6 +3339,7 @@ function renderGroupHeaderHtml(opts) {
     '<div class="page-group-title">' +
     '<input type="checkbox" class="grp-chk" data-grp-key="' + esc(opts.groupKey) + '"' + (selCnt > 0 && selCnt === list.length ? ' checked' : '') + ' title="全選／取消全選本組">' +
     '<span>' + (opts.isOpen ? '▾' : '▸') + '</span>' +
+    (opts.sourceName ? '<span class="pill accent" title="來源 Figma 檔案">' + esc(opts.sourceName) + '</span>' : '') +
     '<span>' + esc(opts.title) + '</span>' +
     '<span class="pill">' + (list.length === opts.totalScreens ? (opts.totalScreens + ' 畫面') : (list.length + ' 組 / ' + opts.totalScreens + ' 畫面')) + '</span>' +
     (selCnt > 0 ? '<span class="pill solid-blue grp-sel-pill">已選 ' + selCnt + '/' + list.length + '</span>' : '') +
@@ -2670,20 +3423,30 @@ function renderDetailView(opts) {
   }
   html += '</div>';
 
+  const sourceSelectHtml = (DATA.isWorkspace && Array.isArray(DATA.sources) && DATA.sources.length > 1)
+    ? '<select id="dt-source"><option value="">全部來源檔 (' + DATA.sources.length + ')</option>' +
+      DATA.sources.map(function(s) {
+        return '<option value="' + esc(s.id) + '"' + (detailFilter.source === s.id ? ' selected' : '') + '>' + esc(s.fileName || s.id) + '</option>';
+      }).join('') +
+      '</select>'
+    : '';
+
   html += '<div class="filter-strip">' +
     '<input id="dt-q" style="width:240px" value="' + esc(detailFilter.q) + '" placeholder="搜尋頁面 / 圖層 / 文案 / ID">' +
+    sourceSelectHtml +
     '<select id="dt-arch"><option value="">全部原型</option><option value="page"' + (detailFilter.arch === 'page' ? ' selected' : '') + '>page</option><option value="overlay-panel"' + (detailFilter.arch === 'overlay-panel' ? ' selected' : '') + '>overlay-panel</option><option value="overlay"' + (detailFilter.arch === 'overlay' ? ' selected' : '') + '>overlay</option></select>' +
     '<select id="dt-gen"><option value="">全部世代</option><option value="new"' + (detailFilter.gen === 'new' ? ' selected' : '') + '>new</option><option value="old"' + (detailFilter.gen === 'old' ? ' selected' : '') + '>old</option></select>' +
     '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="dt-only-comment"' + (detailFilter.onlyCommented ? ' checked' : '') + '> 只看已填意見</label>' +
     '</div>';
 
   const filtered = cards.filter(function(c) {
+    if (detailFilter.source && c.sourceId !== detailFilter.source) return false;
     if (detailFilter.arch && c.archetype !== detailFilter.arch) return false;
     if (detailFilter.gen && c.generation !== detailFilter.gen) return false;
     if (detailFilter.onlyCommented && !(state.items[c.id] || '').trim()) return false;
     if (detailFilter.q) {
-      const hay = (c.id + ' ' + c.page + ' ' + c.name + ' ' + c.headline + ' ' + c.shortHash).toLowerCase();
-      if (hay.indexOf(detailFilter.q.toLowerCase()) === -1) return false;
+      const hay = (c.rawId || c.id) + ' ' + c.id + ' ' + c.page + ' ' + (c.sourceName || '') + ' ' + c.name + ' ' + c.headline + ' ' + c.shortHash;
+      if (!matchesSearch(hay, detailFilter.q)) return false;
     }
     return true;
   });
@@ -2713,16 +3476,18 @@ function renderDetailView(opts) {
     const pg = entry[0];
     const list = entry[1];
     const pKey = scopePrefix + pg;
-    const isOpen = detailFilter.q || detailFilter.onlyCommented ? true : expandedPages.has(pKey);
+    const isOpen = (detailFilter.q || detailFilter.onlyCommented) ? !expandedPages.has('COLLAPSED::' + pKey) : expandedPages.has(pKey);
     const totalInPage = list.reduce(function(s, x) { return s + x.copies; }, 0);
     const noteCnt = countCommentsInCards(list);
     const first = list[0];
 
+    const cleanPg = (first && first.rawPageName) || pg;
     html += renderGroupHeaderHtml({
       groupKey: pg,
       toggleKey: pKey,
       isOpen: isOpen,
-      title: pg,
+      title: cleanPg,
+      sourceName: (DATA.isWorkspace && first) ? (first.sourceName || '') : '',
       cards: list,
       totalScreens: totalInPage,
       noteCnt: noteCnt,
@@ -2732,7 +3497,7 @@ function renderDetailView(opts) {
       primaryBtnText: '定位到 Figma',
       primaryBtnTitle: '僅切換 Figma 到此頁面（不一次全選全部節點）',
       focusAllItem: true,
-      extraMenuHtml: '<button class="menu-item" type="button" data-open-page="' + esc(pg) + '">切換到整頁視角（' + esc(pg) + '）</button>'
+      extraMenuHtml: '<button class="menu-item" type="button" data-open-page="' + esc(pg) + '">切換到整頁視角（' + esc(cleanPg) + '）</button>'
     });
     if (isOpen) {
       list.forEach(function(c) { html += renderScreenRow(c); });
@@ -2751,11 +3516,14 @@ function renderPageView(pageName) {
   const pRec = figmaPageMap.get(pageName);
   if (!pRec) { viewMode = 'overview'; renderOverview(); return; }
 
+  const cleanTitle = pRec.rawPageName || pRec.page;
   const total = pRec.totalScreens;
   const pct = total > 0 ? Math.round((100 * pRec.labeledScreens) / total) : 0;
-  const sub = '已收錄 ' + total + ' 個畫面（同頁去重 ' + pRec.cards.length + ' 組） · 分佈於 ' + pRec.catCount.size + ' 個分類 · 已標註 ' + pct + '%';
+  const sub = (DATA.isWorkspace && pRec.sourceName ? ('來源：' + pRec.sourceName + ' · ') : '') + '已收錄 ' + total + ' 個畫面（同頁去重 ' + pRec.cards.length + ' 組） · 分佈於 ' + pRec.catCount.size + ' 個分類 · 已標註 ' + pct + '%';
 
-  document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> <span>頁面 · ' + esc(pRec.page) + '</span>';
+  document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> ' +
+    (DATA.isWorkspace && pRec.sourceName ? '<span class="pill accent">📄 ' + esc(pRec.sourceName) + '</span> ' : '') +
+    '<span>頁面 · ' + esc(cleanTitle) + '</span>';
   document.getElementById('topbar-sub').textContent = sub;
 
   const sortedCatSummary = Array.from(pRec.catCount.entries()).sort(function(a, b) { return b[1] - a[1]; });
@@ -2774,7 +3542,7 @@ function renderPageView(pageName) {
 
   let html = '<div class="detail-hero">' +
     '<div class="detail-hero-row">' +
-    '<div><div class="detail-title">' + esc(pRec.page) + '</div><div class="muted" style="margin-top:2px">' + esc(sub) + '</div></div>' +
+    '<div><div class="detail-title">' + (DATA.isWorkspace && pRec.sourceName ? '<span class="pill accent" style="margin-right:8px;vertical-align:middle">📄 ' + esc(pRec.sourceName) + '</span>' : '') + esc(cleanTitle) + '</div><div class="muted" style="margin-top:2px">' + esc(sub) + '</div></div>' +
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
     '<button class="btn sm accent" id="btn-jump-this-page" data-page-key="' + esc(pRec.page) + '" data-page-id="' + esc(pRec.pageId) + '">跳轉到 Figma 頁面</button>' +
     '<div class="menu-wrap">' +
@@ -2797,13 +3565,14 @@ function renderPageView(pageName) {
     '</div>';
 
   const filtered = pRec.cards.filter(function(c) {
+    if (detailFilter.source && c.sourceId !== detailFilter.source) return false;
     if (detailFilter.arch && c.archetype !== detailFilter.arch) return false;
     if (detailFilter.gen && c.generation !== detailFilter.gen) return false;
     if (detailFilter.onlyCommented && !(state.items[c.id] || '').trim()) return false;
     if (detailFilter.q) {
       const catStr = c.major ? (c.major + ' ' + c.minor) : '未標註';
-      const hay = (c.id + ' ' + catStr + ' ' + c.name + ' ' + c.headline + ' ' + c.shortHash).toLowerCase();
-      if (hay.indexOf(detailFilter.q.toLowerCase()) === -1) return false;
+      const hay = (c.rawId || c.id) + ' ' + c.id + ' ' + catStr + ' ' + (c.sourceName || '') + ' ' + c.name + ' ' + c.headline + ' ' + c.shortHash;
+      if (!matchesSearch(hay, detailFilter.q)) return false;
     }
     return true;
   });
@@ -2837,7 +3606,7 @@ function renderPageView(pageName) {
     const catLabel = entry[0];
     const list = entry[1];
     const pKey = scopePrefix + catLabel;
-    const isOpen = detailFilter.q || detailFilter.onlyCommented ? true : expandedPages.has(pKey);
+    const isOpen = (detailFilter.q || detailFilter.onlyCommented) ? !expandedPages.has('COLLAPSED::' + pKey) : expandedPages.has(pKey);
     const totalInCat = list.reduce(function(s, x) { return s + x.copies; }, 0);
     const noteCnt = countCommentsInCards(list);
     const first = list[0];
@@ -3279,7 +4048,7 @@ function renderProposalsView() {
       html += '<div class="' + rowCls + '" data-prop-id="' + esc(it.id) + '">' +
         '<div>' +
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
-        '<span class="id-link" data-copy="' + esc(it.id) + '" title="點擊複製 node_id">' + esc(it.id) + '</span>' +
+        '<span class="id-link" data-copy="' + esc(rawNodeId(it.id)) + '" title="點擊複製 node_id">' + esc(rawNodeId(it.id)) + '</span>' +
         '<button class="btn sm focus-node-btn" data-focus-id="' + esc(it.id) + '" data-focus-page="' + esc((c && c.page) || '') + '" title="在 Figma 中切換頁面並聚焦到此畫面">定位</button>' +
         '</div>' +
         '<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">' +
@@ -3299,9 +4068,10 @@ function renderProposalsView() {
         '<button class="btn sm' + (decType === 'skip' ? ' accent' : ' ghost') + ' prop-btn-skip" type="button" data-prop-id="' + esc(it.id) + '">' + (decType === 'skip' ? '已略過（點此復原）' : '✕ 略過') + '</button>' +
         (isCustomOverride ? '<span class="pill solid-blue">★ 新分類：' + esc(overrideVal) + '</span>' : '') +
         '</div>' +
-        '<select class="cat-select prop-override-sel' + (isCanonicalOverride ? ' filled' : '') + '" data-prop-override-id="' + esc(it.id) + '">' +
-        buildCatSelectOptions(isCanonicalOverride ? overrideVal : '', '改選現有標準分類…') +
-        '</select>' +
+        '<div class="cat-combo">' +
+        '<input class="cat-combo-input prop-override-sel' + (isCanonicalOverride ? ' filled' : '') + '" data-combo-kind="prop-override" data-prop-override-id="' + esc(it.id) + '" data-selected-val="' + esc(isCanonicalOverride ? overrideVal : '') + '" value="' + esc(isCanonicalOverride ? overrideVal : '') + '" autocomplete="off" placeholder="搜尋改選現有標準分類（如：弹窗）…">' +
+        (isCanonicalOverride ? '<button type="button" class="cat-combo-clear" data-clear-prop-override="' + esc(it.id) + '" title="清除改選">✕</button>' : '') +
+        '</div>' +
         '<div class="prop-custom-row">' +
         '<select class="cat-select prop-custom-major" data-prop-id="' + esc(it.id) + '" title="選擇自訂新分類的大類">' +
         '<option value="新UI"' + (customMajor === '新UI' ? ' selected' : '') + '>新UI</option>' +
@@ -3321,9 +4091,120 @@ function renderProposalsView() {
   document.getElementById('content').innerHTML = html;
 }
 
+function renderSyncDiffView() {
+  const ls = DATA.lastSync || null;
+  document.getElementById('topbar-title').innerHTML = '<button class="btn sm" id="btn-back">← 返回總覽</button> <span>最近同步變更</span>';
+  document.getElementById('topbar-sub').textContent = (ls && ls.syncedAt)
+    ? ('同步時間：' + ls.syncedAt.slice(0, 16).replace('T', ' '))
+    : '尚未有增量同步變更紀錄';
+
+  if (!ls || ls.isInitialImport || ((!ls.addedScreens || ls.addedScreens.length === 0) && (!ls.removedScreens || ls.removedScreens.length === 0))) {
+    window.__currentGroups = new Map();
+    window.__currentGroupCards = [];
+    document.getElementById('content').innerHTML = '<div class="panel">' +
+      '<div class="panel-title"><span>最近同步沒有新增或刪除畫面</span></div>' +
+      '<div class="muted" style="line-height:1.8">' +
+      (ls && ls.isInitialImport
+        ? '最近一次屬於初始建立圖譜匯入（非增量同步），後續當你在 Figma 新增／刪除畫面並執行單頁增量或全檔匯出時，這裡會自動列出所有<strong>新入庫畫面</strong>與<strong>已刪除畫面</strong>。'
+        : '當你在 Figma 對某一頁（如 Split Bill）新增或刪除設計稿並用插件重新匯出後，這裡會自動列出本次新入庫的畫面，方便你直接打標與直接入庫。') +
+      '</div></div>';
+    return;
+  }
+
+  const addedRaw = Array.isArray(ls.addedScreens) ? ls.addedScreens : [];
+  const removedRaw = Array.isArray(ls.removedScreens) ? ls.removedScreens : [];
+  const touchedTxt = (ls.touchedPages && ls.touchedPages.length > 0) ? ls.touchedPages.join('、') : '-';
+  const prunedTxt = (ls.prunedPages && ls.prunedPages.length > 0) ? ls.prunedPages.join('、') : '';
+
+  let html = '<div class="detail-hero">' +
+    '<div class="detail-hero-row">' +
+    '<div><div class="detail-title">最近同步變更 · ' + esc(ls.syncedAt ? ls.syncedAt.slice(0, 16).replace('T', ' ') : '') + '</div>' +
+    '<div class="muted" style="margin-top:2px">本次同步頁面：' + esc(touchedTxt) + (prunedTxt ? ' · 已移除整頁：' + esc(prunedTxt) : '') + '</div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+    '<span class="pill green">🟢 新入庫 +' + addedRaw.length + ' 畫面</span>' +
+    '<span class="pill red">🔴 已刪除 -' + removedRaw.length + ' 畫面</span>' +
+    (ls.labelsArchived > 0 ? '<span class="pill amber">歸檔舊標註 ' + ls.labelsArchived + ' 筆</span>' : '') +
+    '</div></div>' +
+    '<div class="muted">下方新入庫畫面可直接勾選、在 Figma 選中或生成臨時拼板，並用右側下拉分類後點頂部「重建頁面」統一寫入。</div>' +
+    '</div>';
+
+  const addedCards = [];
+  addedRaw.forEach(function(s) {
+    const c = resolveCardForId(s.id);
+    if (c) addedCards.push(c);
+  });
+
+  const groups = new Map();
+  addedCards.forEach(function(c) {
+    const pg = c.page || '(未知頁面)';
+    if (!groups.has(pg)) groups.set(pg, []);
+    groups.get(pg).push(c);
+  });
+  window.__currentScopePrefix = 'sync-diff::';
+  window.__currentGroups = groups;
+  window.__currentGroupCards = addedCards;
+
+  if (addedCards.length > 0) {
+    html += '<div class="section-hdr" style="cursor:default;margin-top:8px"><h3>🟢 新入庫畫面（' + addedCards.length + '）</h3></div>';
+    groups.forEach(function(list, pg) {
+      const k = 'sync-diff::' + pg;
+      const isOpen = !expandedPages.has('COLLAPSED::' + k);
+      const first = list[0];
+      const pgId = first ? first.pageId : '';
+      html += renderGroupHeaderHtml({
+        groupKey: pg,
+        toggleKey: k,
+        isOpen: isOpen,
+        title: (first && first.rawPageName) || pg,
+        sourceName: (DATA.isWorkspace && first) ? (first.sourceName || '') : '',
+        cards: list,
+        totalScreens: list.length,
+        noteCnt: countCommentsInCards(list),
+        pageKey: pg,
+        pageId: pgId,
+        primaryBtnClass: 'accent focus-group-all-figma',
+        primaryBtnText: '在 Figma 選中 (' + list.length + ')',
+        primaryBtnTitle: '在 Figma 中選中此頁所有新入庫畫面',
+        focusAllItem: false,
+        extraMenuHtml: '<button class="menu-item stage-group-figma" type="button" data-grp-key="' + esc(pg) + '" data-page-key="' + esc(pg) + '" data-page-id="' + esc(pgId) + '">生成本組臨時拼板 (' + list.length + ')</button>'
+      });
+      list.forEach(function(c) { html += renderScreenRow(c); });
+      html += '</div></div>';
+    });
+  }
+
+  if (removedRaw.length > 0) {
+    html += '<div class="section-hdr" style="cursor:default"><h3>🔴 本次同步已從 Figma 刪除（' + removedRaw.length + '）</h3><span class="muted">已從 SQLite 移除，原有分類標註已自動備份到 archivedDeleted</span></div>';
+    html += '<div class="panel" style="padding:0;overflow:hidden">';
+    removedRaw.forEach(function(s) {
+      const prevCat = s.major ? (s.major + (s.minor ? ' / ' + s.minor : '')) : '未標註';
+      html += '<div class="screen-row" style="grid-template-columns:210px minmax(220px,1fr) 220px">' +
+        '<div>' +
+        '<span class="id-link" data-copy="' + esc(rawNodeId(s.id)) + '" title="點擊複製 node_id">' + esc(rawNodeId(s.id)) + '</span>' +
+        '<div style="margin-top:4px"><span class="pill red">已刪除</span></div>' +
+        '</div>' +
+        '<div>' +
+        '<div class="layer-name">' + esc(s.name || '(無名)') + '</div>' +
+        '<div class="muted" style="margin-top:3px">頁面：' + esc(s.pageName || '-') + '</div>' +
+        '</div>' +
+        '<div>' +
+        '<span class="pill' + (s.major ? ' amber' : '') + '">原分類：' + esc(prevCat) + '</span>' +
+        (s.major ? '<div class="muted" style="margin-top:4px">已自動歸檔</div>' : '') +
+        '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
 function renderMain() {
+  closeCatComboMenu();
   if (viewMode === 'overview') {
     renderOverview();
+  } else if (viewMode === 'sync-diff') {
+    renderSyncDiffView();
   } else if (viewMode === 'proposals') {
     renderProposalsView();
   } else if (viewMode === 'category') {
@@ -3384,7 +4265,7 @@ function renderAll() {
 function openCategory(key) {
   viewMode = 'category';
   activeKey = key;
-  detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
+  detailFilter = { q: '', arch: '', gen: '', source: '', onlyCommented: false };
   renderAll();
   window.scrollTo(0, 0);
 }
@@ -3392,7 +4273,9 @@ function openCategory(key) {
 function openPage(pageName) {
   viewMode = 'page';
   activeKey = pageName;
-  detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
+  const pRec = figmaPageMap.get(pageName);
+  if (pRec && pRec.sourceId) activePageSourceId = pRec.sourceId;
+  detailFilter = { q: '', arch: '', gen: '', source: '', onlyCommented: false };
   renderAll();
   window.scrollTo(0, 0);
 }
@@ -3400,7 +4283,7 @@ function openPage(pageName) {
 function openFamily(hash) {
   viewMode = 'family';
   activeKey = hash;
-  detailFilter = { q: '', arch: '', gen: '', onlyCommented: false };
+  detailFilter = { q: '', arch: '', gen: '', source: '', onlyCommented: false };
   renderAll();
   window.scrollTo(0, 0);
 }
@@ -3470,6 +4353,11 @@ document.getElementById('seg-cats').addEventListener('click', function() { sbMod
 document.getElementById('seg-pages').addEventListener('click', function() { sbMode = 'pages'; renderSidebar(); });
 document.getElementById('seg-fams').addEventListener('click', function() { sbMode = 'families'; renderSidebar(); });
 document.getElementById('sb-filter').addEventListener('input', renderSidebar);
+document.getElementById('btn-sync-diff-view').addEventListener('click', function() {
+  viewMode = 'sync-diff';
+  renderAll();
+  window.scrollTo(0, 0);
+});
 document.getElementById('btn-proposals-view').addEventListener('click', function() {
   viewMode = 'proposals';
   renderAll();
@@ -3486,7 +4374,23 @@ document.getElementById('btn-commented-view').addEventListener('click', function
   window.scrollTo(0, 0);
 });
 
+const sbSourcePicker = document.getElementById('sb-source-picker');
+if (sbSourcePicker) {
+  sbSourcePicker.addEventListener('click', function(ev) {
+    const btn = ev.target.closest('[data-pick-source]');
+    if (!btn) return;
+    activePageSourceId = btn.getAttribute('data-pick-source') || '';
+    renderSidebar();
+  });
+}
+
 document.getElementById('sb-list').addEventListener('click', function(ev) {
+  if (ev.target && ev.target.id === 'sb-clear-filter') {
+    const inp = document.getElementById('sb-filter');
+    if (inp) { inp.value = ''; inp.focus(); }
+    renderSidebar();
+    return;
+  }
   const majEl = ev.target.closest('[data-toggle-major]');
   if (majEl) {
     const m = majEl.getAttribute('data-toggle-major');
@@ -3517,6 +4421,16 @@ document.getElementById('content').addEventListener('click', function(ev) {
   }
 
   if (t.id === 'btn-back') { viewMode = 'overview'; activeKey = ''; renderAll(); return; }
+  const jumpSrcEl = t.closest('[data-jump-source-pages]');
+  if (jumpSrcEl) {
+    activePageSourceId = jumpSrcEl.getAttribute('data-jump-source-pages') || '';
+    sbMode = 'pages';
+    renderSidebar();
+    const sbFilterEl = document.getElementById('sb-filter');
+    if (sbFilterEl) sbFilterEl.focus();
+    return;
+  }
+  if (t.id === 'btn-open-sync-diff') { viewMode = 'sync-diff'; renderAll(); window.scrollTo(0, 0); return; }
   if (t.id === 'kpi-comments' || t.closest('#kpi-comments')) { viewMode = 'commented'; renderAll(); return; }
 
   const propFilterBtn = t.closest('[data-prop-filter]');
@@ -3569,12 +4483,15 @@ document.getElementById('content').addEventListener('click', function(ev) {
     pendingPropGroupKey = gk;
     document.getElementById('prop-grp-title').textContent = '整組改分類 · ' + gk;
     document.getElementById('prop-grp-count').textContent = pairs.length + ' 筆';
-    document.getElementById('prop-grp-sel').value = '';
+    const propGrpSel = document.getElementById('prop-grp-sel');
+    propGrpSel.value = '';
+    propGrpSel.setAttribute('data-selected-val', '');
+    propGrpSel.classList.remove('filled');
     document.getElementById('prop-grp-custom-major').value = '新UI';
     const minInp = document.getElementById('prop-grp-custom-minor');
     minInp.value = '';
     document.getElementById('prop-group-modal').classList.add('show');
-    setTimeout(function() { document.getElementById('prop-grp-sel').focus(); }, 0);
+    setTimeout(function() { propGrpSel.focus(); }, 0);
     return;
   }
   if (t.classList.contains('prop-custom-apply')) {
@@ -3688,8 +4605,8 @@ document.getElementById('content').addEventListener('click', function(ev) {
     updateFocusHighlightInDom();
     const c = resolveCardForId(id);
     const u = state.unrecorded && state.unrecorded[id];
-    const label = (c && c.page) || t.getAttribute('data-focus-page') || (u && u.pageName) || id;
-    requestFigmaFocus([id], label);
+    const label = (c && c.page) || t.getAttribute('data-focus-page') || (u && u.pageName) || rawNodeId(id);
+    requestFigmaFocus([rawNodeId(id)], label, c ? { fileKey: c.sourceFileKey, fileName: c.sourceName, pageId: c.rawPageId || rawNodeId(c.pageId || '') } : {});
     return;
   }
 
@@ -3763,9 +4680,13 @@ document.getElementById('content').addEventListener('click', function(ev) {
     const inp = document.getElementById('batch-input');
     inp.value = '';
     const bSel = document.getElementById('batch-cat-select');
-    if (bSel) bSel.value = '';
+    if (bSel) {
+      bSel.value = '';
+      bSel.setAttribute('data-selected-val', '');
+      bSel.classList.remove('filled');
+    }
     document.getElementById('batch-modal').classList.add('show');
-    setTimeout(function() { inp.focus(); }, 0);
+    setTimeout(function() { (bSel || inp).focus(); }, 0);
     return;
   }
 
@@ -3862,7 +4783,9 @@ document.getElementById('content').addEventListener('click', function(ev) {
     const list = (window.__currentGroups && window.__currentGroups.get(pg)) || window.__currentGroupCards || [];
     const first = list[0];
     const pgId = t.getAttribute('data-page-id') || (first ? first.pageId : '');
-    requestFigmaFocus(first ? [first.id] : [], pg, { pageOnly: true, pageId: pgId });
+    const tgt = list.length > 0 ? collectBridgeTarget(list, pgId) : { rawIds: [], rawPageId: rawNodeId(pgId), fileKey: DATA.fileKey, fileName: DATA.fileName };
+    if (tgt.error) { toast(tgt.error); return; }
+    requestFigmaFocus(first ? [rawNodeId(first.id)] : [], pg, { pageOnly: true, pageId: tgt.rawPageId, fileKey: tgt.fileKey, fileName: tgt.fileName });
     return;
   }
 
@@ -3873,9 +4796,10 @@ document.getElementById('content').addEventListener('click', function(ev) {
     const pg = t.getAttribute('data-page-key') || gk;
     const pgId = t.getAttribute('data-page-id') || '';
     const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
-    const ids = collectMemberIds(list, pgId);
-    if (ids.length > 200 && !confirm('這組共有 ' + ids.length + ' 個 Figma 節點，確定要一次全部在 Figma 中選中嗎？')) return;
-    requestFigmaFocus(ids, pg + ' · ' + gk, { pageId: pgId });
+    const tgt = collectBridgeTarget(list, pgId);
+    if (tgt.error) { toast(tgt.error); return; }
+    if (tgt.rawIds.length > 200 && !confirm('這組共有 ' + tgt.rawIds.length + ' 個 Figma 節點，確定要一次全部在 Figma 中選中嗎？')) return;
+    requestFigmaFocus(tgt.rawIds, pg + ' · ' + gk, { pageId: tgt.rawPageId, fileKey: tgt.fileKey, fileName: tgt.fileName });
     return;
   }
 
@@ -3886,8 +4810,9 @@ document.getElementById('content').addEventListener('click', function(ev) {
     const pg = t.getAttribute('data-page-key') || gk;
     const pgId = t.getAttribute('data-page-id') || '';
     const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
-    const ids = collectMemberIds(list, pgId);
-    requestFigmaStageBoard(ids, pg + ' · ' + gk, { targetPageId: pgId });
+    const tgt = collectBridgeTarget(list, pgId);
+    if (tgt.error) { toast(tgt.error); return; }
+    requestFigmaStageBoard(tgt.rawIds, pg + ' · ' + gk, { targetPageId: tgt.rawPageId, fileKey: tgt.fileKey, fileName: tgt.fileName });
     return;
   }
 
@@ -3897,10 +4822,13 @@ document.getElementById('content').addEventListener('click', function(ev) {
     const pg = t.getAttribute('data-page-key');
     const pgId = t.getAttribute('data-page-id') || '';
     const pRec = figmaPageMap.get(pg);
-    const ids = pRec ? collectMemberIds(pRec.cards, pRec.pageId || pgId) : collectMemberIds(window.__currentGroupCards || [], pgId);
-    if (ids.length === 0) { toast('本頁目前沒有已收錄的設計稿'); return; }
-    if (ids.length > 200 && !confirm('本頁共有 ' + ids.length + ' 個已收錄畫面，一次在 Figma 全選可能會短暫卡頓，確定要全部選中用來對照畫布查漏嗎？')) return;
-    requestFigmaFocus(ids, pg + '（全部已收錄）', { pageId: pgId });
+    const tgt = pRec
+      ? collectBridgeTarget(pRec.cards, pRec.pageId || pgId)
+      : collectBridgeTarget(window.__currentGroupCards || [], pgId);
+    if (tgt.error) { toast(tgt.error); return; }
+    if (tgt.rawIds.length === 0) { toast('本頁目前沒有已收錄的設計稿'); return; }
+    if (tgt.rawIds.length > 200 && !confirm('本頁共有 ' + tgt.rawIds.length + ' 個已收錄畫面，一次在 Figma 全選可能會短暫卡頓，確定要全部選中用來對照畫布查漏嗎？')) return;
+    requestFigmaFocus(tgt.rawIds, pg + '（全部已收錄）', { pageId: tgt.rawPageId, fileKey: tgt.fileKey, fileName: tgt.fileName });
     return;
   }
 
@@ -3909,7 +4837,7 @@ document.getElementById('content').addEventListener('click', function(ev) {
     closeAllMenus();
     const gk = t.getAttribute('data-grp-key');
     const list = (window.__currentGroups && window.__currentGroups.get(gk)) || [];
-    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製「' + gk + '」' + list.length + ' 個 ID');
+    copyText(list.map(function(c) { return c.rawId || rawNodeId(c.id); }).join(String.fromCharCode(10)), '已複製「' + gk + '」' + list.length + ' 個 ID');
     return;
   }
 
@@ -3936,14 +4864,15 @@ document.getElementById('content').addEventListener('click', function(ev) {
   if (t.id === 'btn-copy-group-ids') {
     closeAllMenus();
     const list = window.__currentGroupCards || [];
-    copyText(list.map(function(c) { return c.id; }).join(String.fromCharCode(10)), '已複製 ' + list.length + ' 個 ID');
+    copyText(list.map(function(c) { return c.rawId || rawNodeId(c.id); }).join(String.fromCharCode(10)), '已複製 ' + list.length + ' 個 ID');
     return;
   }
 
   const pgHdr = t.closest('[data-toggle-page]');
   if (pgHdr) {
     const k = pgHdr.getAttribute('data-toggle-page');
-    if (expandedPages.has(k)) {
+    const wasOpen = !pgHdr.classList.contains('collapsed-hdr');
+    if (wasOpen) {
       expandedPages.delete(k);
       expandedPages.add('COLLAPSED::' + k);
     } else {
@@ -4096,31 +5025,8 @@ document.getElementById('content').addEventListener('input', function(ev) {
 
 document.getElementById('content').addEventListener('change', function(ev) {
   const t = ev.target;
-  if (t.classList.contains('quick-cat-sel')) {
-    applyQuickCat(t);
-    return;
-  }
-  if (t.classList.contains('prop-override-sel')) {
-    const id = t.getAttribute('data-prop-override-id');
-    const val = (t.value || '').trim();
-    if (!id) return;
-    if (!state.proposals) state.proposals = {};
-    if (!val) {
-      const cur = state.proposals[id];
-      if (cur && cur.decision === 'override' && !cur.isCustom && window.__canonicalCatSet && window.__canonicalCatSet.has(cur.target || '')) {
-        delete state.proposals[id];
-        saveState();
-        renderAll();
-      }
-      return;
-    }
-    state.proposals[id] = { decision: 'override', target: val };
-    saveState();
-    renderAll();
-    toast('已改選標準分類：' + val);
-    return;
-  }
-  if (t.id === 'dt-arch') { detailFilter.arch = t.value; renderMain(); }
+  if (t.id === 'dt-source') { detailFilter.source = t.value; renderMain(); }
+  else if (t.id === 'dt-arch') { detailFilter.arch = t.value; renderMain(); }
   else if (t.id === 'dt-gen') { detailFilter.gen = t.value; renderMain(); }
   else if (t.id === 'dt-only-comment') { detailFilter.onlyCommented = t.checked; renderMain(); }
 });
@@ -4198,7 +5104,7 @@ document.getElementById('menu-clear-all').addEventListener('click', function() {
 });
 
 document.getElementById('btn-copy-ids').addEventListener('click', function() {
-  const ids = Array.from(selected);
+  const ids = Array.from(selected).map(rawNodeId);
   copyText(ids.join(String.fromCharCode(10)), '已複製 ' + ids.length + ' 個 ID');
 });
 document.getElementById('btn-batch-selected').addEventListener('click', function() {
@@ -4209,14 +5115,18 @@ document.getElementById('btn-batch-selected').addEventListener('click', function
     toast('不支援跨頁批量標註，請先取消其他頁面的勾選後再操作（目前跨 ' + pages.length + ' 頁）');
     return;
   }
-  const pg = pages[0];
+  const pg = (list[0] && list[0].rawPageName) || pages[0];
   pendingBatch = { page: pg, ids: list.map(function(c) { return c.id; }) };
   document.getElementById('batch-title').textContent = '批量標註 · ' + pg;
   document.getElementById('batch-count').textContent = '已選中 ' + list.length + ' 筆';
   const inp = document.getElementById('batch-input');
   inp.value = '';
   const bSel = document.getElementById('batch-cat-select');
-  if (bSel) bSel.value = '';
+  if (bSel) {
+    bSel.value = '';
+    bSel.setAttribute('data-selected-val', '');
+    bSel.classList.remove('filled');
+  }
   document.getElementById('batch-modal').classList.add('show');
   setTimeout(function() { (bSel || inp).focus(); }, 0);
 });
@@ -4229,7 +5139,9 @@ document.getElementById('btn-focus-selected').addEventListener('click', function
     return;
   }
   const pgId = list[0].pageId || '';
-  requestFigmaFocus(collectMemberIds(list, pgId), list[0].page || list[0].id, { pageId: pgId });
+  const tgt = collectBridgeTarget(list, pgId);
+  if (tgt.error) { toast(tgt.error); return; }
+  requestFigmaFocus(tgt.rawIds, list[0].page || rawNodeId(list[0].id), { pageId: tgt.rawPageId, fileKey: tgt.fileKey, fileName: tgt.fileName });
 });
 document.getElementById('btn-stage-selected').addEventListener('click', function() {
   const list = Array.from(selected).map(function(id) { return resolveCardForId(id); }).filter(Boolean);
@@ -4239,8 +5151,9 @@ document.getElementById('btn-stage-selected').addEventListener('click', function
   const titleTxt = pages.length === 1
     ? ((list[0].page || '選中畫面'))
     : ('跨 ' + pages.length + ' 頁選中 (' + list.length + ' 組)');
-  const ids = collectMemberIds(list, singlePageId);
-  requestFigmaStageBoard(ids, titleTxt, { targetPageId: singlePageId || undefined });
+  const tgt = collectBridgeTarget(list, singlePageId);
+  if (tgt.error) { toast(tgt.error); return; }
+  requestFigmaStageBoard(tgt.rawIds, titleTxt, { targetPageId: tgt.rawPageId || undefined, fileKey: tgt.fileKey, fileName: tgt.fileName });
 });
 document.getElementById('btn-stage-info').addEventListener('click', function(ev) {
   ev.stopPropagation();
@@ -4412,6 +5325,7 @@ document.getElementById('modal').addEventListener('click', function(ev) {
 });
 
 function closeBatchModal() {
+  closeCatComboMenu();
   document.getElementById('batch-modal').classList.remove('show');
   pendingBatch = null;
 }
@@ -4434,7 +5348,7 @@ function applyBatchLabel() {
   const count = pendingBatch.ids.length;
   closeBatchModal();
   renderAll();
-  toast('已批量標註「' + pageName + '」共 ' + count + ' 筆');
+  toast('已標註「' + pageName + '」共 ' + count + ' 筆（可繼續標註，全部完成後點頂部「重建頁面」統一寫入）');
 }
 function openCommitModal(commits, opts) {
   pendingCommitItems = commits;
@@ -4464,7 +5378,7 @@ function openCommitModal(commits, opts) {
 document.getElementById('btn-direct-commit').addEventListener('click', function() {
   const direct = collectDirectLabelCommits();
   if (direct.commits.length === 0) {
-    toast('目前沒有符合標準分類格式的待寫入項目');
+    toast('目前沒有待寫入的確定分類（先在下方標註標準分類後即可點此寫入並重建頁面）');
     return;
   }
   openCommitModal(direct.commits, { mode: 'direct', sourceItemKeys: direct.sourceItemKeys });
@@ -4472,28 +5386,6 @@ document.getElementById('btn-direct-commit').addEventListener('click', function(
 
 document.getElementById('batch-cancel').addEventListener('click', closeBatchModal);
 document.getElementById('batch-apply').addEventListener('click', applyBatchLabel);
-document.getElementById('batch-direct-commit').addEventListener('click', function() {
-  if (!pendingBatch || !pendingBatch.ids || pendingBatch.ids.length === 0) {
-    closeBatchModal();
-    return;
-  }
-  const text = (document.getElementById('batch-input').value || '').trim();
-  const direct = collectDirectLabelCommits(pendingBatch.ids, text);
-  if (direct.invalidText || direct.commits.length === 0) {
-    toast('直接入庫需選擇標準分類，或輸入「新UI / 分類名」格式（自由文字請按「僅暫存標註」）');
-    document.getElementById('batch-input').focus();
-    return;
-  }
-  closeBatchModal();
-  openCommitModal(direct.commits, { mode: 'direct', sourceItemKeys: direct.sourceItemKeys });
-});
-document.getElementById('batch-cat-select').addEventListener('change', function() {
-  const val = (this.value || '').trim();
-  if (!val) return;
-  const inp = document.getElementById('batch-input');
-  inp.value = val;
-  inp.focus();
-});
 document.getElementById('batch-modal').addEventListener('click', function(ev) {
   if (ev.target && ev.target.id === 'batch-modal') closeBatchModal();
 });
@@ -4560,6 +5452,7 @@ document.getElementById('commit-confirm-direct').addEventListener('click', funct
 });
 
 function closePropGroupModal() {
+  closeCatComboMenu();
   document.getElementById('prop-group-modal').classList.remove('show');
   pendingPropGroupKey = '';
 }
@@ -4568,14 +5461,15 @@ function applyPropGroupModal() {
     closePropGroupModal();
     return;
   }
-  const selVal = (document.getElementById('prop-grp-sel').value || '').trim();
+  const pgSel = document.getElementById('prop-grp-sel');
+  const selVal = ((pgSel && (pgSel.getAttribute('data-selected-val') || pgSel.value)) || '').trim();
   const majVal = (document.getElementById('prop-grp-custom-major').value || '新UI').trim();
   const minVal = (document.getElementById('prop-grp-custom-minor').value || '').trim();
   const customTarget = buildCustomCategoryTarget(majVal, minVal);
   const target = selVal || customTarget;
   const isCustom = !selVal && Boolean(customTarget);
   if (!target) {
-    toast('請從下拉選擇標準分類，或輸入自訂新分類名稱');
+    toast('請搜尋／選擇現有標準分類，或輸入自訂新分類名稱');
     return;
   }
   const pairs = window.__propGroups.get(pendingPropGroupKey) || [];
@@ -4593,11 +5487,15 @@ function applyPropGroupModal() {
   renderAll();
   toast('已將本組 ' + cnt + ' 筆改為' + (isCustom ? '自訂新分類' : '標準分類') + '：' + target);
 }
-document.getElementById('prop-grp-sel').addEventListener('change', function() {
-  if (this.value) document.getElementById('prop-grp-custom-minor').value = '';
-});
 document.getElementById('prop-grp-custom-minor').addEventListener('input', function() {
-  if ((this.value || '').trim()) document.getElementById('prop-grp-sel').value = '';
+  if ((this.value || '').trim()) {
+    const pgSel = document.getElementById('prop-grp-sel');
+    if (pgSel) {
+      pgSel.value = '';
+      pgSel.setAttribute('data-selected-val', '');
+      pgSel.classList.remove('filled');
+    }
+  }
 });
 document.getElementById('prop-grp-custom-minor').addEventListener('keydown', function(ev) {
   if (ev.key === 'Enter') {
@@ -4628,7 +5526,7 @@ connectBridge();
   }
 
   return {
-    projectId: resolved.id,
+    projectId: boardId,
     html: outPath,
     unique: selectedCards.length,
     screens: rawScreens.length,
@@ -4688,6 +5586,11 @@ if (typeof require !== 'undefined' && typeof module !== 'undefined' && require.m
       for (const p of projects) {
         const res = generateReviewBoard({ projectId: p.id, dbPath: p.dbPath, open: false });
         console.log('project board written · project=' + res.projectId + ' unique=' + res.unique + ' screens=' + res.screens + ' path=' + res.html);
+      }
+      for (const ws of listWorkspaces(ROOT)) {
+        if (ws.sourceProjects.length === 0) continue;
+        const res = generateReviewBoard({ projectId: ws.id, open: false });
+        console.log('workspace board written · workspace=' + res.projectId + ' unique=' + res.unique + ' screens=' + res.screens + ' path=' + res.html);
       }
       const hub = generateProjectHub(ROOT);
       console.log('review.html (Project Hub) written · projects=' + hub.projects + ' path=' + hub.html);

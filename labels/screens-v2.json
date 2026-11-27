@@ -3,9 +3,9 @@
   "sample": "2026-11-20-baipai-full",
   "note": "3-root taxonomy (新UI / 老UI / 系統UI) + NFC human audit applied",
   "counts": {
-    "新UI": 1047,
+    "新UI": 1046,
     "系統UI": 30,
-    "老UI": 1733
+    "老UI": 1732
   },
   "screens": [
     {
@@ -626,13 +626,6 @@
     },
     {
       "id": "9349:155252",
-      "label": "掃碼收款/支付",
-      "major": "新UI",
-      "minor": "掃碼收款/支付",
-      "generation": "new"
-    },
-    {
-      "id": "11728:804669",
       "label": "掃碼收款/支付",
       "major": "新UI",
       "minor": "掃碼收款/支付",
@@ -10132,13 +10125,6 @@
     },
     {
       "id": "11728:804555",
-      "label": "老UI",
-      "major": "老UI",
-      "minor": "",
-      "generation": "old"
-    },
-    {
-      "id": "11728:804671",
       "label": "老UI",
       "major": "老UI",
       "minor": "",
@@ -19677,6 +19663,24 @@
       "major": "新UI",
       "minor": "幫助中心",
       "generation": "new"
+    }
+  ],
+  "archivedDeleted": [
+    {
+      "id": "11728:804669",
+      "label": "掃碼收款/支付",
+      "major": "新UI",
+      "minor": "掃碼收款/支付",
+      "generation": "new",
+      "deletedAt": "2026-11-27T02:49:48.183Z"
+    },
+    {
+      "id": "11728:804671",
+      "label": "老UI",
+      "major": "老UI",
+      "minor": "",
+      "generation": "old",
+      "deletedAt": "2026-11-27T02:49:48.183Z"
     }
   ]
 }

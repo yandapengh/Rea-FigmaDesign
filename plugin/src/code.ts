@@ -20,6 +20,7 @@ const BATCH_SIZE = 250;
 const MAX_BATCH_BYTES = 1024 * 1024;
 const ACK_TIMEOUT_MS = 30000;
 const LOOKUP_ITEM_CAP = 1000;
+const FILE_UID_KEY = 'rea_file_uid';
 const STAGE_BOARD_KEY = 'rea_stage_board';
 const STAGE_SOURCE_ID_KEY = 'rea_source_id';
 const STAGE_SOURCE_PAGE_ID_KEY = 'rea_source_page_id';
@@ -55,6 +56,19 @@ function send(message: WsEnvelopeMessage, timeoutMs: number = ACK_TIMEOUT_MS): P
   });
 }
 
+function ensureFileUid(): string {
+  try {
+    let uid = figma.root.getPluginData(FILE_UID_KEY);
+    if (!uid) {
+      uid = 'fuid-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+      figma.root.setPluginData(FILE_UID_KEY, uid);
+    }
+    return uid;
+  } catch {
+    return '';
+  }
+}
+
 function fileMeta(): FileMetaPayload {
   let key = figma.root.id;
   try {
@@ -62,7 +76,14 @@ function fileMeta(): FileMetaPayload {
   } catch {
     /* local files */
   }
-  return { file_key: key, file_name: figma.root.name || 'Untitled', extracted_at: new Date().toISOString(), page_count: figma.root.children.length };
+  const uid = ensureFileUid();
+  return {
+    file_key: key,
+    file_uid: uid || undefined,
+    file_name: figma.root.name || 'Untitled',
+    extracted_at: new Date().toISOString(),
+    page_count: figma.root.children.length,
+  };
 }
 
 function sendMeta(): void {
@@ -177,7 +198,8 @@ async function run(pageIds: string[]): Promise<void> {
     const selected = figma.root.children.filter((p) => pageIds.indexOf(p.id) !== -1);
     if (selected.length === 0) throw new Error('no pages selected');
     const meta = fileMeta();
-    meta.pages = selected.map((p, i) => ({ page_id: p.id, page_name: p.name, page_index: figma.root.children.indexOf(p) }));
+    meta.pages = selected.map((p) => ({ page_id: p.id, page_name: p.name, page_index: figma.root.children.indexOf(p) }));
+    meta.all_pages = figma.root.children.map((p, idx) => ({ page_id: p.id, page_name: p.name, page_index: idx }));
     await send({ type: 'SYNC_START', payload: meta });
     try { await extractVariables(); } catch (error) { figma.ui.postMessage({ type: 'RUN_WARN', payload: { message: 'variables: ' + (error instanceof Error ? error.message : String(error)) } }); }
     for (let i = 0; i < selected.length; i += 1) {
@@ -494,7 +516,7 @@ async function focusBridgeNodes(payload: BridgeFocusRequestPayload): Promise<voi
         request_id: reqId,
         ok: false,
         missing_ids: missingIds,
-        error: '在目前 Figma 檔案中找不到對應節點（可能已刪除或未開啟對應檔案）',
+        error: '在目前 Figma 檔案中找不到對應節點（可能已在設計稿刪除或尚未同步，建議在插件對該頁做一次單頁增量匯出）',
       });
       return;
     }
@@ -611,7 +633,7 @@ async function stageBridgeBoard(payload: BridgeStageRequestPayload): Promise<voi
         request_id: reqId,
         ok: false,
         missing_ids: missingIds,
-        error: '在目前 Figma 檔案中找不到對應畫面（可能已刪除或未開啟對應檔案）',
+        error: '在目前 Figma 檔案中找不到對應畫面（可能已在設計稿刪除或尚未開啟對應檔案，建議在插件做一次單頁增量匯出）',
       });
       return;
     }
