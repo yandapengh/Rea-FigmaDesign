@@ -4,20 +4,22 @@
 
 **線上閱讀**：https://yandapengh.github.io/Rea-FigmaDesign/
 
-![Rea-FigmaDesign 複審看板](docs/review-board.png)
+![Rea-FigmaDesign 複審工作台](docs/assets/06-board-overview.png)
 
-**為什麼做這個**：一份跑了兩年的支付設計檔有 163,601 個節點、512 個手機畫面，去重後只有 291 個是真的；設計師常用的名稱只有 27 種，背後卻有 68 種不同結構。Figma 擅長「畫」，不擅長「查」。
+**為什麼做這個**：一份跑了兩年的支付設計檔有 163,601 個節點、512 個手機畫面，去重後只有 291 個是真的；設計師常用的名稱只有 27 種，背後卻有 68 種不同結構；多檔組合實測 91 頁、4,006 個畫面經 AST 去重可收斂為 1,916 組。Figma 擅長「畫」，不擅長「查」。
 
-這個專案只做一次抽取，之後所有問題都問本地圖譜——不再翻頁、不再靠圖層名稱、不再人工比對。
+這個專案只做一次抽取，後續改版只需單頁增量重導；所有查詢與複審都在本機完成——不再跨檔翻頁、不再靠圖層名稱、不再人工表格對帳。
 
-→ 完整背景、實驗方法與技術取捨：**[docs/index.html](docs/index.html)**（Part 1 為什麼做 / Part 2 怎麼做）
+→ 完整設計師六幕實錄與五篇底層原理：**[docs/index.html](docs/index.html)**
 
 ---
 
-## 目前版本
-v0.2.0（2026-11-20）· Part 1 完成，Part 2 待啟動
-- 專案狀態與迭代方向：docs/STATUS.md
-- 版本紀錄：CHANGELOG.md
+## 目前能力與現況
+- **多檔應用組合（Multi-File Workspaces）**：無需強行合併原始 Figma 檔，即可跨檔共用分類標準與篩選規則；左側「頁面」嚴格按來源檔切分。
+- **Figma 臨時拼板（1:1 原稿綁定）**：從工作台一鍵排齊跨頁畫面到 Figma `[Rea 臨時預覽 · 可刪除]` Section，框選異常副本即可跳回原頁原稿。
+- **單頁增量同步與刪稿歸檔**：改一頁導一頁，自動識別 `+NEW` 入庫並將 Figma 已刪畫面歷史歸檔至 `archivedDeleted`。
+- **簡繁雙向快搜與累積標註**：全域目錄、下拉與批標選單全面支援簡繁互通，確認標註後點擊頂部「重建頁面 (N)」一次落盤。
+- 專案狀態與紀錄：[docs/STATUS.md](docs/STATUS.md) · [CHANGELOG.md](CHANGELOG.md)
 
 ## 能力
 
@@ -95,7 +97,7 @@ description: Query and audit a Rea-FigmaDesign Figma AST graph — screens, fami
 | 入口 | 給誰 | 特性 |
 |---|---|---|
 | `npm run query -- <cmd>` | 開發者 / CI | 唯讀、`--json`、錯誤有 code |
-| `npm run mcp` | 其他 agent | stdio JSON-RPC，11 個工具 |
+| `npm run mcp` | 其他 agent | stdio JSON-RPC，16 個工具 |
 | `/rea-figma-review` | 設計師（DSH） | 斜線命令，零 token、直接開看板 |
 
 三者都只做參數解析與排版；所有計算在 `server/core/`。`npm run test:parity` 會把 CLI 的 JSON 輸出與 core 逐位元比對。
@@ -134,7 +136,7 @@ npm run query -- verify-source   # 每個 ID 都必須存在於樣本
 
 ## 已知限制
 
-- 沒有縮圖：複審看板用色票／型別比例／文案當視覺替代。
+- 沒有內嵌 PNG 縮圖：工作台用色票／型別比例／文案摘要輔助判斷，需看實圖時透過「生成臨時拼板」直接在 Figma 畫布排齊檢視與 1:1 查找原稿。
 - kNN 分類留一驗證 57%：只有全票（86%）可作建議。
 - `pages` 目錄可能過期：查詢層一律從 `nodes.page_name` 聚合。
 - 語意分類需人工命名：工具給候選群，不給名字。

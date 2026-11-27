@@ -1,84 +1,81 @@
 <!doctype html>
-<html lang="zh-Hant" data-theme="light">
+<html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rea-FigmaDesign · 設計師視角的 Figma 設計資產盤點與雙向治理工作台</title>
+<title>Rea-FigmaDesign · 設計師把幾千張 Figma 畫稿理成一張活圖譜的真實旅程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f5f7fb;
-    --bg-elev:#ffffff;
-    --bg-soft:#edf1f7;
-    --bg-hover:#e4eaf3;
-    --line:#d6deea;
-    --line-strong:#bac6d8;
-    --text:#171d29;
-    --text-2:#3b465b;
-    --muted:#637089;
-    --accent:#0969da;
-    --accent-bg:#e8f1ff;
-    --accent-glow:rgba(9,105,218,0.14);
-    --purple:#7c3aed;
-    --purple-bg:#f3edff;
-    --ok:#1a7f37;
-    --ok-bg:#dafbe1;
-    --warn:#9a6700;
-    --warn-bg:#fff8c5;
-    --red:#cf222e;
-    --red-bg:#ffebe9;
-    --shadow:0 12px 32px rgba(23,29,41,0.07);
-    --svg-bg:#f8fafe;
-    --svg-node:#ffffff;
-    --svg-hl:#eef5ff;
+    --font-serif:"Newsreader","Source Serif 4","Songti SC","Noto Serif TC","STSong",Georgia,serif;
+    --font-sans:"Inter",-apple-system,"PingFang TC","Hiragino Sans GB","Noto Sans TC",system-ui,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+
+    --bg:#FAF9F5;
+    --bg-elev:#FFFFFF;
+    --bg-soft:#F3F1E8;
+    --bg-warm:#EBE8DD;
+
+    --line:#E6E3D8;
+    --line-strong:#D2CEC0;
+
+    --text:#141413;
+    --text-2:#3D3D3A;
+    --muted:#6E6C66;
+
+    --accent:#C96442;
+    --accent-hover:#B55434;
+    --accent-bg:#FBF0EB;
+    --accent-line:#E7C3B3;
+
+    --slate:#4B5D73;
+    --slate-bg:#EEF2F5;
+    --slate-line:#CBD5E0;
+
+    --ok:#2D6A4F;
+    --ok-bg:#ECF4EF;
+    --ok-line:#C0DCC8;
+
+    --warn:#9A6316;
+    --warn-bg:#FAF2E1;
+    --warn-line:#E6CFA0;
+
+    --red:#B44337;
+    --red-bg:#FBECE9;
+    --red-line:#E8C1BA;
+
+    --shadow-sm:0 1px 2px rgba(20,20,19,0.04);
+    --shadow:0 14px 36px rgba(20,20,19,0.055),0 1px 3px rgba(20,20,19,0.03);
   }
-  html[data-theme="dark"]{
-    --bg:#0b0f17;
-    --bg-elev:#121824;
-    --bg-soft:#192131;
-    --bg-hover:#202a3d;
-    --line:#263044;
-    --line-strong:#394661;
-    --text:#eef2f9;
-    --text-2:#c3cde2;
-    --muted:#8a97b2;
-    --accent:#4493f8;
-    --accent-bg:rgba(68,147,248,0.15);
-    --accent-glow:rgba(68,147,248,0.22);
-    --purple:#a371f7;
-    --purple-bg:rgba(163,113,247,0.15);
-    --ok:#3fb950;
-    --ok-bg:rgba(63,185,80,0.14);
-    --warn:#d29922;
-    --warn-bg:rgba(210,153,34,0.15);
-    --red:#f85149;
-    --red-bg:rgba(248,81,73,0.14);
-    --shadow:0 18px 46px rgba(0,0,0,0.45);
-    --svg-bg:#0e1420;
-    --svg-node:#161e2e;
-    --svg-hl:#172745;
-  }
+
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font:15.5px/1.7 -apple-system,"PingFang TC","Microsoft YaHei","Noto Sans TC",system-ui,sans-serif;
+    font-family:var(--font-sans);
+    font-size:15.5px;
+    line-height:1.72;
+    font-weight:400;
+    -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
   }
   a{color:var(--accent);text-decoration:none}
-  a:hover{text-decoration:underline}
+  a:hover{color:var(--accent-hover);text-decoration:underline;text-underline-offset:3px}
   code{
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-family:var(--font-mono);
     font-size:12.5px;
     background:var(--bg-soft);
     border:1px solid var(--line);
+    color:var(--text-2);
     padding:1px 6px;
     border-radius:6px;
-    color:var(--text);
   }
   pre{
-    margin:10px 0 0;
+    margin:12px 0 0;
     background:var(--bg-soft);
     border:1px solid var(--line);
     border-radius:10px;
@@ -87,763 +84,1025 @@
     font-size:12.5px;
     line-height:1.55;
   }
-  pre code{background:none;border:0;padding:0}
+  pre code{background:none;border:0;padding:0;color:var(--text)}
 
   /* Topbar */
   .topbar{
-    position:sticky;top:0;z-index:50;
+    position:sticky;top:0;z-index:40;
     display:flex;align-items:center;gap:14px;
-    padding:11px 28px;
-    background:color-mix(in srgb,var(--bg-elev) 88%,transparent);
+    padding:14px 32px;
+    background:rgba(250,249,245,0.9);
     backdrop-filter:blur(12px);
     border-bottom:1px solid var(--line);
   }
-  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--text);letter-spacing:-.01em}
-  .brand:hover{text-decoration:none}
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--font-serif);
+    font-weight:600;font-size:17px;letter-spacing:-0.01em;
+    color:var(--text);
+  }
+  .brand:hover{color:var(--text);text-decoration:none}
   .brand-dot{
-    width:20px;height:20px;border-radius:6px;
-    background:linear-gradient(135deg,var(--accent),var(--purple));
-    box-shadow:0 2px 10px var(--accent-glow);
+    width:18px;height:18px;border-radius:5px;
+    background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(20,20,19,0.08);
   }
-  .nav-links{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:13.5px;flex-wrap:wrap}
-  .nav-links a{color:var(--muted);font-weight:500}
-  .nav-links a:hover{color:var(--text);text-decoration:none}
-  .btn{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:8px 15px;border-radius:9px;font-size:13.5px;font-weight:600;
-    border:1px solid transparent;cursor:pointer;text-decoration:none;
-    background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;
+  .brand-dot::after{
+    content:"";width:6px;height:6px;border-radius:1.5px;
+    background:#FAF9F5;
   }
-  .btn:hover{filter:brightness(1.06);text-decoration:none}
-  .btn.ghost{background:var(--bg-elev);border-color:var(--line);color:var(--text)}
-  .btn.ghost:hover{border-color:var(--line-strong);background:var(--bg-soft)}
-  .btn.sm{padding:5px 11px;font-size:12.5px;border-radius:8px}
+  .nav{display:flex;align-items:center;gap:22px;margin-left:auto;font-size:13.5px}
+  .nav a{color:var(--muted);font-weight:500;transition:color .15s}
+  .nav a:hover{color:var(--text);text-decoration:none}
 
-  .wrap{max-width:1160px;margin:0 auto;padding:0 24px 88px}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:10px 20px;border-radius:10px;font-size:14px;font-weight:500;
+    border:1px solid transparent;cursor:pointer;
+    background:var(--accent);color:#FFFDFB;
+    box-shadow:var(--shadow-sm);
+    transition:background .15s,border-color .15s;
+  }
+  .btn:hover{background:var(--accent-hover);color:#FFFDFB;text-decoration:none}
+  .btn.ghost{
+    background:var(--bg-elev);border-color:var(--line-strong);color:var(--text);
+  }
+  .btn.ghost:hover{background:var(--bg-soft);border-color:var(--line-strong);color:var(--text)}
+  .btn.sm{padding:6px 14px;font-size:13px;border-radius:999px}
+  .topbar .nav a.btn{
+    background:#141413;color:#FFFFFF;border-color:#141413;font-weight:500;
+  }
+  .topbar .nav a.btn:hover{background:#2D2C2A;border-color:#2D2C2A;color:#FFFFFF}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:0 28px 96px}
 
   /* Hero */
-  .hero{
-    position:relative;
-    padding:42px 0 38px;
-    border-bottom:1px solid var(--line);
-  }
-  .hero::before{
-    content:"";
-    position:absolute;inset:0 -40px auto;height:320px;
-    background:radial-gradient(640px 240px at 18% 8%,var(--accent-glow),transparent 70%),
-               radial-gradient(500px 220px at 84% 12%,var(--purple-bg),transparent 72%);
-    pointer-events:none;z-index:0;
-  }
-  .hero > *{position:relative;z-index:1}
+  .hero{padding:68px 0 54px;border-bottom:1px solid var(--line);text-align:center}
   .eyebrow{
     display:inline-flex;align-items:center;gap:8px;
-    padding:4px 12px;border-radius:99px;
+    padding:5px 14px;border-radius:999px;
     background:var(--bg-elev);border:1px solid var(--line);
-    font-size:12.5px;font-weight:600;color:var(--text-2);
+    font-size:12.5px;font-weight:500;color:var(--text-2);
+    box-shadow:var(--shadow-sm);
   }
-  .eyebrow i{width:8px;height:8px;border-radius:99px;background:var(--ok);display:inline-block}
+  .eyebrow i{width:6px;height:6px;border-radius:99px;background:var(--ok);display:inline-block}
   h1{
-    font-size:clamp(30px,4.1vw,46px);
+    font-family:var(--font-serif);
+    font-weight:500;
+    font-size:clamp(34px,4.6vw,52px);
     line-height:1.18;
-    margin:16px 0 14px;
-    letter-spacing:-.02em;
+    margin:22px auto 16px;
+    letter-spacing:-0.025em;
+    max-width:820px;
+    color:var(--text);
   }
   h1 span{
-    background:linear-gradient(95deg,var(--accent),var(--purple));
-    -webkit-background-clip:text;background-clip:text;color:transparent;
+    color:var(--accent);
+    border-bottom:2px solid var(--accent-line);
+    padding-bottom:2px;
   }
-  .hero-lead{font-size:17px;color:var(--text-2);max-width:740px;margin:0 0 22px}
-  .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
+  .hero-sub{
+    color:var(--muted);font-size:16.5px;line-height:1.7;
+    margin:0 auto 28px;max-width:640px;
+  }
+  .hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:38px}
 
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+  .kpi-row{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+    max-width:780px;margin:0 auto 38px;
+  }
   .kpi{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.03);
+    background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;
+    padding:18px 16px;box-shadow:var(--shadow-sm);
   }
-  .kpi b{display:block;font-size:22px;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
-  .kpi span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
-
-  /* Product Live Mockup */
-  .stage{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:18px;
-    padding:16px;box-shadow:var(--shadow);
-    display:grid;grid-template-columns:minmax(0,1.28fr) 64px minmax(0,.92fr);gap:12px;align-items:stretch;
+  .kpi b{
+    display:block;font-family:var(--font-serif);font-weight:500;
+    font-size:30px;letter-spacing:-0.025em;line-height:1.15;color:var(--text);
   }
-  .win{
-    background:var(--svg-bg);border:1px solid var(--line);border-radius:12px;overflow:hidden;
-    display:flex;flex-direction:column;
-  }
-  .win-bar{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;
-    padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-soft);
-    font-size:11.5px;font-weight:700;color:var(--text-2);
-  }
-  .dots{display:flex;gap:5px}
-  .dots i{width:8px;height:8px;border-radius:99px;background:var(--line-strong);display:block}
-  .win-body{padding:12px;display:flex;flex-direction:column;gap:9px;font-size:12px;flex:1}
-  .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
-  .pill.green{background:var(--ok-bg);color:var(--ok)}
-  .pill.blue{background:var(--accent-bg);color:var(--accent)}
-  .pill.amber{background:var(--warn-bg);color:var(--warn)}
-  .pill.purple{background:var(--purple-bg);color:var(--purple)}
-  .pill.red{background:var(--red-bg);color:var(--red)}
-  .mock-split{display:grid;grid-template-columns:162px minmax(0,1fr);gap:10px;flex:1}
-  .mock-sb{border-right:1px solid var(--line);padding-right:10px;display:flex;flex-direction:column;gap:6px}
-  .mock-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--bg-soft);padding:3px;border-radius:7px;font-size:10.5px;text-align:center;font-weight:600}
-  .mock-tabs span{padding:3px 2px;border-radius:5px;color:var(--muted)}
-  .mock-tabs span.on{background:var(--bg-elev);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,0.06)}
-  .mock-src{background:var(--bg-elev);border:1px solid var(--line);border-radius:7px;padding:5px 7px;font-size:11px;display:flex;justify-content:space-between;align-items:center}
-  .mock-src.on{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700}
-  .mock-card{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:9px;padding:8px 10px;
-    display:flex;justify-content:space-between;align-items:center;gap:8px;
-  }
-  .mock-combo{
-    border:1px solid var(--accent);background:var(--bg-elev);border-radius:8px;padding:7px 9px;
-    display:flex;flex-direction:column;gap:4px;font-size:11.5px;
-  }
-  .mock-combo .opts{display:flex;flex-wrap:wrap;gap:4px}
-  .pipe{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:10.5px;color:var(--muted)}
-  .pipe-bar{width:2px;height:34px;background:linear-gradient(to bottom,var(--accent),var(--purple));border-radius:99px}
-  .stage-box{
-    border:1.5px dashed var(--purple);background:var(--purple-bg);border-radius:10px;padding:9px 10px;
-  }
-  .stage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
-  .mini-frame{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:6px;padding:6px;font-size:10.5px;
-  }
-  .mini-frame.bad{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+  .kpi span{display:block;font-size:12.5px;color:var(--muted);margin-top:6px}
 
   /* Sections */
-  section{padding:52px 0 22px;border-bottom:1px solid var(--line)}
+  section{padding:72px 0 48px;border-bottom:1px solid var(--line)}
   section:last-of-type{border-bottom:0}
-  .sec-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
-  h2{font-size:26px;margin:0 0 8px;letter-spacing:-.015em}
-  .sec-lead{color:var(--text-2);font-size:15.5px;max-width:740px;margin:0 0 22px}
+  .kicker{
+    font-size:11.5px;font-weight:600;letter-spacing:0.1em;
+    text-transform:uppercase;color:var(--accent);
+  }
+  h2{
+    font-family:var(--font-serif);font-weight:500;
+    font-size:32px;line-height:1.25;margin:6px 0 10px;letter-spacing:-0.02em;
+    color:var(--text);
+  }
+  .lead{color:var(--muted);font-size:15.5px;line-height:1.72;margin:0 0 28px;max-width:680px}
 
-  /* Before / After Comparison */
-  .compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-  .cmp-card{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:20px;
-    display:flex;flex-direction:column;gap:14px;
+  /* Screenshot Stage & Window Frame */
+  .shot-stage{
+    background:var(--bg-soft);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:18px;
+    text-align:left;
   }
-  .cmp-card.before{border-top:4px solid var(--red)}
-  .cmp-card.after{border-top:4px solid var(--ok);box-shadow:var(--shadow)}
-  .cmp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-  .cmp-head h3{margin:0;font-size:18px}
-  .chain{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
-  .chain li{
-    display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-radius:10px;
-    background:var(--bg-soft);font-size:13.5px;line-height:1.5;
+  .diptych{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+    align-items:stretch;
   }
-  .chain li b{flex-shrink:0;width:22px;height:22px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;margin-top:1px}
-  .before .chain li b{background:var(--red-bg);color:var(--red)}
-  .after .chain li b{background:var(--ok-bg);color:var(--ok)}
-  .cmp-foot{
-    margin-top:auto;padding:11px 13px;border-radius:10px;font-size:13px;font-weight:600;
+  .diptych.asymmetric{
+    grid-template-columns:minmax(0,0.68fr) minmax(0,1.32fr);
   }
-  .before .cmp-foot{background:var(--red-bg);color:var(--red)}
-  .after .cmp-foot{background:var(--ok-bg);color:var(--ok)}
-
-  /* Time compression visual */
-  .time-card{
-    margin-top:16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:18px 20px;
+  .diptych.storyboard{
+    grid-template-columns:minmax(0,1.22fr) minmax(0,0.78fr);
   }
-  .bar-row{display:grid;grid-template-columns:180px minmax(0,1fr) 140px;gap:12px;align-items:center;margin-top:10px;font-size:13px}
-  .bar-track{height:18px;background:var(--bg-soft);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
-  .bar-fill{height:100%;border-radius:99px}
-
-  /* 5-step Journey */
-  .journey-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
-  .j-tab{
-    text-align:left;background:var(--bg-elev);border:1px solid var(--line);border-radius:12px;
-    padding:11px 12px;cursor:pointer;transition:all .15s;color:var(--text);font:inherit;
-  }
-  .j-tab:hover{border-color:var(--line-strong);background:var(--bg-soft)}
-  .j-tab.active{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 4px 14px var(--accent-glow)}
-  .j-tab .jn{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em}
-  .j-tab strong{display:block;font-size:13.5px;margin-top:2px;line-height:1.35}
-  .j-panel{
-    display:none;background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:22px;
+  .shot-frame{
+    background:var(--bg-elev);
+    border:1px solid var(--line-strong);
+    border-radius:12px;
+    overflow:hidden;
     box-shadow:var(--shadow);
+    display:flex;
+    flex-direction:column;
   }
-  .j-panel.active{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:20px;align-items:center}
-  .j-panel h3{margin:0 0 8px;font-size:19px}
-  .j-panel p{margin:0 0 12px;color:var(--text-2);font-size:14.5px}
-  .j-points{margin:0;padding-left:18px;font-size:13.5px;color:var(--text-2);display:flex;flex-direction:column;gap:6px}
-  .j-visual{
-    background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:12.5px;
-    display:flex;flex-direction:column;gap:8px;
+  .shot-chrome{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 13px;
+    background:#FDFCF8;
+    border-bottom:1px solid var(--line);
+    font-size:12px;color:var(--muted);
+  }
+  .shot-dots{display:inline-flex;gap:5px}
+  .shot-dots i{width:7px;height:7px;border-radius:99px;background:var(--line-strong);display:block}
+  .shot-title{font-weight:500;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .shot-badge{
+    margin-left:auto;font-size:11px;font-weight:500;
+    padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+    background:var(--bg-soft);color:var(--text-2);white-space:nowrap;
+  }
+  .shot-badge.before{background:var(--red-bg);border-color:var(--red-line);color:var(--red)}
+  .shot-badge.after{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+  .shot-badge.accent{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+
+  .shot-media{
+    position:relative;
+    background:#F7F6F1;
+    flex:1;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .shot-media img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:transform .25s ease;
+  }
+  .shot-media.crop-hero img{
+    height:420px;
+    object-fit:cover;
+    object-position:top center;
+  }
+  .shot-media.crop-tall img{
+    max-height:470px;
+    object-fit:cover;
+    object-position:top center;
+  }
+  .shot-media.crop-mid img{
+    max-height:430px;
+    object-fit:cover;
+    object-position:top center;
+  }
+  .shot-media::after{
+    content:"點擊放大檢視";
+    position:absolute;right:10px;bottom:10px;
+    padding:3px 9px;border-radius:999px;
+    background:rgba(20,20,19,0.72);color:#FAF9F5;
+    font-size:11px;font-weight:500;opacity:0;pointer-events:none;
+    transition:opacity .15s;
+  }
+  .shot-frame:hover .shot-media::after{opacity:1}
+
+  .shot-foot{
+    padding:10px 14px;
+    background:var(--bg-elev);
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--text-2);
+    line-height:1.55;
+  }
+  .shot-foot strong{color:var(--text);font-weight:600}
+
+  /* Callout Strip */
+  .callouts{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+    margin-top:16px;
+  }
+  .callout{
+    background:var(--bg-elev);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+    display:flex;
+    gap:11px;
+    align-items:flex-start;
+    box-shadow:var(--shadow-sm);
+  }
+  .c-num{
+    flex:0 0 22px;height:22px;border-radius:999px;
+    background:var(--accent-bg);border:1px solid var(--accent-line);
+    color:var(--accent);font-size:12px;font-weight:600;
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-top:2px;
+  }
+  .callout b{display:block;font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .callout span{display:block;font-size:13px;line-height:1.6;color:var(--text-2)}
+
+  /* Compare Cards */
+  .compare-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;
+  }
+  .cmp-card{
+    border-radius:16px;padding:24px;border:1px solid var(--line);
+    background:var(--bg-elev);box-shadow:var(--shadow-sm);
+  }
+  .cmp-card.before{background:#FDF8F7;border-color:var(--red-line)}
+  .cmp-card.after{background:#F8FBF9;border-color:var(--ok-line)}
+  .cmp-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .cmp-head h3{
+    font-family:var(--font-serif);font-weight:500;font-size:21px;margin:0;
+  }
+  .cmp-time{
+    font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;
+  }
+  .before .cmp-time{background:var(--red-bg);color:var(--red);border:1px solid var(--red-line)}
+  .after .cmp-time{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+  .step-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  .step-list li{
+    display:flex;gap:10px;align-items:flex-start;
+    font-size:14px;line-height:1.6;color:var(--text-2);
+  }
+  .step-tag{
+    flex:0 0 auto;margin-top:2px;
+    font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;
+  }
+  .before .step-tag{background:var(--red-bg);color:var(--red)}
+  .after .step-tag{background:var(--ok-bg);color:var(--ok)}
+
+  /* Journey Act Nav & Act Blocks */
+  .act-nav{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;
+    margin-bottom:34px;
+  }
+  .act-pill{
+    display:block;
+    background:var(--bg-elev);border:1px solid var(--line);border-radius:12px;
+    padding:11px 13px;color:var(--text);box-shadow:var(--shadow-sm);
+    transition:border-color .15s,background .15s;
+  }
+  .act-pill:hover{
+    border-color:var(--accent);background:var(--accent-bg);text-decoration:none;color:var(--text);
+  }
+  .act-pill small{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--accent)}
+  .act-pill strong{display:block;font-size:13px;font-weight:600;margin-top:2px;line-height:1.35}
+
+  .act{
+    padding:42px 0;
+    border-top:1px solid var(--line);
+  }
+  .act:first-of-type{padding-top:10px;border-top:0}
+  .act-head{margin-bottom:20px}
+  .act-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:600;letter-spacing:.06em;
+    color:var(--accent);text-transform:uppercase;margin-bottom:6px;
+  }
+  .act-badge::before{
+    content:"";width:18px;height:1.5px;background:var(--accent);display:inline-block;
+  }
+  .act-head h3{
+    font-family:var(--font-serif);font-weight:500;
+    font-size:26px;line-height:1.28;margin:0 0 8px;letter-spacing:-0.015em;color:var(--text);
+  }
+  .act-head p{
+    margin:0;color:var(--text-2);font-size:15.5px;max-width:740px;line-height:1.72;
   }
 
-  /* Blind spots */
-  .bs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  /* Act 6 Visual Diff Panel */
+  .diff-panel{
+    background:var(--bg-elev);border:1px solid var(--line-strong);border-radius:12px;
+    padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;
+  }
+  .diff-panel-hdr{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding-bottom:10px;border-bottom:1px solid var(--line);
+  }
+  .diff-panel-hdr strong{font-size:14px;color:var(--text)}
+  .diff-panel-hdr span{font-size:12px;color:var(--muted)}
+  .diff-item{
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg);
+  }
+  .diff-item.added{background:#F6FAF7;border-color:var(--ok-line)}
+  .diff-item.deleted{background:#FDF7F6;border-color:var(--red-line)}
+  .diff-item.renamed{background:#FAF8F3;border-color:var(--line-strong)}
+  .diff-tag{
+    display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;margin-bottom:5px;
+  }
+  .added .diff-tag{background:var(--ok-bg);color:var(--ok)}
+  .deleted .diff-tag{background:var(--red-bg);color:var(--red)}
+  .renamed .diff-tag{background:var(--slate-bg);color:var(--slate)}
+  .diff-item b{display:block;font-size:13.5px;color:var(--text);margin-bottom:2px}
+  .diff-item p{margin:0;font-size:12.5px;color:var(--text-2);line-height:1.58}
+
+  /* Progressive disclosure */
+  details.more{
+    margin-top:16px;background:var(--bg-elev);border:1px solid var(--line);
+    border-radius:12px;padding:12px 16px;transition:border-color .15s;
+  }
+  details.more:hover{border-color:var(--line-strong)}
+  details.more summary{
+    cursor:pointer;list-style:none;font-size:13.5px;font-weight:500;color:var(--text-2);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  details.more summary::-webkit-details-marker{display:none}
+  details.more summary::after{content:"+ 展開補充說明";font-size:12px;font-weight:500;color:var(--accent);white-space:nowrap}
+  details.more[open] summary::after{content:"− 收合";color:var(--muted)}
+  details.more .more-body{
+    margin-top:12px;padding-top:12px;border-top:1px solid var(--line);
+    font-size:13.5px;line-height:1.68;color:var(--text-2);
+  }
+  details.more table{width:100%;border-collapse:collapse;font-size:13px}
+  details.more th,details.more td{text-align:left;padding:9px 10px;border-top:1px solid var(--line);vertical-align:top}
+  details.more th{color:var(--muted);font-size:11.5px;font-weight:600;letter-spacing:.04em;border-top:0}
+
+  /* Interactive Mini Search */
+  .try-bar{
+    margin-top:18px;background:var(--bg-elev);border:1px solid var(--line);
+    border-radius:16px;padding:20px 22px;box-shadow:var(--shadow-sm);
+  }
+  .try-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .try-input{
+    flex:1;min-width:200px;padding:9px 13px;border:1px solid var(--line-strong);border-radius:10px;
+    background:var(--bg);color:var(--text);font:inherit;font-size:13.5px;
+    outline:none;transition:border-color .15s,box-shadow .15s;
+  }
+  .try-input:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(201,100,66,0.14);
+    background:var(--bg-elev);
+  }
+  .chip{
+    border:1px solid var(--line);background:var(--bg-soft);color:var(--text-2);
+    border-radius:999px;padding:5px 13px;font-size:12px;font-weight:500;cursor:pointer;
+    transition:all .15s;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:500}
+  .pill.blue{background:var(--accent-bg);color:#A94D2F;border:1px solid var(--accent-line)}
+  .pill.amber{background:var(--warn-bg);color:#8C5A12;border:1px solid var(--warn-line)}
+  .pill.purple{background:var(--slate-bg);color:#43546A;border:1px solid var(--slate-line)}
+  .pill.count{background:var(--bg-soft);color:var(--text-2);border:1px solid var(--line)}
+  .try-res{display:flex;flex-wrap:wrap;gap:7px}
+
+  /* Blind Spots Grid */
+  .bs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
   .bs-card{
-    background:var(--bg-elev);border:1px solid var(--line);border-radius:15px;padding:18px;
-    display:flex;flex-direction:column;gap:8px;
+    background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;
+    padding:24px;display:flex;flex-direction:column;gap:10px;
+    box-shadow:var(--shadow-sm);
   }
-  .bs-card.wide{grid-column:1 / -1}
-  .bs-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .bs-card h3{margin:0;font-size:16.5px}
-  .bs-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
-  .bs-miss,.bs-hit{padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5}
-  .bs-miss{background:var(--bg-soft);color:var(--muted);border:1px solid var(--line)}
-  .bs-hit{background:var(--accent-bg);color:var(--text);border:1px solid color-mix(in srgb,var(--accent) 32%,transparent)}
-  .bs-miss b{color:var(--red);display:block;font-size:11.5px;margin-bottom:2px}
-  .bs-hit b{color:var(--accent);display:block;font-size:11.5px;margin-bottom:2px}
+  .bs-num{
+    font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--accent);
+  }
+  .bs-card h3{
+    font-family:var(--font-serif);font-weight:500;
+    margin:0;font-size:20px;line-height:1.3;color:var(--text);
+  }
+  .bs-card p{margin:0;font-size:14px;line-height:1.68;color:var(--text-2)}
+  .bs-stat{
+    margin-top:4px;padding:10px 12px;border-radius:10px;
+    background:var(--bg-soft);border:1px solid var(--line);
+    font-size:12.5px;color:var(--text-2);
+  }
+  .dist-bar{
+    height:12px;border-radius:999px;overflow:hidden;display:flex;
+    background:var(--bg-soft);border:1px solid var(--line);margin:8px 0;
+  }
+  .legend-row{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-2)}
+  .legend-dot{display:inline-flex;align-items:center;gap:5px}
+  .legend-dot i{width:8px;height:8px;border-radius:99px;display:inline-block}
 
-  /* Mini interactive search demo */
-  .demo-box{
-    margin-top:8px;background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:14px;
+  /* Quick Start */
+  .start-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .start-card{
+    background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;
+    padding:20px;box-shadow:var(--shadow-sm);
   }
-  .demo-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-  .demo-input{
-    flex:1;min-width:210px;padding:8px 11px;border:1px solid var(--line-strong);border-radius:8px;
-    background:var(--bg-elev);color:var(--text);font:inherit;font-size:13.5px;
+  .start-card b{font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--accent)}
+  .start-card h3{
+    font-family:var(--font-serif);font-weight:500;
+    margin:6px 0 4px;font-size:18px;color:var(--text);
   }
-  .demo-chip{
-    border:1px solid var(--line);background:var(--bg-elev);color:var(--text-2);
-    border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;
-  }
-  .demo-chip:hover{border-color:var(--accent);color:var(--accent)}
-  .demo-results{display:flex;flex-wrap:wrap;gap:6px}
-
-  /* Distribution */
-  .dist-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:20px}
-  .dist-bar{height:22px;border-radius:99px;overflow:hidden;display:flex;background:var(--bg-soft);border:1px solid var(--line);margin:12px 0}
-  .legend{display:flex;flex-wrap:wrap;gap:12px 20px;font-size:13.5px;color:var(--text-2)}
-  .legend span{display:inline-flex;align-items:center;gap:7px}
-  .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
-
-  /* Quickstart + Tech docs */
-  .start-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  .start-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .start-card h3{margin:4px 0 6px;font-size:15.5px}
-  .start-card p{margin:0;font-size:13px;color:var(--muted)}
-  .tech-strip{
-    margin-top:16px;background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
-    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  }
-  .tech-links{display:flex;flex-wrap:wrap;gap:8px}
+  .start-card p{margin:0;font-size:13.5px;color:var(--muted)}
+  .tech-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
   .tech-links a{
-    padding:4px 10px;border-radius:8px;background:var(--bg-soft);border:1px solid var(--line);
-    font-size:12.5px;font-weight:600;color:var(--text-2);
+    padding:5px 12px;border-radius:8px;background:var(--bg-soft);border:1px solid var(--line);
+    font-size:12.5px;font-weight:500;color:var(--text-2);transition:all .15s;
   }
-  .tech-links a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .tech-links a:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);text-decoration:none}
 
-  footer{padding-top:26px;font-size:13px;color:var(--muted);line-height:1.8}
+  footer{padding-top:32px;font-size:13px;color:var(--muted)}
 
-  @media (max-width:960px){
-    .stage,.j-panel.active{grid-template-columns:1fr}
-    .pipe{flex-direction:row}
-    .pipe-bar{width:34px;height:2px}
-    .kpi-grid,.compare-grid,.bs-grid,.start-grid{grid-template-columns:1fr 1fr}
-    .journey-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Lightbox */
+  .lightbox{
+    position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    padding:24px;background:rgba(20,20,19,0.78);backdrop-filter:blur(4px);
   }
-  @media (max-width:640px){
-    .topbar{padding:10px 14px}
-    .nav-links a:not(.btn){display:none}
-    .wrap{padding:0 16px 64px}
-    .kpi-grid,.compare-grid,.bs-grid,.bs-row,.start-grid,.mock-split,.journey-tabs{grid-template-columns:1fr}
-    .mock-sb{border-right:0;border-bottom:1px solid var(--line);padding:0 0 8px}
-    .bar-row{grid-template-columns:1fr;gap:4px}
+  .lightbox.open{display:flex}
+  .lightbox-inner{
+    max-width:min(1180px,95vw);max-height:92vh;
+    background:var(--bg);border:1px solid var(--line-strong);border-radius:16px;
+    overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.35);
+    display:flex;flex-direction:column;
+  }
+  .lightbox-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:10px 16px;background:var(--bg-elev);border-bottom:1px solid var(--line);
+    font-size:13px;color:var(--text-2);
+  }
+  .lightbox-close{
+    border:1px solid var(--line-strong);background:var(--bg-soft);color:var(--text);
+    border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer;
+  }
+  .lightbox-close:hover{background:var(--bg-warm)}
+  .lightbox-body{overflow:auto;padding:14px;background:#F6F4EC;text-align:center}
+  .lightbox-body img{max-width:100%;max-height:78vh;height:auto;border-radius:8px;box-shadow:var(--shadow-sm)}
+
+  @media (max-width:920px){
+    .act-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .diptych,.diptych.asymmetric,.diptych.storyboard,.compare-grid,.bs-grid,.start-row,.callouts{grid-template-columns:1fr}
+    .shot-media.crop-hero img,.shot-media.crop-tall img,.shot-media.crop-mid img{height:auto;max-height:none}
+  }
+  @media (max-width:600px){
+    .topbar{padding:12px 16px}
+    .nav a:not(.btn){display:none}
+    .wrap{padding:0 18px 72px}
+    .hero{padding:48px 0 38px}
+    section{padding:52px 0 34px}
+    .kpi-row,.act-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
 </style>
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="index.html"><span class="brand-dot"></span>Rea-FigmaDesign</a>
-  <nav class="nav-links" aria-label="主導覽">
-    <a href="#compare">工作量對比</a>
-    <a href="#journey">設計師五步旅程</a>
-    <a href="#blindspots">五大盲點治理</a>
-    <a href="#metrics">真實實測</a>
-    <a href="#start">快速開始</a>
-    <button class="btn ghost sm" id="theme-btn" type="button">深色模式</button>
-    <a class="btn sm" href="explainers.html">工程師技術圖解 →</a>
+  <a class="brand" href="index.html"><span class="brand-dot" aria-hidden="true"></span>Rea-FigmaDesign</a>
+  <nav class="nav" aria-label="主導覽">
+    <a href="#compare">痛點對比</a>
+    <a href="#journey">六幕實錄</a>
+    <a href="#blindspots">盲點洞察</a>
+    <a href="#start">本機開用</a>
+    <a class="btn sm" href="explainers.html">工程技術圖解 →</a>
   </nav>
 </header>
 
 <div class="wrap">
 
-<!-- Hero -->
+<!-- Prologue: Hero + Real Before/After Diptych -->
 <header class="hero">
-  <span class="eyebrow"><i></i>專為多檔案、多版本設計團隊打造的 Figma 資產盤點與雙向聯動工作台</span>
-  <h1>不再人工大海撈針<br>讓散落的 Figma 檔案<span>一鍵長成可治理的設計圖譜</span></h1>
-  <p class="hero-lead">
-    當一個產品切分成多個 Figma 檔案、沉積數十個新舊迭代頁面與上千張畫稿時，設計師靠肉眼翻頁對齊幾乎一定會漏。Rea-FigmaDesign 不強迫你改目錄或手動搬移原稿——自動去重合併、跨檔全域盤點、一鍵生「臨時拼板」快篩，還原 1:1 精準歸類。
-  </p>
+  <span class="eyebrow"><i></i>真實設計專案實錄 · 2 份產品檔 · 91 頁 · 4,006 張設計稿</span>
+  <h1>整理 4,000 張設計稿，<br>從<span>「三天翻頁」</span>縮成<span>「幾十分鐘」</span></h1>
+  <p class="hero-sub">這不是另一張概念架構圖，而是一位設計師在真實產品檔裡從混亂到秩序的完整操作旅程——不合併原檔、不改圖層名、不碰雲端原稿。</p>
   <div class="hero-actions">
-    <a class="btn" href="#compare">先看人工 vs 本工具對比 ↓</a>
-    <a class="btn ghost" href="#journey">體驗設計師 5 步工作流</a>
-    <a class="btn ghost" href="#blindspots">往常看不見的 5 大盲點</a>
+    <a class="btn" href="#journey">從第 1 幕開始看實錄 ↓</a>
+    <a class="btn ghost" href="#blindspots">看人工容易漏掉的 4 個盲點</a>
   </div>
 
-  <div class="kpi-grid">
-    <div class="kpi"><b>105 萬+ 節點</b><span>跨 2 份真實產品檔 · 91 頁全量納管</span></div>
-    <div class="kpi"><b>4,006 → 1,916</b><span>AST 結構去重直接砍半人工排查量</span></div>
-    <div class="kpi"><b>15 種彈窗 1 秒搜齊</b><span>支援簡繁互通關鍵字，跨 65 個細分類</span></div>
-    <div class="kpi"><b>100% 本機隔離</b><span>圖譜留在本機 SQLite，改名刪頁自動同步</span></div>
+  <div class="kpi-row">
+    <div class="kpi"><b>-52%</b><span>AST 自動併組（4,006 → 1,916 組）</span></div>
+    <div class="kpi"><b>3 分鐘</b><span>後續改版只重導修改的那一頁</span></div>
+    <div class="kpi"><b>100% 本機</b><span>原始設計稿留在 Figma，零外洩風險</span></div>
   </div>
 
-  <!-- Hero Mockup -->
-  <div class="stage" aria-label="多檔工作台與 Figma 臨時拼板雙向聯動示意">
-    <div class="win">
-      <div class="win-bar">
-        <span class="dots"><i></i><i></i><i></i></span>
-        <span>Rea-FigmaDesign 多檔應用工作台 · 共用規則</span>
-        <span class="pill green">● Figma 已連線</span>
-      </div>
-      <div class="win-body">
-        <div class="mock-split">
-          <div class="mock-sb">
-            <div class="mock-tabs">
-              <span>分類</span>
-              <span class="on">頁面</span>
-              <span>AST</span>
-            </div>
-            <div class="mock-src on"><span>● 手機端 A2</span><span class="pill amber">?42</span></div>
-            <div class="mock-src"><span>○ 手機端 A1</span><span class="pill green">已標</span></div>
-            <div style="font-size:10.5px;color:var(--muted);padding-left:2px">NFC · Tap&amp;Pay · Split Bill…</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:7px">
-            <div class="mock-card">
-              <div>
-                <strong>PIN 確認畫面 ×3（同構合併）</strong>
-                <div style="font-size:11px;color:var(--muted)"><code>1:18899</code> · 手機端 A2 · NFC 頁</div>
-              </div>
-              <span class="pill purple">生成臨時拼板</span>
-            </div>
-            <div class="mock-combo">
-              <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:10.5px">
-                <span>🔍 搜尋標準分類：<b>弹窗</b>（簡繁互通）</span>
-                <span>↑↓ · Enter 確認標註 → 重建頁面</span>
-              </div>
-              <div class="opts">
-                <span class="pill blue">新UI / 通用彈窗</span>
-                <span class="pill blue">新UI / PIN確認彈窗</span>
-                <span class="pill">新UI / 下拉抽屜彈窗</span>
-                <span class="pill">老UI / 通用彈窗</span>
-              </div>
-            </div>
-          </div>
+  <div class="shot-stage">
+    <div class="diptych">
+      <div class="shot-frame">
+        <div class="shot-chrome">
+          <span class="shot-dots"><i></i><i></i><i></i></span>
+          <span class="shot-title">Figma 原檔畫布 · NFC-payment</span>
+          <span class="shot-badge before">整理前 · 散落各處</span>
+        </div>
+        <div class="shot-media crop-hero">
+          <img src="assets/01-figma-chaos.jpg" alt="整理前的真實 Figma 畫布，多層區塊、流程線與設計師評論氣泡交錯">
+        </div>
+        <div class="shot-foot">
+          <strong>問題起點：</strong>設計稿按開發流程散落在上百個 Section 與多份獨立檔案中，光找齊「所有彈窗」就要跨頁拖曳半天。
         </div>
       </div>
-    </div>
 
-    <div class="pipe">
-      <span class="pill blue">拼板 ⇄</span>
-      <div class="pipe-bar"></div>
-      <span>1:1 原稿<br>追蹤指針</span>
-      <div class="pipe-bar"></div>
-      <span class="pill green">⇄ 反查</span>
-    </div>
-
-    <div class="win">
-      <div class="win-bar">
-        <span class="dots"><i></i><i></i><i></i></span>
-        <span>Figma Desktop · 畫布即時互動</span>
-      </div>
-      <div class="win-body">
-        <div class="stage-box">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <strong style="font-size:11.5px;color:var(--purple)">[Rea 臨時預覽 · 可刪除]</strong>
-            <span class="pill purple">自動排版 12 張</span>
-          </div>
-          <div class="stage-grid">
-            <div class="mini-frame">畫面 A<br><span style="color:var(--ok)">✓ 正常</span></div>
-            <div class="mini-frame bad">PIN 彈窗<br><span style="color:var(--accent)">☑ 已框選</span></div>
-            <div class="mini-frame">畫面 C<br><span style="color:var(--ok)">✓ 正常</span></div>
-          </div>
+      <div class="shot-frame">
+        <div class="shot-chrome">
+          <span class="shot-dots"><i></i><i></i><i></i></span>
+          <span class="shot-title">Figma 畫布 · [Rea 臨時預覽 · 可刪除]</span>
+          <span class="shot-badge after">整理中 · 臨時拼板</span>
         </div>
-        <div style="background:var(--accent);color:#fff;border-radius:8px;padding:7px 10px;text-align:center;font-weight:700;font-size:11.5px">
-          框選問題副本 → 一鍵「查找選中項」還原原稿 ID
+        <div class="shot-media crop-hero">
+          <img src="assets/03-figma-staging.jpg" alt="一鍵將跨頁 45 張通用彈窗整齊排入 Rea 臨時預覽拼板的真實畫面">
         </div>
-        <div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between">
-          <span>看完直接刪掉 Section，原稿零更動</span>
-          <span>單頁增量同步 +新 / -刪</span>
+        <div class="shot-foot">
+          <strong>Rea 的解法：</strong>從複審工作台一鍵排齊 45 張待核彈窗，肉眼挑完異常一框回到原稿，檢視後刪掉 Section 零殘留。
         </div>
       </div>
     </div>
   </div>
 </header>
 
-<!-- Section 01: Before / After -->
+<!-- Chapter 1: Before vs After Journey Length -->
 <section id="compare">
-  <div class="sec-kicker">01 · 工作鏈路長度與耗時對比</div>
-  <h2>為什麼以前靠純人工整理總是做到一半就放棄？</h2>
-  <p class="sec-lead">
-    設計稿治理真正的成本不在「點那幾下標註」，而是<strong>跨檔切換、辨認重複副本、手動剪貼比對、以及每次設計師改稿後整張表作廢的隱性折返跑</strong>。
-  </p>
+  <div class="kicker">第一章 · 為什麼非治不可</div>
+  <h2>同一份 91 頁設計檔，兩種整理長度</h2>
+  <p class="lead">設計師並不是懶得盤點設計資產，而是純人工整理註定是一場「邊盤邊過期」的消耗戰。</p>
 
   <div class="compare-grid">
     <div class="cmp-card before">
       <div class="cmp-head">
-        <h3>❌ 以前：純靠人工盤點與整理</h3>
-        <span class="pill red">7 步折返跑 · 無法累積</span>
+        <h3>純人工整理的一週</h3>
+        <span class="cmp-time">約 3–5 天 / 輪</span>
       </div>
-      <ul class="chain">
-        <li><b>1</b><span><strong>逐檔逐頁大海撈針：</strong>開 A1、A2、WEB1… 幾十個 Figma Pages 挨個縮放，記不住哪頁看過、哪頁沒看。</span></li>
-        <li><b>2</b><span><strong>肉眼硬看成堆重複稿：</strong>同一個流程複製出好幾輪微調副本，肉眼無法確定一不一樣，4,000 張全得看一遍。</span></li>
-        <li><b>3</b><span><strong>想並排比對只能手動複製黏貼：</strong>自己抓來貼到空白區拼板，排完肉眼挑出問題後，却早已忘了這張副本原本來自哪個頁面、哪個 ID。</span></li>
-        <li><b>4</b><span><strong>同類不同名、同名不同構：</strong>圖層全叫 <code>Frame 42</code> 或 <code>Dialog</code>，根本抓不出全產品到底長出多少種彈窗。</span></li>
-        <li><b>5</b><span><strong>表格記完還要找工程／自己維護：</strong>手動建 Notion / Excel 貼連結，寫到第 50 張就精疲力竭。</span></li>
-        <li><b>6</b><span><strong>下週設計師改稿＝整表過期：</strong>Figma 裡刪了兩張舊彈窗、補了三張新頁，沒人知道表裡哪條已經變成失效幽靈稿。</span></li>
-        <li><b>7</b><span><strong>換人接手只能重頭再來：</strong>檔案改名、人員交接，舊紀錄斷鏈，團隊資產再次歸零。</span></li>
+      <ul class="step-list">
+        <li><span class="step-tag">第 1 天</span><span>打開多份 Figma 檔案逐頁縮放，先把幾十頁裡的畫板一頁頁肉眼瀏覽過一輪。</span></li>
+        <li><span class="step-tag">第 2 天</span><span>為了比較同名彈窗或按鈕差異，手動複製貼到空白區排整齊；看久了已經不確定哪張來自哪一頁。</span></li>
+        <li><span class="step-tag">第 3 天</span><span>打開 Excel / Notion 手動記下分類與筆記；偏偏同一畫面複本重複 5 次，被迫反覆填寫。</span></li>
+        <li><span class="step-tag">第 5 天</span><span>需求小改了兩頁、刪了幾張舊稿——整份表瞬間和畫布對不上，下次只好重頭再盤一次。</span></li>
       </ul>
-      <div class="cmp-foot">首次全量盤點：3–5 個工作天 ｜ 每次版本迭代補齊：半天～1 天</div>
     </div>
 
     <div class="cmp-card after">
       <div class="cmp-head">
-        <h3>✅ 現在：Rea-FigmaDesign 雙向圖譜工作流</h3>
-        <span class="pill green">4 步輕量閉環 · 持續沉澱</span>
+        <h3>換成 Rea-FigmaDesign 的節奏</h3>
+        <span class="cmp-time">首次數小時 ｜ 改版 3 分鐘</span>
       </div>
-      <ul class="chain">
-        <li><b>1</b><span><strong>維持原本拆檔習慣，一鍵合併應用：</strong>按真實 Figma 檔名匯入，自由勾選「A1+A2 = 手機應用 A」或「WEB1+WEB2 = PC 端」，共用篩選規則；<strong>分類全域合併，頁面依檔案分開排查</strong>。</span></li>
-        <li><b>2</b><span><strong>AST 先砍半重複量，直攻「未標註」：</strong>完全同構的改名複本自動合併（如 <code>4,006 → 1,916 組</code>），左側直接顯示每份檔剩幾個 <code>?未標註</code> 畫面。</span></li>
-        <li><b>3</b><span><strong>紫鍵「生成臨時拼板」，看完點選秒回原稿：</strong>分散在十幾頁的畫面一鍵排成整齊 Section 供人眼檢視，每個副本內嵌隱藏原稿 ID；框選有問題的按「查找選中項」，自動對應真正原稿。</span></li>
-        <li><b>4</b><span><strong>簡繁快選累積標註＋單頁增量同步：</strong>打 <code>弹窗</code> 搜齊繁體彈窗分類，點「確認標註」累積填滿待入庫列，最後按頂部 <strong>重建頁面 (N)</strong> 統一寫入；後續改稿只勾變動頁匯出，<strong>最近同步變更</strong>直接列出 <code>+新入庫</code> 與 <code>-已刪除</code>。</span></li>
+      <ul class="step-list">
+        <li><span class="step-tag">第 1 步</span><span>不合併 Figma 原檔，直接把多份檔案勾進同一個「應用組合」，一次匯出本地圖譜。</span></li>
+        <li><span class="step-tag">第 2 步</span><span>圖譜自動按結構去重，<strong>4,006 張先壓成 1,916 組</strong>，還直接把舊版歷史債比例攤在總覽看板上。</span></li>
+        <li><span class="step-tag">第 3 步</span><span>需要肉眼橫向比對時，一鍵把畫面排進「臨時拼板」；挑出問題副本即可 1:1 跳回原頁原稿。</span></li>
+        <li><span class="step-tag">日後改版</span><span>只需在 Figma 插件裡勾選<strong>改過的那 1 頁</strong>重新匯出，新稿標為 <code>NEW</code>，刪掉的舊稿自動歸檔不殘留。</span></li>
       </ul>
-      <div class="cmp-foot">首次全量盤點：數小時完成核心分類 ｜ 後續單頁改版更新：3–5 分鐘</div>
     </div>
   </div>
 
-  <div class="time-card">
-    <strong style="font-size:14.5px">以 2 份產品檔（91 頁、4,006 個設計稿、105 萬+ 節點）為例的盤點長度變化</strong>
-    <div class="bar-row">
-      <span>純人工逐頁肉眼對齊</span>
-      <div class="bar-track"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
-      <span style="color:var(--red);font-weight:700">4,006 張 · 約 3–5 天</span>
+  <details class="more">
+    <summary>點開看這套整理流程為什麼能同時兼顧「設計師手感」與「資產準確度」</summary>
+    <div class="more-body">
+      <table>
+        <tr><th>治理難題</th><th>傳統表格 / 截圖做法</th><th>Rea-FigmaDesign 實際機制</th></tr>
+        <tr><td><strong>不改設計協作方式</strong></td><td>要大家強行把不同端／不同檔合進同一個超大檔</td><td>多檔各自匯出 SQLite，在工作台依真實產品邏輯自由組合</td></tr>
+        <tr><td><strong>重複畫面拖慢走查</strong></td><td>複本、複製貼上、同構頁只能靠眼力一個個看</td><td>依底層結構雜湊合併同構組（標一筆等同標整組全部複本）</td></tr>
+        <tr><td><strong>圖片／表格與原稿脫節</strong></td><td>截圖貼進表格後就失去 Figma 節點 ID 與座標線索</td><td>工作台與 Figma 插件透過本機中繼即時聯動，雙向點選直達節點</td></tr>
+      </table>
     </div>
-    <div class="bar-row">
-      <span>AST 去重＋臨時拼板快篩</span>
-      <div class="bar-track"><div class="bar-fill" style="width:24%;background:linear-gradient(90deg,var(--accent),var(--purple))"></div></div>
-      <span style="color:var(--accent);font-weight:700">1,916 組 · 數小時</span>
-    </div>
-    <div class="bar-row">
-      <span>後續改版單頁增量同步</span>
-      <div class="bar-track"><div class="bar-fill" style="width:4%;background:var(--ok)"></div></div>
-      <span style="color:var(--ok);font-weight:700">僅變動頁 · 3–5 分鐘</span>
-    </div>
-  </div>
+  </details>
 </section>
 
-<!-- Section 02: 5-Step Designer Journey -->
+<!-- Chapter 2: 6-Act Real Walkthrough -->
 <section id="journey">
-  <div class="sec-kicker">02 · 設計師五步真實旅程</div>
-  <h2>貼合設計師實際工作節奏，每一步都不添負擔</h2>
-  <p class="sec-lead">點擊下方步驟卡片，查看從「多檔導入」到「日常增量維護」每個節點的真實操作手感。</p>
+  <div class="kicker">第二章 · 設計師真實操作六幕實錄</div>
+  <h2>從打開 Figma 到完成歸類與改版同步</h2>
+  <p class="lead">以下每一張畫面都來自真實產品專案（兩份產品檔合計 91 頁 · 105 萬節點）的實際操作截圖，點擊任意圖片可放大看細節。</p>
 
-  <div class="journey-tabs" role="tablist" aria-label="設計師五步旅程">
-    <button class="j-tab active" data-jtab="j1" type="button"><div class="jn">STEP 01</div><strong>多檔自由組合，不改工作方式</strong></button>
-    <button class="j-tab" data-jtab="j2" type="button"><div class="jn">STEP 02</div><strong>全域分類對照 × 分檔逐頁排查</strong></button>
-    <button class="j-tab" data-jtab="j3" type="button"><div class="jn">STEP 03</div><strong>一鍵「臨時拼板」人眼快篩</strong></button>
-    <button class="j-tab" data-jtab="j4" type="button"><div class="jn">STEP 04</div><strong>簡繁搜分類，確定即直接入庫</strong></button>
-    <button class="j-tab" data-jtab="j5" type="button"><div class="jn">STEP 05</div><strong>增量＋刪除同步，變更一目了然</strong></button>
-  </div>
+  <nav class="act-nav" aria-label="六幕章節快跳">
+    <a class="act-pill" href="#act-1"><small>ACT 01</small><strong>多檔自由組合</strong></a>
+    <a class="act-pill" href="#act-2"><small>ACT 02</small><strong>插件抽圖譜與總覽</strong></a>
+    <a class="act-pill" href="#act-3"><small>ACT 03</small><strong>分類全域 × 頁面分檔</strong></a>
+    <a class="act-pill" href="#act-4"><small>ACT 04</small><strong>臨時拼板 1:1 回原稿</strong></a>
+    <a class="act-pill" href="#act-5"><small>ACT 05</small><strong>簡繁直搜與批量重建</strong></a>
+    <a class="act-pill" href="#act-6"><small>ACT 06</small><strong>單頁增量與刪稿感知</strong></a>
+  </nav>
 
-  <div class="j-panel active" id="j1">
-    <div>
-      <span class="pill blue">不強迫把多個 Figma 檔硬塞進同一個大檔案</span>
-      <h3 style="margin-top:8px">1. Project Hub 多檔應用組合 × 共用篩選規則</h3>
-      <p>團隊把一個產品拆成 <code>A1、A2、A3</code> 或 <code>WEB1、WEB2</code> 是常態。插件分檔／分頁匯出後，在入口頁用真實 Figma 檔名自由勾選合併，並統一指定「手機端（360–430px）」或「網頁 PC 端（1280–1920px）」規則。</p>
-      <ul class="j-points">
-        <li>底層各檔案 <code>graph.sqlite</code> 各自完全隔離，清空或重導某份檔案互不影響。</li>
-        <li>用 <code>sourceId::nodeId</code> 複合鍵區分來源，即使 A1 和 A2 都存在節點 ID <code>10:1</code> 也絕不覆蓋碰撞。</li>
-      </ul>
+  <!-- ACT 01 -->
+  <article class="act" id="act-1">
+    <div class="act-head">
+      <div class="act-badge">第 01 幕 · 多檔組合起點</div>
+      <h3>不用硬把檔案合併，在專案空間直接把相關設計檔勾進來</h3>
+      <p>真實設計團隊常常把同一個 App 拆成「主流程檔」與「新版迭代檔」（圖中的 <code>白牌-UX Flow</code> 與 <code>白牌@晏大鵬 內容</code>）。打開 Rea 的 <strong>專案空間（Project Hub）</strong>，就能點右上角「+ 合併多檔應用」，把它們組成同一套標準分類。</p>
     </div>
-    <div class="j-visual">
-      <strong>專案空間（Project Hub）</strong>
-      <div class="mock-card"><span>📱 手機應用 A <span class="pill purple">2 檔合併</span></span><span class="pill blue">寬 360–430</span></div>
-      <div class="mock-card"><span>💻 網頁 PC 端 <span class="pill purple">3 檔合併</span></span><span class="pill blue">寬 1280–1920</span></div>
-      <div style="font-size:11.5px;color:var(--muted)">獨立來源檔清楚標示真實 Figma 檔名，隨時可編輯或重組。</div>
-    </div>
-  </div>
 
-  <div class="j-panel" id="j2">
-    <div>
-      <span class="pill blue">分類全局看、頁面分開找</span>
-      <h3 style="margin-top:8px">2. 全域對照標準分類，依檔案逐頁消化未標註</h3>
-      <p>設計師盤點時需要兩種完全不同的視角：看<strong>「分類」</strong>時要合在一起看全產品已經定了哪些類；切到<strong>「頁面」</strong>打標時，則要嚴格按 Figma 檔案切開，才不會幾十個頁混在一堆找不到自己剛導的新檔。</p>
-      <ul class="j-points">
-        <li>「頁面」模式上方內建 <strong>切換 Figma 來源檔</strong>，直接顯示各檔還剩多少 <code>?未標註</code> 與連線綠點。</li>
-        <li>點擊任何設計稿右側「定位」，Figma 自動切換到對應頁面並聚焦節點（若同時勾選跨兩個來源檔批量操作會友善防呆提醒）。</li>
-      </ul>
-    </div>
-    <div class="j-visual">
-      <strong>側邊欄雙視角設計</strong>
-      <div class="mock-card"><span>[分類] 通用彈窗 · 交易詳情…</span><span class="pill green">全域 merged</span></div>
-      <div class="mock-card"><span>[頁面] 手機端 A2 → NFC / Split Bill</span><span class="pill amber">?42 待排查</span></div>
-      <div style="font-size:11.5px;color:var(--muted)">拿掉冗長檔名前綴，完整顯示原本 Figma Page 名稱。</div>
-    </div>
-  </div>
+    <div class="shot-stage">
+      <div class="shot-frame">
+        <div class="shot-chrome">
+          <span class="shot-dots"><i></i><i></i><i></i></span>
+          <span class="shot-title">Rea-FigmaDesign · 專案空間（Project Hub）</span>
+          <span class="shot-badge accent">多檔應用組合 × 獨立來源隔離</span>
+        </div>
+        <div class="shot-media">
+          <img src="assets/05-hub-workspaces.png" alt="Project Hub 真實畫面：上方是多檔應用組合 白牌-UX Flow（2 檔合併、64/91 頁面、105 萬節點），下方是兩張獨立 Figma 來源檔卡片">
+        </div>
+      </div>
 
-  <div class="j-panel" id="j3">
-    <div>
-      <span class="pill purple">人眼預覽痛點一次解</span>
-      <h3 style="margin-top:8px">3. 生成臨時拼板 → 框選問題稿 → 自動對應原稿</h3>
-      <p>在工作台選中跨頁的幾張（或整組）待查設計稿，點紫色 <strong>「生成臨時拼板」</strong>，插件會在 Figma 畫布空白處建一個 <code>[Rea 臨時預覽 · 可刪除]</code> Section，把副本整齊排好並排。</p>
-      <ul class="j-points">
-        <li>每個副本在 <code>pluginData</code> 裡悄悄記住原稿 ID，<strong>不改原圖層名稱、不碰原稿一分一毫</strong>。</li>
-        <li>人眼快速挑出 2 張有問題的設計後，在拼板裡直接框選它們按插件「查找選中項」，工作台會<strong>1:1 對應回真正的原稿</strong>。</li>
-        <li>看完直接刪掉拼板 Section，畫布乾乾淨淨零殘留。</li>
-      </ul>
+      <div class="callouts">
+        <div class="callout"><span class="c-num">1</span><div><b>上方：多檔應用組合</b><span>把 <code>白牌@晏大鵬 內容</code> 與 <code>白牌-UX Flow</code> 綁成同一個產品工作區，合計 <strong>64/91 頁 · 1,054,133 節點</strong>。</span></div></div>
+        <div class="callout"><span class="c-num">2</span><div><b>下方：底層來源仍獨立</b><span>每張卡片對應一份真實 Figma 檔案，各自保留獨立 SQLite 與冷啟動／已建分類狀態，互不覆蓋。</span></div></div>
+        <div class="callout"><span class="c-num">3</span><div><b>右上角：隨時切換連線</b><span>綠色狀態膠囊顯示目前 Figma 插件連線中的檔案，手機端／PC Web 端還能各設畫布識別尺寸。</span></div></div>
+      </div>
     </div>
-    <div class="j-visual">
-      <strong>臨時拼板生命週期</strong>
-      <div class="mock-card"><span>① 工作台勾選 12 張分散頁面</span><span class="pill purple">生成拼板</span></div>
-      <div class="mock-card"><span>② 在整齊網格裡人眼挑出 2 張</span><span class="pill blue">框選副本</span></div>
-      <div class="mock-card"><span>③ 插件按「查找選中項」</span><span class="pill green">1:1 鎖定原稿</span></div>
-    </div>
-  </div>
 
-  <div class="j-panel" id="j4">
-    <div>
-      <span class="pill green">分類一多也不卡手</span>
-      <h3 style="margin-top:8px">4. 簡繁搜尋快選，標完統一按「重建頁面」</h3>
-      <p>幾十種分類用傳統下拉選單翻到眼花、繁簡字不統一又搜不到？現在左側目錄與「批量標註 / 單行快選」下拉選單全面支援<strong>簡繁互通＋空白多詞搜尋</strong>。</p>
-      <ul class="j-points">
-        <li>打 <code>弹窗</code> 立刻列出全部繁體 <code>彈窗</code> 細類；支援鍵盤 <code>↑↓</code> 與 <code>Enter</code> 閃電選中。</li>
-        <li>批量標註點 <strong>「確認標註」</strong> 先把標記累積填到每一列（綠框提示確定分類），完全不打斷你繼續排查；全部標完再點頂部並列的 <strong>「重建頁面 (N)」</strong> 統一落盤並刷新，拿不準的再點 <strong>「複製為 Agent 提示詞」</strong> 交給 Agent。</li>
-      </ul>
-    </div>
-    <div class="j-visual">
-      <strong>不打斷節奏的寫入兩步曲</strong>
-      <div class="mock-card"><span>① 批量標註 → 點「確認標註」（例：<code>新UI / PIN確認彈窗</code>）</span><span class="pill green">綠框累積不重刷</span></div>
-      <div class="mock-card"><span>② 全部排查完 → 點頂部「重建頁面 (N)」</span><span class="pill blue">統一校驗寫入</span></div>
-      <div class="mock-card"><span>③ 模稜兩可項目 → 點「複製為 Agent 提示詞」</span><span class="pill amber">交給 Agent 整理</span></div>
-      <div style="font-size:11.5px;color:var(--muted)">所有已寫入標註與 Agent 預分類驗收都能保留歷史紀錄，安心不丟失。</div>
-    </div>
-  </div>
+    <details class="more">
+      <summary>兩份不同 Figma 檔裡面都有一樣的節點 ID（例如 10:1）會衝突嗎？</summary>
+      <div class="more-body">
+        不會。組合工作台在記憶體與標註鍵值內統一使用 <code>sourceId::nodeId</code> 複合識別碼（例如區分哪一份檔案的 <code>11728:726900</code>），並可為不同端（手機端 360–430px vs 網頁 PC 端 1280–1920px）個別設定畫布白名單規則，避免誤把元件庫卡片當成獨立頁面。
+      </div>
+    </details>
+  </article>
 
-  <div class="j-panel" id="j5">
-    <div>
-      <span class="pill green">小改重導一頁 · 大改重導全檔</span>
-      <h3 style="margin-top:8px">5. 刪除感知、最近同步變更與本機改名防斷連</h3>
-      <p>設計師在 Figma 裡對某一頁新增了新設計稿、又刪掉幾張廢稿，在插件裡只要<strong>只勾選那一頁重新匯出</strong>。系統會自動精準清理該頁已刪舊節點、保護其他未勾選頁面不動，並產生變更明細。</p>
-      <ul class="j-points">
-        <li>右下（側欄底部）新增 <strong>「最近同步變更」</strong> 專區，清楚標示 <code>🟢 新入庫 (+N)</code> 與 <code>🔴 已刪除 (-M)</code>，新稿直接帶 <code>NEW 新入庫</code> 徽章。</li>
-        <li>在工作台點「定位」若該稿已在 Figma 刪除，會主動提醒做單頁增量同步；已刪除畫面的舊分類標註會安全備份進 <code>archivedDeleted</code>。</li>
-        <li>每個本機草稿檔寫入隱藏 <code>rea_file_uid</code>，在 Figma 改檔案名稱重新匯出也自動認出原庫，不產生重複專案。</li>
-      </ul>
+  <!-- ACT 02 -->
+  <article class="act" id="act-2">
+    <div class="act-head">
+      <div class="act-badge">第 02 幕 · 抽取圖譜與盤點全局</div>
+      <h3>插件勾頁匯出，工作台先替你把重複砍半、再把歷史債攤開</h3>
+      <p>在 Figma 裡開啟 <strong>Rea-FigmaDesign AST 探針</strong> 插件，整檔或勾選指定頁面即可抽出圖譜；回到工作台總覽看板，馬上能看見這批設計稿「究竟有多少是重複的」、「新舊世代各佔多少」。</p>
     </div>
-    <div class="j-visual">
-      <strong>最近同步變更（Split Bill · 單頁增量後）</strong>
-      <div class="mock-card"><span>🟢 新入庫畫面</span><span class="pill green">+3 張（帶 NEW 徽章）</span></div>
-      <div class="mock-card"><span>🔴 已從 Figma 刪除</span><span class="pill red">-2 張（原標註已自動歸檔）</span></div>
-      <div style="font-size:11.5px;color:var(--muted)">其餘 74 個未勾選頁面原封不動完整保留。</div>
+
+    <div class="shot-stage">
+      <div class="diptych asymmetric">
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">Figma 插件 · AST 探針</span>
+            <span class="shot-badge">77 頁 · 已連線</span>
+          </div>
+          <div class="shot-media crop-tall">
+            <img src="assets/02-figma-plugin.jpg" alt="Figma 插件真實截圖：列出全檔 77 頁、各頁已導出與未導出狀態、節點數及按鈕">
+          </div>
+          <div class="shot-foot">
+            <strong>在 Figma 端掌控進度：</strong>明確列出哪幾頁已導出、幾頁為空頁或尚未匯出，並保留 <code>查找選中項</code> 與 <code>清理臨時拼板</code> 兩個高頻按鈕。
+          </div>
+        </div>
+
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">複審工作台 · 數據總覽看板</span>
+            <span class="shot-badge after">4,006 → 1,916 組</span>
+          </div>
+          <div class="shot-media">
+            <img src="assets/06-board-overview.png" alt="數據總覽看板真實截圖：畫面總數 4,006、AST 去重後 1,916 組、大類分佈概覽與新UI細分卡片">
+          </div>
+          <div class="shot-foot">
+            <strong>一眼看見全貌：</strong>自動把 <strong>4,006 張畫面</strong>依結構摺疊成 <strong>1,916 組</strong>；同時算出 <code>新UI 28.2%</code>、<code>老UI 43.0%</code>、<code>未標註 28.1%</code>。
+          </div>
+        </div>
+      </div>
+
+      <div class="callouts">
+        <div class="callout"><span class="c-num">1</span><div><b>只做真畫面識別</b><span>探針不抓零碎圖示與空白圖層，只按設定的手機／PC 畫布寬高抓取真正具備結構的畫面。</span></div></div>
+        <div class="callout"><span class="c-num">2</span><div><b>重複量直接砍半</b><span>同一個彈窗在 18 頁重複出現、改了不同圖層名，系統仍自動併進同一組，省掉 52% 人工檢查。</span></div></div>
+        <div class="callout"><span class="c-num">3</span><div><b>色票與文案摘要一目了然</b><span>每張分類卡片底下帶出主要色票（一眼辨識深淺／舊版風格）與代表層數，先掃過一遍就知道該看哪一類。</span></div></div>
+      </div>
     </div>
-  </div>
+
+    <details class="more">
+      <summary>為什麼說圖層改名或套用不同文案也能認出是同一個畫面？</summary>
+      <div class="more-body">
+        系統對每個畫面的圖層樹形狀與幾何結構計算結構雜湊（AST Hash），不依賴設計師手動取的圖層名稱；文案略微不同時則以同結構家族呈現，並標出 <code>×2</code>、<code>×8</code> 複本數提示設計師「這組共影響幾張原稿」。
+      </div>
+    </details>
+  </article>
+
+  <!-- ACT 03 -->
+  <article class="act" id="act-3">
+    <div class="act-head">
+      <div class="act-badge">第 03 幕 · 雙重視角分流作業</div>
+      <h3>找同類元件用「分類」，排查單檔進度就切「頁面」</h3>
+      <p>實際治理設計稿有兩種完全不同的節奏：想盤點「全產品一共有幾種彈窗」時，需要<strong>跨檔統一視角</strong>；想把「某位同事新開檔案的未標註頁面清乾淨」時，切到左側 <strong>頁面</strong> 分頁，先選來源檔、再專注逐頁清空 <code>?N</code> 未標待辦。</p>
+    </div>
+
+    <div class="shot-stage">
+      <div class="shot-frame">
+        <div class="shot-chrome">
+          <span class="shot-dots"><i></i><i></i><i></i></span>
+          <span class="shot-title">複審工作台 · 左側「頁面」分頁（按 Figma 來源檔切分）</span>
+          <span class="shot-badge accent">獨立排查單檔頁面進度</span>
+        </div>
+        <div class="shot-media">
+          <img src="assets/07-board-pages-split.png" alt="左側切換頁面分頁後出現來源檔切換器，選定 白牌@晏大鵬 內容 後僅列出該檔頁面及黃色未標註數量徽章，右側展示 NFC 頁內結構分佈">
+        </div>
+      </div>
+
+      <div class="callouts">
+        <div class="callout"><span class="c-num">1</span><div><b>來源檔切換器</b><span>左側「頁面」模式下出現 <code>白牌@晏大鵬 內容 (?607)</code> 與 <code>白牌-UX Flow (?518)</code>，兩份檔案的同名頁面從此不再混在一起。</span></div></div>
+        <div class="callout"><span class="c-num">2</span><div><b>黃色 <code>?N</code> 標記未標註量</b><span>每一頁還剩幾張沒歸類一眼就知道，做完一頁少一個黃色數字，整理工作變得很有確定感。</span></div></div>
+        <div class="callout"><span class="c-num">3</span><div><b>頁內構成與快速定位</b><span>右側「NFC」頁上方直接條列出它裡面的 14 種分類佔比，下方每張畫面都能點「定位」在 Figma 裡高亮該節點。</span></div></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- ACT 04 -->
+  <article class="act" id="act-4">
+    <div class="act-head">
+      <div class="act-badge">第 04 幕 · 臨時拼板與 1:1 回原稿</div>
+      <h3>列表文字看不夠清楚？一鍵把散落多頁的畫面排進 Figma 拼板走查</h3>
+      <p>看表格文案總不如看設計稿視覺來得快——但傳統「複製一排出來比對」的痛苦是比完不知道哪張是原稿。Rea 把整套閉環打通：工作台勾選畫面點 <strong>「生成臨時拼板」</strong>，Figma 自動在畫布建出整齊預覽；看出問題直接框選那幾張，按插件 <strong>「查找選中項 → 複審台」</strong> 就能跳回對應卡片寫下意見。</p>
+    </div>
+
+    <div class="shot-stage">
+      <div class="diptych storyboard">
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">步驟 A · 工作台全選 22 組（45 個畫面）</span>
+            <span class="shot-badge">底部懸浮列 → 生成臨時拼板</span>
+          </div>
+          <div class="shot-media crop-mid">
+            <img src="assets/04-workbench-select.jpg" alt="複審工作台選中 22 組共 45 個通用彈窗畫面，底部藍色操作列提供生成臨時拼板按鈕">
+          </div>
+          <div class="shot-foot">
+            在組標題勾選一次（連帶複本共 <strong>45 張畫面</strong>），點擊底部紫色邊框的 <code>生成臨時拼板</code>，本地服務立即把指令傳回 Figma 插件。
+          </div>
+        </div>
+
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">步驟 B · Figma 畫布即時產出 45 格對照網格</span>
+            <span class="shot-badge after">[Rea 臨時預覽 · 可刪除]</span>
+          </div>
+          <div class="shot-media crop-mid">
+            <img src="assets/03-figma-staging.jpg" alt="Figma 畫布自動生成的 45 張通用彈窗整齊網格預覽 Section">
+          </div>
+          <div class="shot-foot">
+            同類畫面橫排放在一起，哪一張字體舊、哪一張按鈕顏色錯一目了然；框選異常副本按插件 <code>查找選中項</code> 立刻定位原稿與列表卡片，最後點 <code>清理臨時拼板</code> 一鍵清空。
+          </div>
+        </div>
+      </div>
+
+      <div class="callouts">
+        <div class="callout"><span class="c-num">1</span><div><b>不搬動、不弄亂原頁面</b><span>拼板全都是臨時複製出來的，原本散在十幾個頁面的設計稿座標與結構完全原封不動。</span></div></div>
+        <div class="callout"><span class="c-num">2</span><div><b>隱藏綁定原稿身分</b><span>每個預覽副本背後都藏了原稿節點 ID（不污染圖層命名），即使拖來拖去依然能 1:1 對回原頁。</span></div></div>
+        <div class="callout"><span class="c-num">3</span><div><b>用完一鍵清潔撤場</b><span>檢視完成後在 Figma 直接刪掉 Section，或按插件「清理臨時拼板」，畫布恢復乾淨。</span></div></div>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>為什麼不直接在工作台內嵌截圖縮圖？</summary>
+      <div class="more-body">
+        幾千張高解析 PNG 會讓本機圖譜膨脹到數 GB、匯出極慢；把實際視覺渲染交還給設計師本來就開著的 Figma 畫布，不但保留 100% 無失真向量細節（可任意放大看 1px 間距與元件屬性），還順便解決「發現問題後要立刻在 Figma 修改」的最後一哩路。
+      </div>
+    </details>
+  </article>
+
+  <!-- ACT 05 -->
+  <article class="act" id="act-5">
+    <div class="act-head">
+      <div class="act-badge">第 05 幕 · 簡繁搜尋 × 批量標註 × 一次重建</div>
+      <h3>別再翻長下拉清單：輸簡體「弹窗」搜齊所有分類，累積標完一次寫入</h3>
+      <p>團隊裡同時有簡體和繁體命名、又有六十幾個細分類時，傳統下拉選單根本找不到東西。現在無論在左側欄、單張卡片或批量標註視窗裡，輸入 <code>弹窗</code> 都能即時搜出全產品彈窗分類；一路確認標完好幾批，最後按右上角 <strong>「重建頁面 (N)」</strong> 一次落地。</p>
+    </div>
+
+    <div class="shot-stage">
+      <div class="diptych">
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">批量標註視窗 · 輸入「弹窗」自動列出 14 個繁體標準類</span>
+            <span class="shot-badge accent">↑↓ 選擇 · Enter 確認</span>
+          </div>
+          <div class="shot-media">
+            <img src="assets/09-batch-modal.png" alt="批量標註彈窗真實截圖：選中 22 筆，在下拉框輸入簡體弹窗，即時展開 14 個繁體標準分類選項">
+          </div>
+          <div class="shot-foot">
+            批選 22 筆畫面後打開「批量標註」，輸入簡體 <code>弹窗</code> 直接精準匹配繁體分類，按「確認標註」只暫存為綠色確認態，<strong>不打斷當前逛頁節奏</strong>。
+          </div>
+        </div>
+
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">單卡確認後亮綠框 · 頂部「重建頁面 (2)」待命</span>
+            <span class="shot-badge after">確定分類 · 可直接入庫</span>
+          </div>
+          <div class="shot-media">
+            <img src="assets/08-search-popup.png" alt="左側搜尋弹窗找出14個分類，右側卡片選擇新UI / PIN確認彈窗後顯示綠色確定框與右上角重建頁面按鈕">
+          </div>
+          <div class="shot-foot">
+            確認好的卡片出現綠色框與「✓ 確定分類（新UI / PIN確認彈窗）· 可直接入庫」，確定不疑的全走 <code>重建頁面</code>；拿不準的才交給旁邊的 <code>複製為 Agent 提示詞</code> 討論。
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Live Mini Search -->
+      <div class="try-bar">
+        <div class="try-head">
+          <strong style="font-size:13.5px;font-weight:600">現場體驗簡繁雙向搜分類：</strong>
+          <input id="demo-q" class="try-input" value="弹窗" placeholder="試打：弹窗、详情、老ui 弹窗...">
+          <button class="chip" type="button" data-dq="弹窗">弹窗</button>
+          <button class="chip" type="button" data-dq="老ui 弹窗">老ui 弹窗</button>
+          <button class="chip" type="button" data-dq="详情">详情</button>
+          <span id="demo-cnt" class="pill count"></span>
+        </div>
+        <div id="demo-res" class="try-res"></div>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>什麼時候該用「重建頁面」，什麼時候該按「複製為 Agent 提示詞」？</summary>
+      <div class="more-body">
+        自己明確知道歸類的畫面（例如確信這組就是 <code>新UI / PIN確認彈窗</code>），選好標準分類直接累積進 <strong>重建頁面 (N)</strong>，全部瀏覽完一次落盤；只有當你寫了文字意見（例如「這幾張好像是廢棄舊稿但文案還留著，幫忙核實並開新類」）或不知道怎麼分類時，才複製提示詞交給 AI Agent 協助判讀。
+      </div>
+    </details>
+  </article>
+
+  <!-- ACT 06 -->
+  <article class="act" id="act-6">
+    <div class="act-head">
+      <div class="act-badge">第 06 幕 · 後續改版與增量守護</div>
+      <h3>下週設計師改了其中 1 頁、刪了 2 張廢稿？只重導那一頁就好</h3>
+      <p>一次整理完不是終點——設計檔每天都會迭代。以後局部修改完成，只要在 Figma 插件裡勾選<strong>變動的那 1 頁</strong>重新匯出（圖中左上剛完成「第 12 批 · 1/1 頁 · DONE」），其他數十頁的歷史成果全部保留，這頁的新增與刪除會在工作台直接顯影。</p>
+    </div>
+
+    <div class="shot-stage">
+      <div class="diptych asymmetric">
+        <div class="shot-frame">
+          <div class="shot-chrome">
+            <span class="shot-dots"><i></i><i></i><i></i></span>
+            <span class="shot-title">Figma 插件 · 單頁增量匯出</span>
+            <span class="shot-badge after">上次匯出：第 12 批 · 1/1 頁</span>
+          </div>
+          <div class="shot-media crop-tall">
+            <img src="assets/02-figma-plugin.jpg" alt="Figma 插件支援勾選單一修改頁面重新匯出並記錄上次匯出狀態">
+          </div>
+        </div>
+
+        <div class="diff-panel">
+          <div class="diff-panel-hdr">
+            <strong>單頁重導後 · 工作台「最近同步變更」自動對帳結果</strong>
+            <span>實測耗時 &lt; 3 分鐘</span>
+          </div>
+          <div class="diff-item added">
+            <span class="diff-tag">+ 新入庫畫面（NEW）</span>
+            <b>新加的設計稿直接冒在左側「最近同步變更」與頁內頂端</b>
+            <p>設計師再也不必翻整份大清單問「我剛剛多畫的那 3 個彈窗進去了沒」——進來的會帶上 <code>NEW</code> 標記等你歸類，且系統按結構比對自動繼承同構家族線索。</p>
+          </div>
+          <div class="diff-item deleted">
+            <span class="diff-tag">− 已從 Figma 刪除 · 安全歸檔</span>
+            <b>從有效資產表自動退場，舊標註歷史安全移入 archivedDeleted</b>
+            <p>畫布刪掉的廢棄頁面不再像傳統 Excel 一樣永遠佔著坑位（所謂的「幽靈節點」），確保團隊每次查表都是畫布上的真實存在，同時保留歷次審計軌跡。</p>
+          </div>
+          <div class="diff-item renamed">
+            <span class="diff-tag">⇄ 原檔重命名 / 多檔聯動</span>
+            <b>寫入隱藏 <code>rea_file_uid</code>：就算本機草稿改名也不會開出第二份專案</b>
+            <p>當 <code>白牌@晏大鵬 內容</code> 任一頁單頁更新並同步完成，所屬的多檔應用組合 <code>白牌-UX Flow</code> 會自動在背後重建靜態工作台。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
 </section>
 
-<!-- Section 03: Blind spots -->
+<!-- Chapter 3: 4 Blind Spots Recap -->
 <section id="blindspots">
-  <div class="sec-kicker">03 · 只有圖譜能幫設計師觸及的能力邊界</div>
-  <h2>往常靠肉眼與經驗「完全觸及不到」的 5 大治理盲點</h2>
-  <p class="sec-lead">即使最有經驗的資深設計師，面對上千張畫稿時也躲不掉這五個物理盲區；系統用底層圖譜結構與 ID 校驗把它們變成一眼可見的清單。</p>
+  <div class="kicker">第三章 · 設計師常忽略的四個盲點</div>
+  <h2>以前靠肉眼「根本觸及不到」的治理價值</h2>
+  <p class="lead">走完前面六幕，你得到的不再只是整齊資料夾，而是四層過去全靠人工時完全看不見的結構透視能力。</p>
 
   <div class="bs-grid">
     <div class="bs-card">
-      <div class="bs-top"><h3>盲點 1 ·「同名異構」與「改名複本」</h3><span class="pill blue">Merkle AST 結構指紋</span></div>
-      <div class="bs-row">
-        <div class="bs-miss"><b>以前看不見</b>Figma 搜尋圖層名字只看名稱，27 個同名 <code>Dialog</code> 裡其實藏了不同結構；反之 <code>Frame 1</code> 與 <code>Copy 9</code> 其實長一模一樣卻被迫分開看。</div>
-        <div class="bs-hit"><b>現在怎麼治</b>無視圖層改名與座標，只計算元件樹結構指紋：同構畫面自動合併成 <code>×3</code> / <code>×12</code> 一組，批註一次同步帶走全部複本。</div>
-      </div>
+      <div class="bs-num">盲點 01 · 命名陷阱</div>
+      <h3>改名複本 &amp; 同名異構</h3>
+      <p>十幾個彈窗分別叫 <code>Frame 42</code>、<code>Copy 9</code>，以前必須一張張點開看；反過來大家都叫 <code>Dialog</code> 的頁面其實佈局截然不同。結構指紋穿透命名，把 4,006 張真實壓成 1,916 組，只讓你看真正不一樣的。</p>
     </div>
 
     <div class="bs-card">
-      <div class="bs-top"><h3>盲點 2 · 被遺忘在舊頁面的「老 UI 歷史債」</h3><span class="pill blue">新UI / 老UI / 系統UI 三大主幹</span></div>
-      <div class="bs-row">
-        <div class="bs-miss"><b>以前看不見</b>日常開發只盯著最新那幾頁，整個檔裡到底沉積了多少老版本、多少已廢棄但沒刪除的畫面，全團隊沒有人有真實數字。</div>
-        <div class="bs-hit"><b>現在怎麼治</b>全量掃描直接亮出底牌——例如實測檔案中 <strong>61.7%（1,732 筆）屬於老UI</strong>、52+ 張廢棄稿，推動設計走查與規範收斂有憑有據。</div>
-      </div>
-    </div>
-
-    <div class="bs-card">
-      <div class="bs-top"><h3>盲點 3 ·「刪除了還沒同步」的幽靈資產表</h3><span class="pill green">1:1 節點 ID 雙向稽核</span></div>
-      <div class="bs-row">
-        <div class="bs-miss"><b>以前看不見</b>上週刪掉的設計稿，在整理表中還活著；新加進畫布的三張彈窗沒被統計，久了之後資產表徹底失真、沒人敢信。</div>
-        <div class="bs-hit"><b>現在怎麼治</b>每筆標註都綁定真實 Figma <code>node_id</code>：定位不到即提示「可能已刪除」，增量重導自動清除並歸檔舊標註、突顯新入庫畫面。</div>
-      </div>
-    </div>
-
-    <div class="bs-card">
-      <div class="bs-top"><h3>盲點 4 ·「跨頁並排對照」卻不斷鏈</h3><span class="pill purple">臨時拼板 × 隱藏指針</span></div>
-      <div class="bs-row">
-        <div class="bs-miss"><b>以前看不見</b>同類頁面散落各處沒法同時目測差異；一旦人工複製出來擺一起，最後改標註時根本回不去原本的 Figma 原稿。</div>
-        <div class="bs-hit"><b>現在怎麼治</b>一鍵生成整齊臨時拼板讓眼睛快速掃描，副本自帶隱藏原稿身分證，框選送回複審台直接把標註寫回真正原稿。</div>
-      </div>
-    </div>
-
-    <div class="bs-card wide">
-      <div class="bs-top">
-        <h3>盲點 5 · 跨多檔後的「同類變體碎片化」（點下方實際試搜！）</h3>
-        <span class="pill green">簡繁互通即時體驗 · 下方試打 弹窗 / 详情 / 老ui</span>
-      </div>
-      <div class="bs-row">
-        <div class="bs-miss"><b>以前看不見</b>產品拆分成多份 Figma 檔後，沒人說得清全產品到底長出了幾種彈窗、哪些該收斂統一。光「彈窗」兩字團隊裡就混用簡繁字，搜尋經常搜空。</div>
-        <div class="bs-hit"><b>現在怎麼治</b>多檔共用一份全域分類庫，且工作台所有搜尋框皆支援簡繁互通：輸入 <code>弹窗</code>，一秒盤出散落全部檔案的 <strong>15 種彈窗變體</strong>（含對應畫面數量）。</div>
-      </div>
-
-      <div class="demo-box">
-        <div class="demo-controls">
-          <input id="demo-q" class="demo-input" value="弹窗" placeholder="試試輸入：弹窗、详情、分账、老ui 弹窗、otp...">
-          <button class="demo-chip" type="button" data-dq="弹窗">弹窗（簡體搜繁體）</button>
-          <button class="demo-chip" type="button" data-dq="老ui 弹窗">老ui 弹窗（多關鍵詞）</button>
-          <button class="demo-chip" type="button" data-dq="详情">详情（簡繁雙向）</button>
-          <button class="demo-chip" type="button" data-dq="">顯示全部精選</button>
-          <span id="demo-cnt" class="pill blue"></span>
+      <div class="bs-num">盲點 02 · 隱形包袱</div>
+      <h3>沉積在舊頁面的 61.7% 歷史債</h3>
+      <p>平常開會大家只盯最新畫面，但全檔盤點後才會發現超過六成資產其實是「已經少用、卻沒敢刪掉的舊版頁」。</p>
+      <div class="bs-stat">
+        <div>基準產品檔 2,808 筆人工核對分佈：</div>
+        <div class="dist-bar" aria-label="基準檔三主幹分佈">
+          <div style="width:37.25%;background:#C96442" title="新UI 1,046 (37.3%)"></div>
+          <div style="width:61.68%;background:#C9923B" title="老UI 1,732 (61.7%)"></div>
+          <div style="width:1.07%;background:#6E7B8B" title="系統UI 30 (1.1%)"></div>
         </div>
-        <div id="demo-res" class="demo-results"></div>
+        <div class="legend-row">
+          <span class="legend-dot"><i style="background:#C96442"></i>新UI 1,046（37.3%）</span>
+          <span class="legend-dot"><i style="background:#C9923B"></i>老UI 1,732（61.7%）</span>
+          <span class="legend-dot"><i style="background:#6E7B8B"></i>系統UI 30（1.1%）</span>
+        </div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- Section 04: Real Production Metrics -->
-<section id="metrics">
-  <div class="sec-kicker">04 · 真實生產檔案盤點成果</div>
-  <h2>來自真實支付白牌產品的盤點數據，不是玩具 Demo</h2>
-  <p class="sec-lead">這套工具已經實際治理超過 <strong>105 萬個 Figma 節點（91 頁、兩份拆分檔案合併）</strong>，下方為基準檔案 2,808 筆已標註畫面的三主幹分佈與 65 個細分類驗證結果。</p>
+    <div class="bs-card">
+      <div class="bs-num">盲點 03 · 表格過期</div>
+      <h3>刪稿後還留在表裡的「幽靈節點」</h3>
+      <p>手工整理的試算表過兩個月就會出現大量「Figma 早就刪掉、開發卻以為還要做」的幽靈頁面。單頁增量加上 <code>verify-source</code> 校驗，每一筆有效標註都必須對應得到真實活著的節點。</p>
+    </div>
 
-  <div class="dist-card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
-      <strong>基準檔案已標註畫面分佈（<code>verify-source</code> 2,808 / 2,808 全部對應 SQLite 實存節點）</strong>
-      <span style="font-size:12.5px;color:var(--muted)">多檔組合工作台實測：4,006 畫面 → AST 去重 1,916 組</span>
-    </div>
-    <div class="dist-bar" role="img" aria-label="三大主幹分佈圖">
-      <div style="width:37.25%;background:#0969da" title="新UI 1,046 (37.3%)"></div>
-      <div style="width:61.68%;background:#d97706" title="老UI 1,732 (61.7%)"></div>
-      <div style="width:1.07%;background:#64748b" title="系統UI 30 (1.1%)"></div>
-    </div>
-    <div class="legend">
-      <span><i class="sw" style="background:#0969da"></i><b>新UI</b> 1,046 筆（37.3% · 49 個子分類）</span>
-      <span><i class="sw" style="background:#d97706"></i><b>老UI</b> 1,732 筆（61.7% · 10 個子分類）</span>
-      <span><i class="sw" style="background:#64748b"></i><b>系統UI</b> 30 筆（1.1% · 系統彈窗 / 短信 / 拍照）</span>
+    <div class="bs-card">
+      <div class="bs-num">盲點 04 · 跨檔碎片化</div>
+      <h3>拆檔加上簡繁命名造成的同類失聯</h3>
+      <p>僅「彈窗」一項就分散在 2 份檔、合計 15 種細分變體（PIN、OTP、FaceID、指紋、KYC、T&amp;C、分帳……）裡。多檔整合搭配簡繁雙向搜尋，不用合併原始 Figma 檔也能一次看齊所有變體並推動元件收斂。</p>
     </div>
   </div>
 </section>
 
-<!-- Section 05: Quick Start + Technical Links -->
+<!-- Chapter 4: Quick Start & Engineer Corner -->
 <section id="start">
-  <div class="sec-kicker">05 · 3 分鐘跑起來</div>
-  <h2>設計師怎麼開始用？</h2>
-  <p class="sec-lead">全程本機執行，不用把公司設計稿上傳任何外部雲端；後端服務已支援自動熱重載，日常使用開著即可。</p>
+  <div class="kicker">終章 · 本機開用</div>
+  <h2>3 分鐘在自己電腦跑起來</h2>
+  <p class="lead">服務支援自動熱重載，平時就讓它在本機默默聽著，你在 Figma 隨時匯出或落盤都會即時更新。</p>
 
-  <div class="start-grid">
-    <div class="start-card">
-      <span class="pill blue">Step 1</span>
-      <h3>啟動本機服務（熱重載）</h3>
-      <p>建好本機圖譜庫與 WebSocket 雙向中繼（開著自動跟隨程式碼更新）。</p>
-      <pre><code>npm install
-npm run start:server</code></pre>
-    </div>
-    <div class="start-card">
-      <span class="pill blue">Step 2</span>
-      <h3>Figma 載入插件匯出</h3>
-      <p>打包後在 Figma Desktop 載入 <code>plugin/manifest.json</code>，勾選頁面或整檔匯出。</p>
-      <pre><code>npm run build:plugin</code></pre>
-    </div>
-    <div class="start-card">
-      <span class="pill green">Step 3</span>
-      <h3>打開專案空間開始盤點</h3>
-      <p>組合多個 Figma 檔共用規則，開用臨時拼板、簡繁搜分類與直接寫入。</p>
-      <pre><code>open http://127.0.0.1:8765/review</code></pre>
-    </div>
+  <div class="start-row">
+    <div class="start-card"><b>STEP 1</b><h3>啟動本機熱重載服務</h3><p>建立本機 SQLite 圖譜與插件雙向中繼。</p><pre><code>npm install
+npm run start:server</code></pre></div>
+    <div class="start-card"><b>STEP 2</b><h3>載入 Figma 插件匯出</h3><p>在 Figma 匯入 <code>plugin/manifest.json</code> 即可抽全檔或單頁。</p><pre><code>npm run build:plugin</code></pre></div>
+    <div class="start-card"><b>STEP 3</b><h3>打開工作台開始盤點</h3><p>組合多檔、一鍵臨時拼板、簡繁快標與重建頁面。</p><pre><code>open http://127.0.0.1:8765/review</code></pre></div>
   </div>
 
-  <div class="tech-strip">
-    <div>
-      <strong style="font-size:14px">給想了解底層技術或 MCP 串接的工程師／進階玩家：</strong>
-      <div style="font-size:12.5px;color:var(--muted)">原來的五篇技術深度圖解與工程設計文件完整保留於此，點選即可閱讀。</div>
+  <details class="more">
+    <summary>給工程師與架構研究者：實測驗收數據、MCP 16 Tools 與五篇底層技術圖解</summary>
+    <div class="more-body">
+      <div>多檔組合實測 <strong>105 萬+ 節點 · 91 頁 · 4,006 畫面（AST 去重 1,916 組）</strong>；基準檔 2,808 筆人工核對全數通過 <code>verify-source</code>、<code>test:workspaces</code>、<code>test:bridge</code>、<code>test:mcp</code> 契約驗證。</div>
+      <div class="tech-links">
+        <a href="explainers.html">五篇總覽</a>
+        <a href="graph-concept.html">01 圖譜概念</a>
+        <a href="hash.html">02 Merkle 去重</a>
+        <a href="graph.html">03 數據脫水三層</a>
+        <a href="case-popup.html">04 Z-order 彈窗判定</a>
+        <a href="constraints.html">05 MCP 四道契約閘門</a>
+        <a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub 原始碼</a>
+      </div>
     </div>
-    <div class="tech-links">
-      <a href="explainers.html">五篇總覽</a>
-      <a href="graph-concept.html">01 圖譜原理</a>
-      <a href="hash.html">02 Merkle 去重</a>
-      <a href="graph.html">03 數據脫水</a>
-      <a href="case-popup.html">04 彈窗規則 traced</a>
-      <a href="constraints.html">05 MCP 契約閘門</a>
-      <a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub 原始碼</a>
-    </div>
-  </div>
+  </details>
 
   <footer>
-    <strong>Rea-FigmaDesign</strong> · 從設計師痛點出發的多檔 Figma AST 圖譜與雙向治理工作台 · MIT License
+    <strong>Rea-FigmaDesign</strong> · 以設計師真實旅程為核心的 Figma AST 圖譜與雙向治理工作台 · MIT License
   </footer>
 </section>
 
 </div>
 
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="截圖放大檢視">
+  <div class="lightbox-inner">
+    <div class="lightbox-bar">
+      <span id="lb-cap"></span>
+      <button class="lightbox-close" id="lb-close" type="button">關閉 (Esc)</button>
+    </div>
+    <div class="lightbox-body">
+      <img id="lb-img" src="" alt="">
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
-  const THEME_KEY = 'rea-docs-theme';
-  const btn = document.getElementById('theme-btn');
-  function applyTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    if (btn) btn.textContent = t === 'light' ? '深色模式' : '淺色模式';
+  // Lightbox for high-res screenshot inspection
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lb-img');
+  const lbCap = document.getElementById('lb-cap');
+  const lbClose = document.getElementById('lb-close');
+  function closeLb() {
+    if (lb) lb.classList.remove('open');
+    if (lbImg) lbImg.src = '';
   }
-  let saved = 'light';
-  try { saved = localStorage.getItem(THEME_KEY) || 'light'; } catch (e) {}
-  applyTheme(saved);
-  if (btn) {
-    btn.addEventListener('click', function() {
-      const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      applyTheme(next);
-      try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
-    });
-  }
-
-  // 5-Step Journey Tabs
-  const jTabs = Array.from(document.querySelectorAll('.j-tab'));
-  const jPanels = Array.from(document.querySelectorAll('.j-panel'));
-  function activateJourney(id) {
-    jTabs.forEach(function(b) {
-      const on = b.getAttribute('data-jtab') === id;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    jPanels.forEach(function(p) {
-      p.classList.toggle('active', p.id === id);
-    });
-  }
-  jTabs.forEach(function(b, idx) {
-    b.addEventListener('click', function() { activateJourney(b.getAttribute('data-jtab')); });
-    b.addEventListener('keydown', function(ev) {
-      if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') {
-        ev.preventDefault();
-        const nextIdx = (idx + (ev.key === 'ArrowRight' ? 1 : -1) + jTabs.length) % jTabs.length;
-        jTabs[nextIdx].focus();
-        activateJourney(jTabs[nextIdx].getAttribute('data-jtab'));
-      }
+  document.querySelectorAll('.shot-frame img').forEach(function(img) {
+    img.addEventListener('click', function() {
+      if (!lb || !lbImg) return;
+      lbImg.src = img.getAttribute('src') || '';
+      lbImg.alt = img.getAttribute('alt') || '';
+      const frame = img.closest('.shot-frame');
+      const titleEl = frame ? frame.querySelector('.shot-title') : null;
+      if (lbCap) lbCap.textContent = (titleEl ? titleEl.textContent + ' — ' : '') + (img.getAttribute('alt') || '');
+      lb.classList.add('open');
     });
   });
+  if (lbClose) lbClose.addEventListener('click', closeLb);
+  if (lb) {
+    lb.addEventListener('click', function(ev) {
+      if (ev.target === lb) closeLb();
+    });
+  }
+  document.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') closeLb();
+  });
 
-  // Live Mini Simplified/Traditional Search Demo
-  const DEMO_MAP = {
+  // Live Simplified/Traditional Search Demo
+  const ZH = {
     '彈':'弹', '詳':'详', '頁':'页', '帳':'账', '賬':'账', '廢':'废', '棄':'弃',
     '銀':'银', '掃':'扫', '碼':'码', '驗':'验', '證':'证', '確':'确', '認':'认',
     '紋':'纹', '設':'设', '記':'记', '錄':'录', '歷':'历', '屜':'屉', '機':'机',
     '號':'号', '擇':'择', '傳':'传', '上傳':'上传', '類':'类', '陣':'阵', '統':'统',
-    '舊':'旧', '選':'选', '分帳':'分账'
+    '舊':'旧', '選':'选'
   };
   function normZh(s) {
-    const lower = String(s || '').toLowerCase();
+    const low = String(s || '').toLowerCase();
     let out = '';
-    for (let i = 0; i < lower.length; i += 1) {
-      const ch = lower[i];
-      out += DEMO_MAP[ch] || ch;
-    }
+    for (let i = 0; i < low.length; i += 1) out += ZH[low[i]] || low[i];
     return out;
   }
-  function demoMatch(itemText, qText) {
-    const q = normZh(qText).trim();
-    if (!q) return true;
-    const hay = normZh(itemText);
-    return q.split(/\s+/).every(function(tok) { return hay.indexOf(tok) !== -1; });
-  }
-  const DEMO_CATS = [
+  const CATS = [
     { label: '新UI / 通用彈窗', cls: 'blue' },
     { label: '新UI / 下拉抽屜彈窗', cls: 'blue' },
     { label: '新UI / PIN確認彈窗', cls: 'blue' },
@@ -861,31 +1120,28 @@ npm run start:server</code></pre>
     { label: '系統UI / 系統彈窗', cls: 'purple' },
     { label: '新UI / 交易詳情', cls: 'blue' },
     { label: '新UI / MGM详情页', cls: 'blue' },
-    { label: '新UI / 分账记录list', cls: 'blue' },
     { label: '新UI / 收銀台', cls: 'blue' },
-    { label: '新UI / 交易歷史記錄', cls: 'blue' },
     { label: '新UI / Tap&Pay 陣地頁', cls: 'blue' }
   ];
-  const demoInput = document.getElementById('demo-q');
-  const demoRes = document.getElementById('demo-res');
-  const demoCnt = document.getElementById('demo-cnt');
+  const inp = document.getElementById('demo-q');
+  const res = document.getElementById('demo-res');
+  const cnt = document.getElementById('demo-cnt');
   function renderDemo() {
-    if (!demoInput || !demoRes) return;
-    const q = demoInput.value || '';
-    const hits = DEMO_CATS.filter(function(c) { return demoMatch(c.label, q); });
-    if (demoCnt) demoCnt.textContent = '命中 ' + hits.length + ' / ' + DEMO_CATS.length + ' 個分類';
-    demoRes.innerHTML = hits.length > 0
+    if (!inp || !res) return;
+    const q = normZh(inp.value).trim();
+    const toks = q ? q.split(/\s+/) : [];
+    const hits = toks.length
+      ? CATS.filter(function(c) { const h = normZh(c.label); return toks.every(function(t) { return h.indexOf(t) !== -1; }); })
+      : CATS;
+    if (cnt) cnt.textContent = hits.length + ' / ' + CATS.length;
+    res.innerHTML = hits.length
       ? hits.map(function(c) { return '<span class="pill ' + c.cls + '">' + c.label + '</span>'; }).join('')
-      : '<span style="font-size:12.5px;color:var(--muted)">找不到相符分類，試試輸入「弹窗」或「详情」</span>';
+      : '<span style="font-size:12.5px;color:var(--muted)">無符合結果</span>';
   }
-  if (demoInput) demoInput.addEventListener('input', renderDemo);
-  document.querySelectorAll('[data-dq]').forEach(function(chip) {
-    chip.addEventListener('click', function() {
-      if (demoInput) {
-        demoInput.value = chip.getAttribute('data-dq') || '';
-        renderDemo();
-        demoInput.focus();
-      }
+  if (inp) inp.addEventListener('input', renderDemo);
+  document.querySelectorAll('[data-dq]').forEach(function(ch) {
+    ch.addEventListener('click', function() {
+      if (inp) { inp.value = ch.getAttribute('data-dq') || ''; renderDemo(); inp.focus(); }
     });
   });
   renderDemo();

@@ -32,7 +32,7 @@ Figma 擅長畫，不擅長「查」：改名、複製、隱藏稿、新舊版�
 ### 工具
 
 - CLI：doctor / health / tier1 / sample / hidden / report:category / audit
-- MCP：11 個查詢與標註工具
+- MCP：16 個查詢與標註工具
 - DSH Skill：.dsh/skills/rea-figma-design（可安裝、自動載入）
 - DSH 命令：/rea-figma-review、/rea-figma-doctor
 

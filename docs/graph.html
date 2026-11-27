@@ -4,91 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rea-FigmaDesign · 數據脫水的核心方法</title>
-<style>
-  :root{
-    --bg:#0f1115; --panel:#151922; --line:#242b38; --text:#e8ebf2; --muted:#8b93a7;
-    --accent:#2f6df6; --accent2:#7a5cff; --ok:#25b47a; --warn:#e0a03a;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.78 -apple-system,"PingFang TC","Noto Sans TC",system-ui,sans-serif}
-  a{color:#9fb4ff;text-decoration:none}
-  a:hover{text-decoration:underline}
-  .layout{display:flex;max-width:1180px;margin:0 auto}
-  nav{width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;height:100vh;padding:32px 20px;border-right:1px solid var(--line);overflow:auto}
-  nav .brand{font-size:12px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
-  nav a{display:block;padding:6px 0;color:#b9c2d6;font-size:14px}
-  main{flex:1;min-width:0;padding:56px 48px 120px}
-  header.hero{border-bottom:1px solid var(--line);padding-bottom:32px;margin-bottom:8px}
-  .kicker{color:var(--accent);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
-  h1{font-size:40px;line-height:1.22;margin:12px 0 10px;letter-spacing:-.01em}
-  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .lede{color:#c3cad9;font-size:18px;max-width:720px}
-  .meta{color:var(--muted);font-size:13px;margin-top:16px}
-  section{padding:42px 0 10px;border-bottom:1px solid var(--line)}
-  section:last-of-type{border-bottom:0}
-  h2{font-size:25px;margin:0 0 8px;letter-spacing:-.01em}
-  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
-  h3{font-size:17px;margin:26px 0 8px}
-  p{color:#cfd5e2;max-width:740px}
-  ul,ol{color:#cfd5e2;max-width:740px}
-  li{margin:6px 0}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:#1b2230;padding:1px 6px;border-radius:5px;color:#cfe0ff}
-  pre{background:#111722;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-size:13px;line-height:1.65}
-  pre code{background:none;padding:0}
-  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
-  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 16px;color:#c9d2e4;margin:20px 0}
-  .note{background:#151d2b;border:1px solid #22304a;border-radius:10px;padding:14px 16px;color:#c9d4e8;font-size:14px}
-  /* 精簡流程圖 */
-  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:20px 0 6px}
-  .flow .box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:#dbe3f2;font-size:13px;line-height:1.5}
-  .flow .box.hot{border-color:#2f6df6;background:#16203a;color:#fff}
-  .flow .arrow{color:var(--muted);font-size:14px}
-  .caption{color:var(--muted);font-size:12.5px;margin:4px 0 0}
-  /* 步驟 */
-  .step{display:flex;gap:14px;margin:22px 0}
-  .step .n{flex:0 0 28px;height:28px;border-radius:50%;background:#1c2740;color:#9fb4ff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
-  .step .body{min-width:0}
-  .step h3{margin:2px 0 6px}
-  .tool{background:#131a26;border:1px solid #22304a;border-radius:10px;padding:12px 14px;margin:10px 0;font-size:14px}
-  .tool b{color:#cfe0ff;font-family:ui-monospace,Menlo,monospace;font-size:13px}
-  .tool .k{color:var(--muted);font-size:12px;display:inline-block;min-width:38px}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
-  .split .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
-  .split .card .big{font-size:30px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
-  .split .card .sub{color:var(--muted);font-size:13px}
-  figure{margin:22px 0}
-  figure img{width:100%;border:1px solid var(--line);border-radius:12px;display:block}
-  figcaption{color:var(--muted);font-size:13px;margin-top:8px}
-  .series{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:36px 0 0;padding:14px 0;border-top:1px solid var(--line);font-size:13px}
-  .series a{color:#9fb4ff}
-  .series .mid{color:var(--muted)}
-  .crumbs{font-size:12.5px;color:var(--muted);margin:0 0 16px}
-  .crumbs a{color:#9fb4ff}
-  .crumbs .sep{margin:0 6px;color:#4a556b}
-  .topbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:16px;padding:10px 24px;background:rgba(15,17,21,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  .topbar .wordmark{font-weight:600;font-size:14px;letter-spacing:.02em;color:#fff}
-  .topbar .links{display:flex;align-items:center;gap:18px;margin-left:auto;font-size:13.5px}
-  .topbar .links a{color:#b9c2d6}
-  .topbar .links a.active{color:#fff}
-  @media (max-width:700px){.topbar .links a[href*="github"]{display:none}}  footer{color:var(--muted);font-size:13px;padding-top:36px}
-  @media (max-width:900px){nav{display:none}main{padding:32px 22px 80px}h1{font-size:31px}.split{grid-template-columns:1fr}}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="explainer-theme.css">
 </head>
 <body>
 <header class="topbar">
-  <a class="wordmark" href="index.html">Rea-FigmaDesign</a>
-  <div class="links">
+  <a class="brand" href="index.html"><span class="brand-dot" aria-hidden="true"></span>Rea-FigmaDesign</a>
+  <nav class="nav" aria-label="主導覽">
     <a href="index.html">產品介紹</a>
     <a href="explainers.html" class="active">深入解釋</a>
     <a href="https://github.com/yandapengh/Rea-FigmaDesign">GitHub</a>
-  </div>
+    <a class="btn" href="index.html">← 回到產品實錄</a>
+  </nav>
 </header>
+
 <div class="layout">
-<nav>
-  <div class="brand">Rea-FigmaDesign</div>
+<nav aria-label="章節目錄">
+  <div class="toc-title">03 · 數據脫水</div>
   <a href="#s0">00 為什麼拆開黑盒</a>
   <a href="#s1">01 一個問題，兩個答案</a>
   <a href="#s2">02 把檔案攤平</a>
@@ -105,12 +39,12 @@
   <div class="kicker">Core method · 2026</div>
   <h1>數據脫水的<span>核心方法</span></h1>
   <p class="lede">一個 462 MB 的 Figma 檔，如何變成一張能回答「有多少個彈窗頁面」的圖譜——以及為什麼模型可以靠它工作。</p>
-  <div class="meta">這頁只講一件事：資料被壓成什麼形狀，模型才答得出來。背景與整體架構見 <a href="index.html">product.html</a>。</div>
+  <div class="meta">這頁只講一件事：資料被壓成什麼形狀，模型才答得出來。設計師旅程見 <a href="index.html">產品介紹首頁</a>。</div>
 </header>
 
 <section id="s0">
   <h2><span class="num">00</span>為什麼要拆開黑盒</h2>
-  <p>這個專案是從一個真實的工作日開始的（故事在 <a href="index.html#p1-0">index.html</a>）。做完之後，我把它拿給別人看；最常被問到的不是「用了哪個模型」，而是：</p>
+  <p>這個專案是從一個真實的工作痛點開始的（完整對比見 <a href="index.html#compare">產品實錄第一章</a>）。做完之後，我把它拿給別人看；最常被問到的不是「用了哪個模型」，而是：</p>
   <div class="quote">「這些資料，你是怎麼處理的？」</div>
   <p>問的人不一定懂技術，但他們想知道的是同一件事：<strong>這件事你能不能控制、能不能改、能不能換一個場景重做。</strong></p>
   <p>黑盒的問題不在於它不準，而在於它不準的時候你不知道為什麼，要改的時候不知道從哪改。</p>
@@ -204,9 +138,9 @@ type / bbox    形狀：這是什麼、多大</code></pre>
   <h3>圖譜上額外長出的三個欄位</h3>
   <table>
     <tr><th>欄位</th><th>算法</th><th>回答什麼</th></tr>
-    <tr><td>archetype</td><td>與畫布同尺寸 + 這一層無文字 + 緊鄰上方有更小的兄弟</td><td>這頁是不是彈窗</td></tr>
-    <tr><td>family</td><td>同一個 hash 的成員</td><td>這頁有幾個複本</td></tr>
-    <tr><td>style profile</td><td>色票 / 字階 / 圓角 / 陰影統計</td><td>這頁屬於哪個世代</td></tr>
+    <tr><td><code>archetype</code></td><td>與畫布同尺寸 + 這一層無文字 + 緊鄰上方有更小的兄弟</td><td>這頁是不是彈窗</td></tr>
+    <tr><td><code>family</code></td><td>同一個 hash 的成員</td><td>這頁有幾個複本</td></tr>
+    <tr><td><code>style profile</code></td><td>色票 / 字階 / 圓角 / 陰影統計</td><td>這頁屬於哪個世代</td></tr>
   </table>
   <p class="note">「圖譜」指的是：<strong>樹狀結構 + 子樹相等性</strong>。不是一張視覺化的網，而是讓「相同」變成一個可以查的欄位。</p>
 </section>
@@ -283,8 +217,8 @@ overlay    32</code></pre>
         <div><span class="k">回傳</span>結構 hash、風格指紋、標題文案、變體軸</div>
       </div>
       <div class="tool">
-        <div><b>review_queue</b> <span class="k">作用</span>待人工確認的分類清單</div>
-        <div><span class="k">回傳</span>待分類畫面（可用 archetype 過濾）</div>
+        <div><b>review_queue</b> <span class="k">作用</span>待人工確認的分類清單（已升級為 <code>build_review_board</code> 工作台）</div>
+        <div><span class="k">回傳</span>依分類／頁面／家族整理的結構複審視圖</div>
       </div>
       <p>下鑽的價值：使用者不只知道「有 87 個」，還能把 ID 貼回 Figma 逐一確認。</p>
     </div>
@@ -323,8 +257,14 @@ overlay    32</code></pre>
   <p>同一份資料、同一個版本，每次跑出來都是 291 / 87 / 32。模型換一個、對話換一個，數字不變。</p>
 
   <figure>
-    <img src="review-board.png" alt="複審看板：左側分類導航、表格列出 ID、頁面、複本數、狀態、預測分類與信心">
-    <figcaption>複審看板：每一列都是一個可貼回 Figma 的 ID；左側導航就是第 03 節算出來的結構分組。設計師在這裡按一下，就把「我判斷錯了」寫回資料。</figcaption>
+    <div class="shot-frame">
+      <div class="shot-chrome">
+        <span class="shot-dots"><i></i><i></i><i></i></span>
+        <span class="shot-title">Rea 複審工作台 · 數據總覽看板</span>
+      </div>
+      <img src="assets/06-board-overview.png" alt="Rea 複審工作台總覽看板：左側分類樹、頁面總數 4,006 與 AST 去重後 1,916 組、新舊世代分佈與分類細項卡片">
+    </div>
+    <figcaption>複審工作台：左側導航就是由結構 hash 與標準分類算出的視圖。設計師可一鍵生成臨時拼板或在 Figma 中定位原稿，確認後的分類直接寫回 <code>screens-v2.json</code>。</figcaption>
   </figure>
 </section>
 
@@ -335,7 +275,7 @@ overlay    32</code></pre>
     <tr><th>依賴</th><th>換專案時要改嗎</th></tr>
     <tr><td>節點有父子關係與順序</td><td>不用，這是 Figma 的資料模型</td></tr>
     <tr><td>遮罩 = 這一層與畫布同尺寸、無文字、上方有面板</td><td>不用，這是設計師的慣例</td></tr>
-    <tr><td>畫面尺寸（例如 390×844）</td><td><strong>要改</strong>，換成該專案的畫布尺寸</td></tr>
+    <tr><td>畫面尺寸（例如 390×844 或 PC 1440px）</td><td><strong>可在工作空間切換預設規則</strong>，換成該專案的畫布尺寸</td></tr>
   </table>
   <p>需要換的還有「分類字典」——但字典可以是空的。沒有字典時，工具仍然回答結構問題（119 / 87），只是不回答語意問題。</p>
   <div class="quote">這套方法不需要先學會你的詞彙，才能開始工作。</div>
@@ -347,7 +287,7 @@ overlay    32</code></pre>
   <table>
     <tr><th>限制</th><th>影響</th></tr>
     <tr><td>語意分類需要標註</td><td>沒有標註時，只能回答結構問題；模型不能發明分類</td></tr>
-    <tr><td>沒有縮圖</td><td>看板用色票、型別比例、文案當視覺替代；要看真圖得回 Figma</td></tr>
+    <tr><td>工作台不內嵌 PNG 縮圖</td><td>用色票、型別比例、文案摘要輔助判斷；需要看高解析圖時透過「臨時拼板」直接在 Figma 排齊檢視</td></tr>
     <tr><td>分類預測只有全票可信</td><td>留一驗證 57%，全票 86%；其餘進人工複審</td></tr>
   </table>
   <p>把邊界寫出來，不是為了免責，而是讓下一個使用者知道<strong>什麼時候不該用這個工具</strong>。</p>
@@ -361,7 +301,7 @@ overlay    32</code></pre>
 
 <footer>
   Rea-FigmaDesign · 數據脫水的核心方法<br>
-  延伸：<a href="hash.html">房型身分證（hash）</a> · <a href="constraints.html">工具約束（給外部 agent）</a> · <a href="graph-concept.html">圖譜是什麼（給非技術讀者）</a> · <a href="case-popup.html">一次真實的查詢（實作篇）</a> · <a href="index.html">背景與整體架構</a> · <a href="DECISIONS.md">每個決定的理由</a> · <a href="VALIDATION.md">驗證方法</a> · <a href="ARCHITECTURE.md">分層與資料契約</a>
+  延伸：<a href="hash.html">房型身分證（hash）</a> · <a href="constraints.html">工具約束（給外部 agent）</a> · <a href="graph-concept.html">圖譜是什麼（給非技術讀者）</a> · <a href="case-popup.html">一次真實的查詢（實作篇）</a> · <a href="index.html">產品實錄首頁</a> · <a href="DECISIONS.md">每個決定的理由</a> · <a href="VALIDATION.md">驗證方法</a> · <a href="ARCHITECTURE.md">分層與資料契約</a>
 </footer>
 </main>
 </div>
