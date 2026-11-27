@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 128" width="540" height="128" fill="none">
+  <title>Rea-FigmaDesign Horizontal Logo (Light)</title>
+  <g id="Rea-Mark" transform="translate(-4 0)">
+    <path fill="#4F46E5" d="M 22 29 A 10 10 0 0 1 32 19 L 40 19 A 4 4 0 0 1 44 23 L 44 105 A 4 4 0 0 1 40 109 L 32 109 A 10 10 0 0 1 22 99 Z"/>
+    <path fill="#0EA5E9" fill-rule="evenodd" d="M 56 19 L 82 19 A 24 24 0 0 1 82 67 L 56 67 A 4 4 0 0 1 52 63 L 52 23 A 4 4 0 0 1 56 19 Z M 82 34.5 A 8.5 8.5 0 1 0 82 51.5 A 8.5 8.5 0 1 0 82 34.5 Z"/>
+    <path fill="#10B981" d="M 53.39 82.75 A 4.5 4.5 0 0 1 56.5 75 L 75.32 75 A 4.5 4.5 0 0 1 78.43 76.25 L 104.61 101.25 A 4.5 4.5 0 0 1 101.5 109 L 82.68 109 A 4.5 4.5 0 0 1 79.57 107.75 Z"/>
+  </g>
+  <g id="Wordmark">
+    <text x="128" y="64" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="42" letter-spacing="-1.2">
+      <tspan font-weight="700" fill="#0F172A">Rea</tspan><tspan font-weight="400" fill="#4F46E5">-</tspan><tspan font-weight="600" fill="#334155">FigmaDesign</tspan>
+    </text>
+    <text x="130" y="96" font-family="'JetBrains Mono', 'SF Mono', ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="500" letter-spacing="1.2" fill="#64748B">
+      FIGMA AST · SQLITE GRAPH · REVIEW LOOP
+    </text>
+  </g>
+</svg>

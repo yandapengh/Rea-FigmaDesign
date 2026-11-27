@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg">
 <title>Rea-FigmaDesign · 設計師把幾千張 Figma 畫稿理成一張活圖譜的真實旅程</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,15 +103,14 @@
     color:var(--text);
   }
   .brand:hover{color:var(--text);text-decoration:none}
-  .brand-dot{
-    width:18px;height:18px;border-radius:5px;
-    background:var(--accent);
-    display:inline-flex;align-items:center;justify-content:center;
-    box-shadow:inset 0 0 0 1px rgba(20,20,19,0.08);
+  .brand-logo{
+    width:24px;height:24px;display:block;flex:none;
   }
-  .brand-dot::after{
-    content:"";width:6px;height:6px;border-radius:1.5px;
-    background:#FAF9F5;
+  .hero-logo{
+    display:block;height:52px;width:auto;margin:0 auto 20px;max-width:100%;
+  }
+  .footer-logo{
+    height:34px;width:auto;display:block;margin-bottom:10px;
   }
   .nav{display:flex;align-items:center;gap:22px;margin-left:auto;font-size:13.5px}
   .nav a{color:var(--muted);font-weight:500;transition:color .15s}
@@ -559,7 +559,7 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="index.html"><span class="brand-dot" aria-hidden="true"></span>Rea-FigmaDesign</a>
+  <a class="brand" href="index.html"><img class="brand-logo" src="assets/logo-mark.svg" alt="" width="24" height="24">Rea-FigmaDesign</a>
   <nav class="nav" aria-label="主導覽">
     <a href="#compare">痛點對比</a>
     <a href="#journey">六幕實錄</a>
@@ -573,6 +573,7 @@
 
 <!-- Prologue: Hero + Real Before/After Diptych -->
 <header class="hero">
+  <img class="hero-logo" src="assets/logo-horizontal.svg" alt="Rea-FigmaDesign — Figma AST · SQLite Graph · Review Loop" height="52">
   <span class="eyebrow"><i></i>真實設計專案實錄 · 2 份產品檔 · 91 頁 · 4,006 張設計稿</span>
   <h1>整理 4,000 張設計稿，<br>從<span>「三天翻頁」</span>縮成<span>「幾十分鐘」</span></h1>
   <p class="hero-sub">這不是另一張概念架構圖，而是一位設計師在真實產品檔裡從混亂到秩序的完整操作旅程——不合併原檔、不改圖層名、不碰雲端原稿。</p>
@@ -1037,6 +1038,7 @@ npm run start:server</code></pre></div>
   </details>
 
   <footer>
+    <img class="footer-logo" src="assets/logo-horizontal.svg" alt="Rea-FigmaDesign" height="34">
     <strong>Rea-FigmaDesign</strong> · 以設計師真實旅程為核心的 Figma AST 圖譜與雙向治理工作台 · MIT License
   </footer>
 </section>
